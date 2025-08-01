@@ -24,7 +24,8 @@ COPY src/ /app/
 
 # Set the virtual environment environment variables
 ENV VIRTUAL_ENV=/app/.venv \
-    PATH="/app/.venv/bin:$PATH"
+    PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH=/app
 
 # Install the package in editable mode
 RUN uv pip install -e .
