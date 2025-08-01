@@ -5,12 +5,13 @@ angGraph models agent workflows as graphs, using three main components:
 
 🔶 Nodes - Python functions that define the agent behaviour. They take in the current state, perform actions, and return the updated state.
 
-🔶 Edges - Python functions that decide which Node runs next based on the State, allowing for conditional or fixed transitions (we’ll see an example of conditional edge later 😉)
+🔶 Edges - Python functions that decide which Node runs next based on the State, allowing for conditional or fixed transitions (we'll see an example of conditional edge later 😉)
 
-By combining Nodes and Edges, you can build dynamic workflows, like Ava! In the next section, we’ll take a look at Ava’s graph and its Nodes and Edges.
+By combining Nodes and Edges, you can build dynamic workflows, like Ava! In the next section, we'll take a look at Ava's graph and its Nodes and Edges.
 
 
 """
+from typing import Dict
 from langgraph.graph import MessagesState
 
 
@@ -73,3 +74,35 @@ class AICompanionState(MessagesState):
     memory_context: str   # Relevant memories about THIS USER retrieved from vector DB
                          # Example: "John is a developer, likes pizza, lives in NYC, working on AI project"
                          # This is the key to personalized responses!
+
+    # 📞 VOICE CALLING SUPPORT (WHATSAPP → PHONE)
+    user_phone_number: str = ""  # WhatsApp sender's phone number for voice calls
+                                 # Format: "+1234567890" (E.164 international format)
+                                 # Used by voice_calling_node to initiate outbound calls
+                                 # Example: "+15551234567"
+
+    user_id: str = ""           # Unique user identifier (usually same as phone number)
+                               # Used for user isolation and memory retrieval
+                               # For WhatsApp: same as user_phone_number
+                               # For Chainlit: could be session ID or user login
+
+    interface: str = "unknown"  # Which interface is this message from?
+                              # Values: "whatsapp" | "chainlit" | "unknown"
+                              # Helps nodes adapt behavior based on platform
+                              # Example: voice_calling only works for WhatsApp
+
+    # 🎯 ACTIVE CALL TRACKING
+    active_call: Dict = {}      # Details about ongoing voice call (if any)
+                               # Contains: call_id, status, start_time, assistant_id
+                               # Used to track call progress and handle callbacks
+                               # Example: {"call_id": "abc123", "status": "ringing"}
+
+    call_initiated_at: str = "" # Timestamp when voice call was initiated
+                               # ISO format: "2024-01-15T10:30:00Z"
+                               # Used for call duration tracking and timeouts
+                               # Empty string when no active call
+
+    voice_context_used: Dict = {} # WhatsApp conversation context passed to voice call
+                                 # Contains: userName, recentContext, conversationTopic
+                                 # Ensures continuity between WhatsApp chat and phone call
+                                 # Example: {"userName": "John", "conversationTopic": "AI project help"}

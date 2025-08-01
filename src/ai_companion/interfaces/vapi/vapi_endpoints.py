@@ -89,6 +89,172 @@ class VapiChatResponse(BaseModel):
 # This is like creating a "phone department" within Ava's office
 vapi_router = APIRouter(prefix="/vapi", tags=["vapi"])
 
+@vapi_router.get("/health")
+async def vapi_health_check():
+    """
+    VAPI HEALTH CHECK - Test if voice calling system is operational
+    
+    🎯 PURPOSE: Quick endpoint to verify all voice calling components are working
+    
+    🔗 REAL-WORLD ANALOGY: Like a phone system test that checks:
+    - Is the phone line connected? (Vapi client initialized)
+    - Can we make calls? (Vapi credentials valid)
+    - Is the voice system ready? (All components operational)
+    
+    📞 USAGE: Call this endpoint to diagnose voice calling issues:
+    GET /vapi/health
+    
+    Returns status of all voice calling components
+    """
+    try:
+        # CHECK VAPI CLIENT STATUS
+        from ai_companion.interfaces.vapi.vapi_client import vapi_client
+        
+        health_status = {
+            "status": "checking",
+            "timestamp": datetime.now().isoformat(),
+            "components": {}
+        }
+        
+        # CHECK 1: VAPI CLIENT EXISTS
+        if vapi_client is None:
+            health_status["status"] = "unhealthy"
+            health_status["components"]["vapi_client"] = {
+                "status": "missing",
+                "message": "Vapi client not initialized. Check VAPI_API_PRIVATE_KEY and VAPI_PHONE_NUMBER_ID in .env"
+            }
+        else:
+            health_status["components"]["vapi_client"] = {
+                "status": "initialized",
+                "message": "Vapi client object created successfully"
+            }
+            
+            # CHECK 2: VAPI CONNECTION
+            if vapi_client.is_connected():
+                health_status["components"]["vapi_connection"] = {
+                    "status": "connected",
+                    "message": "Vapi API connection validated"
+                }
+            else:
+                health_status["status"] = "unhealthy"
+                health_status["components"]["vapi_connection"] = {
+                    "status": "disconnected",
+                    "message": "Vapi API connection failed. Check credentials."
+                }
+            
+            # CHECK 3: PHONE NUMBER CONFIG
+            health_status["components"]["phone_config"] = {
+                "phone_number_id": vapi_client.phone_number_id if vapi_client else "not configured",
+                "voice_id": vapi_client.voice_id if vapi_client else "not configured",
+                "railway_url": vapi_client.railway_url if vapi_client else "not configured"
+            }
+        
+        # CHECK 4: CHAT ENDPOINT
+        health_status["components"]["chat_endpoint"] = {
+            "url": "/vapi/chat/completions",
+            "status": "ready",
+            "message": "OpenAI-compatible endpoint ready for Vapi"
+        }
+        
+        # OVERALL STATUS
+        if all(comp.get("status") not in ["missing", "disconnected", "error"] 
+               for comp in health_status["components"].values() 
+               if isinstance(comp, dict) and "status" in comp):
+            health_status["status"] = "healthy"
+            health_status["message"] = "Voice calling system is operational"
+        else:
+            health_status["status"] = "unhealthy"
+            health_status["message"] = "Voice calling system has issues. Check component details."
+        
+        # LOG HEALTH CHECK RESULT
+        logging.info(f"🏥 VAPI HEALTH CHECK: {health_status['status'].upper()}")
+        for component, details in health_status["components"].items():
+            if isinstance(details, dict) and "status" in details:
+                logging.info(f"   {component}: {details['status']}")
+        
+        return health_status
+        
+    except Exception as e:
+        logging.error(f"🚨 VAPI HEALTH CHECK ERROR: {str(e)}")
+        return {
+            "status": "error",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e),
+            "message": "Health check encountered an error"
+        }
+
+@vapi_router.post("/test-call")
+async def test_voice_call(phone_number: str = None):
+    """
+    TEST VOICE CALL - Make a test call to verify system works
+    
+    🎯 PURPOSE: Admin endpoint to test voice calling without WhatsApp
+    
+    🔗 REAL-WORLD ANALOGY: Like a phone system's "test call" button
+    that dials a number to verify everything is connected properly
+    
+    📞 USAGE: POST /vapi/test-call?phone_number=+1234567890
+    
+    ⚠️ SECURITY: This should be disabled in production or protected
+    with authentication to prevent abuse
+    """
+    try:
+        # VALIDATE INPUT
+        if not phone_number:
+            return {
+                "status": "error",
+                "message": "Phone number required. Use ?phone_number=+1234567890"
+            }
+        
+        if not phone_number.startswith('+'):
+            return {
+                "status": "error", 
+                "message": "Phone number must start with + (E.164 format)"
+            }
+        
+        # CHECK VAPI CLIENT
+        from ai_companion.interfaces.vapi.vapi_client import vapi_client
+        
+        if vapi_client is None:
+            return {
+                "status": "error",
+                "message": "Vapi client not initialized. Check /vapi/health for details."
+            }
+        
+        # PREPARE TEST CONTEXT
+        test_context = {
+            "userName": "Test User",
+            "recentContext": "This is a test call initiated from the admin endpoint",
+            "conversationTopic": "System testing",
+            "callingReason": "Testing voice calling functionality",
+            "messageCount": 0,
+            "interface": "admin_test"
+        }
+        
+        # LOG TEST CALL ATTEMPT
+        logging.info(f"🧪 TEST CALL INITIATED:")
+        logging.info(f"   📱 To: {phone_number}")
+        logging.info(f"   🎯 Purpose: System testing")
+        
+        # MAKE TEST CALL
+        call_result = await vapi_client.make_outbound_call(
+            to_number=phone_number,
+            context=test_context
+        )
+        
+        return {
+            "status": "success",
+            "message": f"Test call initiated to {phone_number}",
+            "call_details": call_result
+        }
+        
+    except Exception as e:
+        logging.error(f"🚨 TEST CALL ERROR: {str(e)}")
+        return {
+            "status": "error",
+            "message": f"Test call failed: {str(e)}"
+        }
+
 @vapi_router.post("/chat/completions")
 async def handle_voice_chat(request: VapiChatRequest):
     """

@@ -153,6 +153,42 @@ class Settings(BaseSettings):
                                                        # Different from Qdrant (long-term memory)
                                                        # Used by: conversation persistence
 
+    # 📞 VOICE CALLING CONFIGURATION (VAPI) - Enable "call me" functionality
+    # Vapi is the service that handles actual phone calls when users request them
+    
+    VAPI_API_PRIVATE_KEY: str | None = None  # Your Vapi API private key for authentication
+                                             # Get from: https://dashboard.vapi.ai/api-keys
+                                             # Required for voice calling to work
+                                             # Example: "priv_abc123def456..."
+    
+    VAPI_PHONE_NUMBER_ID: str | None = None  # Your Vapi phone number ID (not the actual number)
+                                             # Get from: https://dashboard.vapi.ai/phone-numbers
+                                             # This is what shows as caller ID
+                                             # Example: "12345678-abcd-efgh-ijkl-1234567890ab"
+    
+    VAPI_PUBLIC_KEY: str | None = None       # Optional: Vapi public key for webhook verification
+                                             # Get from: https://dashboard.vapi.ai/api-keys
+                                             # Used to verify callbacks from Vapi are legitimate
+                                             # Example: "pub_xyz789..."
+    
+    # 🌐 DEPLOYMENT CONFIGURATION - Where is Ava hosted?
+    RAILWAY_URL: str = "https://ava-whatsapp-agent-course-production.up.railway.app"
+                                             # Your deployed application URL
+                                             # Used by Vapi to call back to Ava's custom LLM endpoint
+                                             # Update this with YOUR Railway deployment URL
+                                             # Example: "https://your-app-name.up.railway.app"
+    
+    # 🎙️ VOICE CONFIGURATION FOR VAPI - How should voice Ava sound?
+    VAPI_VOICE_PROVIDER: str = "elevenlabs"  # Voice synthesis provider for phone calls
+                                             # Options: "elevenlabs", "playht", "deepgram", etc.
+                                             # Should match your regular TTS provider for consistency
+                                             # Used by: Vapi assistant configuration
+    
+    VAPI_MODEL: str = "gpt-4"                # AI model for voice conversations
+                                             # Options: "gpt-4", "gpt-3.5-turbo", custom models
+                                             # Note: Uses Vapi's routing, not direct OpenAI
+                                             # Used by: Vapi assistant during phone calls
+
 
 # STEP 5: Create the global settings instance
 # This object gets imported by other files to access configuration

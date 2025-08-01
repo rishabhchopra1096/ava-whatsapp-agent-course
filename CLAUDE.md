@@ -255,12 +255,41 @@ groq.BadRequestError: Failed to call a function. tool_use_failed
 4. **Test Webhook** - Send test data to verify WhatsApp integration
 5. **Update Environment** - Use Railway dashboard for API key updates
 
+## Voice Calling Integration (IMPLEMENTED ✅)
+
+### Vapi Voice Calling Setup
+
+**Current Status:** Fully implemented and ready for testing
+- **Technology**: Vapi for phone infrastructure + ElevenLabs for voice
+- **Trigger**: Users say "call me" in WhatsApp → Ava initiates phone call
+- **Context**: WhatsApp conversation context passed to voice call
+- **Documentation**: See `VOICE_CALLING_SETUP.md` for complete setup guide
+
+**Required Environment Variables:**
+```env
+VAPI_API_PRIVATE_KEY=priv_your_key_here  # From Vapi dashboard
+VAPI_PHONE_NUMBER_ID=uuid_here           # Your Vapi phone number ID
+RAILWAY_URL=https://your-app.up.railway.app  # Your deployment URL
+```
+
+**Key Features:**
+- LLM-based intent detection (not hardcoded patterns)
+- Conversation context continuity between WhatsApp and voice
+- Health check endpoint at `/vapi/health`
+- Test call endpoint at `/vapi/test-call` (disable in production)
+
+**Testing Voice Calls:**
+1. Ensure all VAPI environment variables are set in Railway
+2. Check health: `GET /vapi/health`
+3. Send "call me" to WhatsApp bot
+4. Monitor Railway logs for call status
+
 ## Future Architecture Planning
 
 ### Enhanced Ava Vision (Personal Assistant Features)
 
 **Planned Features:**
-- Voice calling via WAPI
+- ✅ Voice calling via Vapi (COMPLETED)
 - Note-taking with Notion integration
 - Todo list management
 - Calendar event management

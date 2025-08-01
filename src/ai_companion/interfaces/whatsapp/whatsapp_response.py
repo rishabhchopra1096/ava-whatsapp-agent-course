@@ -444,15 +444,29 @@ async def whatsapp_handler(request: Request) -> Response:
                     print(f"✅ LANGGRAPH WORKFLOW COMPILED SUCCESSFULLY")
                     
                     # PREPARE GRAPH INPUT DATA
+                    # VALIDATE PHONE NUMBER FORMAT
+                    # WhatsApp sends numbers without + prefix, but Vapi needs E.164 format
+                    formatted_phone = from_number
+                    if not formatted_phone.startswith('+'):
+                        # Add + prefix if missing (WhatsApp sometimes omits it)
+                        formatted_phone = f"+{formatted_phone}"
+                        print(f"📱 PHONE NUMBER FORMATTING:")
+                        print(f"  Original: {from_number}")
+                        print(f"  Formatted: {formatted_phone}")
+                    
                     graph_input = {
                         "messages": [HumanMessage(content=content)],  # Wrap user's text in LangChain message format
-                        "user_phone_number": from_number,             # NEW: Pass phone number for voice calling
-                        "user_id": from_number,                       # NEW: Use phone as user ID
+                        "user_phone_number": formatted_phone,         # Pass formatted phone number for voice calling
+                        "user_id": from_number,                       # Use original phone as user ID
+                        "interface": "whatsapp",                      # Track that this came from WhatsApp
                     }
                     graph_config = {"configurable": {"thread_id": session_id}}
                     
                     print(f"🔍 INVOKING LANGGRAPH WORKFLOW:")
                     print(f"  📨 Input: {len(graph_input)} keys")
+                    print(f"  📱 Phone: {graph_input.get('user_phone_number')}")
+                    print(f"  🆔 User ID: {graph_input.get('user_id')}")
+                    print(f"  🌐 Interface: {graph_input.get('interface')}")
                     print(f"  🔧 Config: thread_id = {session_id}")
                     print(f"  🚀 Starting graph.ainvoke()...")
                     

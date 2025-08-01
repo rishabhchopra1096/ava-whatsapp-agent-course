@@ -32,12 +32,7 @@ except ImportError:
     raise
 
 # Import Ava's settings (for API keys and configuration)
-try:
-    from ai_companion.settings import settings
-except ImportError:
-    # Fallback for development - use environment variables directly
-    logging.warning("⚠️ Could not import settings, using environment variables directly")
-    settings = None
+from ai_companion.settings import settings
 
 class VapiClient:
     """
@@ -73,25 +68,31 @@ class VapiClient:
         - Configure your phone number (Phone Number ID)
         - Set up call routing (to your Railway app)
         """
-        # GET API CREDENTIALS FROM ENVIRONMENT
-        # These were already configured in your .env file
-        self.api_key = os.getenv("VAPI_API_PRIVATE_KEY")
+        # GET API CREDENTIALS FROM SETTINGS
+        # These are loaded from .env file via Pydantic settings
+        self.api_key = settings.VAPI_API_PRIVATE_KEY
         if not self.api_key:
-            raise ValueError("❌ VAPI_API_PRIVATE_KEY not found in environment variables")
+            raise ValueError("❌ VAPI_API_PRIVATE_KEY not found in settings. Please add it to your .env file.")
         
         # GET PHONE NUMBER FOR OUTBOUND CALLS
         # This is your Vapi phone number that will show up as caller ID
-        self.phone_number_id = os.getenv("PHONE_NUMBER_ID")
+        self.phone_number_id = settings.VAPI_PHONE_NUMBER_ID
         if not self.phone_number_id:
-            raise ValueError("❌ PHONE_NUMBER_ID not found in environment variables")
+            raise ValueError("❌ VAPI_PHONE_NUMBER_ID not found in settings. Please add it to your .env file.")
         
         # GET VOICE CONFIGURATION
         # Use same ElevenLabs voice as WhatsApp for consistency
-        self.voice_id = os.getenv("ELEVENLABS_VOICE_ID", "uju3wxzG5OhpWcoi3SMy")
+        self.voice_id = settings.ELEVENLABS_VOICE_ID
+        if not self.voice_id:
+            self.voice_id = "uju3wxzG5OhpWcoi3SMy"  # Default ElevenLabs voice
+            logging.warning("⚠️ ELEVENLABS_VOICE_ID not found, using default voice")
         
         # GET RAILWAY URL FOR CUSTOM LLM ENDPOINT
         # This tells Vapi where to send voice conversations for processing
-        self.railway_url = os.getenv("RAILWAY_URL", "https://ava-whatsapp-agent-course-production.up.railway.app")
+        self.railway_url = settings.RAILWAY_URL
+        if not self.railway_url:
+            logging.warning("⚠️ RAILWAY_URL not found in settings, using default")
+            self.railway_url = "https://ava-whatsapp-agent-course-production.up.railway.app"
         
         # INITIALIZE VAPI CLIENT
         # This creates the actual connection to Vapi's service
@@ -110,6 +111,77 @@ class VapiClient:
         self.logger.info(f"   Phone Number ID: {self.phone_number_id}")
         self.logger.info(f"   Voice ID: {self.voice_id}")
         self.logger.info(f"   Railway URL: {self.railway_url}")
+        
+        # VALIDATE CONNECTION
+        # Test the connection by attempting to list phone numbers
+        self._is_valid = False
+        try:
+            self.validate_connection()
+        except Exception as e:
+            self.logger.error(f"⚠️ Vapi connection validation failed: {str(e)}")
+            self.logger.error("⚠️ Voice calling will not be available")
+    
+    def validate_connection(self) -> bool:
+        """
+        VALIDATE VAPI CONNECTION - Test if API credentials are working
+        
+        🔗 REAL-WORLD ANALOGY: Like making a test phone call to ensure
+        the phone line is working before taking real calls
+        
+        📞 WHAT IT DOES:
+        - Makes a simple API call to Vapi to test credentials
+        - Caches the result to avoid repeated validation
+        - Returns True if connection is valid, False otherwise
+        """
+        try:
+            # TEST API CONNECTION
+            # Try to list phone numbers (simplest API call)
+            self.logger.info("🔍 Validating Vapi connection...")
+            
+            # Make a simple API call to test credentials
+            # Note: We're using the synchronous version for initialization
+            phone_numbers = self.client.phone_numbers.list()
+            
+            # If we got here, connection is valid
+            self._is_valid = True
+            self.logger.info("✅ Vapi connection validated successfully")
+            self.logger.info(f"   Found {len(phone_numbers) if phone_numbers else 0} phone numbers")
+            
+            # Verify our configured phone number exists
+            if phone_numbers:
+                phone_ids = [str(pn.id) for pn in phone_numbers]
+                if self.phone_number_id not in phone_ids:
+                    self.logger.warning(f"⚠️ Configured phone number ID not found in Vapi account")
+                    self.logger.warning(f"   Configured: {self.phone_number_id}")
+                    self.logger.warning(f"   Available: {phone_ids}")
+            
+            return True
+            
+        except Exception as e:
+            self._is_valid = False
+            self.logger.error(f"❌ Vapi connection validation failed: {str(e)}")
+            
+            # Provide helpful error messages based on common issues
+            error_msg = str(e).lower()
+            if "unauthorized" in error_msg or "401" in error_msg:
+                self.logger.error("   → Check your VAPI_API_PRIVATE_KEY is correct")
+            elif "not found" in error_msg or "404" in error_msg:
+                self.logger.error("   → Check your VAPI_PHONE_NUMBER_ID is correct")
+            elif "network" in error_msg or "connection" in error_msg:
+                self.logger.error("   → Check your internet connection")
+            else:
+                self.logger.error(f"   → Unexpected error: {str(e)}")
+            
+            return False
+    
+    def is_connected(self) -> bool:
+        """
+        CHECK CONNECTION STATUS - Quick check if Vapi is available
+        
+        🔗 REAL-WORLD ANALOGY: Like checking if the phone line has dial tone
+        before trying to make a call
+        """
+        return self._is_valid
     
     async def create_voice_assistant(self, context: Dict[str, Any]) -> str:
         """
@@ -298,6 +370,12 @@ REMEMBER: This is a continuation of your WhatsApp relationship with this user. T
             call_details: Information about the initiated call
         """
         try:
+            # CHECK CONNECTION STATUS FIRST
+            if not self.is_connected():
+                self.logger.error(f"❌ VAPI NOT CONNECTED - Cannot make calls")
+                self.logger.error(f"   Run validate_connection() to test credentials")
+                raise Exception("Vapi client is not properly connected. Check API credentials.")
+            
             # 📊 LOG CALL INITIATION DETAILS
             self.logger.info(f"📞 INITIATING OUTBOUND CALL:")
             self.logger.info(f"   📱 To: {to_number}")
@@ -446,8 +524,33 @@ REMEMBER: This is a continuation of your WhatsApp relationship with this user. T
 # This creates a single VapiClient that can be used throughout Ava
 # Like having one phone system for the entire office
 try:
+    # ATTEMPT TO CREATE VAPI CLIENT
+    # This will fail if required environment variables are missing
     vapi_client = VapiClient()
     logging.info("✅ Global Vapi client created successfully")
+    
+    # LOG CONNECTION STATUS
+    if vapi_client.is_connected():
+        logging.info("✅ Vapi connection validated - Voice calling is available")
+    else:
+        logging.warning("⚠️ Vapi client created but connection invalid - Voice calling disabled")
+        
+except ValueError as e:
+    # MISSING CONFIGURATION
+    logging.error(f"❌ Missing Vapi configuration: {str(e)}")
+    logging.error("   → Add required variables to your .env file")
+    logging.error("   → Voice calling will be disabled")
+    vapi_client = None
+    
+except ImportError as e:
+    # MISSING VAPI SDK
+    logging.error(f"❌ Vapi SDK not installed: {str(e)}")
+    logging.error("   → Run: pip install vapi-python")
+    logging.error("   → Voice calling will be disabled")
+    vapi_client = None
+    
 except Exception as e:
+    # OTHER ERRORS
     logging.error(f"❌ Failed to create global Vapi client: {str(e)}")
-    vapi_client = None  # Will cause graceful failures in other parts of the system
+    logging.error("   → Voice calling will be disabled")
+    vapi_client = None
