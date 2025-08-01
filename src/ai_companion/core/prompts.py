@@ -64,18 +64,27 @@ RESPONSE TYPE GUIDE:
 🎵 CHOOSE 'audio' WHEN USER EXPLICITLY ASKS:
 - "Can you send me a voice message?"
 - "I want to hear your voice"
-- "Call me" or "Record something for me"
+- "Record something for me"
 - BUT NOT: "You have a nice voice" (just compliment, no explicit request)
 
+📞 CHOOSE 'voice_call' WHEN USER EXPLICITLY ASKS:
+- "Call me" or "Phone me"
+- "Can you give me a call?"
+- "I need to talk to you" or "Let's have a phone conversation"
+- "Ring me" or "Give me a ring"
+- When the conversation requires urgent, real-time discussion
+- BUT NOT: General mentions of phones or calling without explicit request
+
 CRITICAL RULES:
-1. Be CONSERVATIVE with images and audio - only when explicitly requested
+1. Be CONSERVATIVE with images, audio, and voice calls - only when explicitly requested
 2. Most responses should be 'conversation' (text)
 3. Don't generate images just because something visual is mentioned
 4. Don't generate audio just because voice/sound is mentioned
-5. The user must be actively REQUESTING the media, not just referencing it
+5. Don't initiate voice calls unless explicitly requested
+6. The user must be actively REQUESTING the media/call, not just referencing it
 
 OUTPUT REQUIREMENTS:
-Return EXACTLY one word: 'conversation', 'image', or 'audio'
+Return EXACTLY one word: 'conversation', 'image', 'audio', or 'voice_call'
 No explanations, no extra text, just the decision.
 """
 

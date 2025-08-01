@@ -60,9 +60,7 @@ from ai_companion.modules.memory.long_term.memory_manager import get_memory_mana
 # Ava's daily schedule
 from ai_companion.modules.schedules.context_generation import ScheduleContextGenerator  
 # Configuration values (API keys, model names, etc.)
-from ai_companion.settings import settings
-# Voice calling context helper function
-from ai_companion.interfaces.vapi.voice_context_manager import extract_calling_reason_from_message  
+from ai_companion.settings import settings  
 
 
 async def router_node(state: AICompanionState):
@@ -94,57 +92,6 @@ async def router_node(state: AICompanionState):
     # Why not all messages? Too many messages = expensive API call + slower response
     # settings.ROUTER_MESSAGES_TO_ANALYZE = probably 3-5 recent messages
     recent_messages = state["messages"][-settings.ROUTER_MESSAGES_TO_ANALYZE :]
-    
-    # STEP 2.5: NEW - Check for voice calling requests BEFORE LLM routing
-    # This is faster and more reliable than asking LLM to detect calling requests
-    # We check the latest user message for "call me" patterns
-    if recent_messages:
-        latest_message = recent_messages[-1]
-        # Only check user messages (HumanMessage), not Ava's responses (AIMessage)
-        if hasattr(latest_message, 'content') and hasattr(latest_message, 'type'):
-            if latest_message.type == "human":  # This is a user message
-                message_content = latest_message.content.lower()
-                
-                # VOICE CALLING DETECTION - Check for various ways users request calls
-                call_triggers = [
-                    "call me", "phone me", "give me a call", "can you call me",
-                    "i want a call", "let's talk on phone", "ring me",
-                    "call me back", "please call", "need to talk",
-                    "can we talk", "voice call", "phone call"
-                ]
-                
-                # Check if any trigger phrase exists in the message
-                if any(trigger in message_content for trigger in call_triggers):
-                    # VOICE CALL REQUEST DETECTED!
-                    # Skip LLM routing and go directly to voice calling
-                    
-                    # Extract calling reason for better context
-                    calling_reason = extract_calling_reason_from_message(latest_message.content)
-                    
-                    # 📊 LOG COMPREHENSIVE VOICE CALL DETECTION (Enhanced visibility)
-                    detected_trigger = next(trigger for trigger in call_triggers if trigger in message_content)
-                    
-                    print(f"🎙️ VOICE CALL REQUEST DETECTED:")
-                    print(f"   📝 Message: {message_content[:100]}{'...' if len(message_content) > 100 else ''}")
-                    print(f"   🎯 Trigger: {detected_trigger}")
-                    print(f"   📋 Reason: {calling_reason}")
-                    print(f"   👤 Message type: {latest_message.type}")
-                    print(f"   🔧 Setting workflow to: voice_call")
-                    
-                    # Also log to standard logger
-                    import logging
-                    from datetime import datetime
-                    logging.info(f"🎙️ VOICE CALL DETECTED: trigger='{detected_trigger}' reason='{calling_reason}' time={datetime.now().isoformat()}")
-                    
-                    print(f"   ⏰ Detection time: {datetime.now().isoformat()}")
-                    print()
-                    
-                    # Return voice_call workflow instead of asking LLM
-                    return {
-                        "workflow": "voice_call",
-                        "calling_reason": calling_reason,
-                        "detected_trigger": detected_trigger
-                    }
     
     # STEP 3: Ask the LLM to make the decision (for non-voice-call messages)
     # What is await? Python keyword for waiting for async operations
@@ -562,7 +509,6 @@ Looking forward to talking with you! 📱✨"""
         
         # 🎉 LOG COMPREHENSIVE SUCCESS DETAILS
         import logging
-        from datetime import datetime
         logging.info(f"✅ VOICE CALL SUCCESSFULLY INITIATED:")
         logging.info(f"   📞 Call ID: {call_details['call_id']}")
         logging.info(f"   📱 To: {user_phone}")
@@ -602,29 +548,4 @@ I'm here either way! Let me know how I can assist you. 💬"""
         return {"messages": [AIMessage(content=error_message)]}
 
 
-def extract_calling_reason_from_message(message_content: str) -> str:
-    """
-    EXTRACT CALLING REASON - Determine why user wants a phone call
-    
-    🔗 REAL-WORLD ANALOGY: Like reading a message that says 
-    "Can you call me about the project?" and extracting "about the project"
-    
-    📞 PURPOSE: Helps voice-Ava understand the context for the call
-    """
-    content_lower = message_content.lower()
-    
-    # Look for specific calling reasons in the message
-    if "urgent" in content_lower or "emergency" in content_lower:
-        return "Urgent matter - user requested immediate callback"
-    elif "discuss" in content_lower:
-        return "User wants to discuss something in detail"  
-    elif "explain" in content_lower:
-        return "User needs detailed explanation"
-    elif "help" in content_lower:
-        return "User needs assistance with something"
-    elif "talk" in content_lower:
-        return "User prefers to talk rather than type"
-    elif "private" in content_lower or "personal" in content_lower:
-        return "User wants private conversation"
-    else:
-        return "User requested callback from WhatsApp" 
+ 

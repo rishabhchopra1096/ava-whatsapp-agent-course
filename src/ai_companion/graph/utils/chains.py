@@ -65,6 +65,7 @@ class RouterResponse(BaseModel):
     - RouterResponse(response_type="image") ✅
     - RouterResponse(response_type="conversation") ✅
     - RouterResponse(response_type="audio") ✅
+    - RouterResponse(response_type="voice_call") ✅
     
     HOW IT WORKS:
     1. AI generates its decision
@@ -73,7 +74,7 @@ class RouterResponse(BaseModel):
     4. We get guaranteed valid output: response.response_type
     """
     response_type: str = Field(
-        description="The response type to give to the user. It must be one of: 'conversation', 'image' or 'audio'"
+        description="The response type to give to the user. It must be one of: 'conversation', 'image', 'audio', or 'voice_call'"
     )
 
 
