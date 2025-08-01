@@ -284,6 +284,22 @@ async def whatsapp_handler(request: Request) -> Response:
     # If anything goes wrong inside try, the except block handles the error gracefully
     try:
         
+        # 🔍 ENVIRONMENT VARIABLE VALIDATION FOR DEBUGGING
+        required_vars = [
+            "GROQ_API_KEY", "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID",
+            "TOGETHER_API_KEY", "QDRANT_URL", "QDRANT_API_KEY",
+            "WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_VERIFY_TOKEN"
+        ]
+        
+        print("🔍 ENV VAR CHECK:")
+        for var in required_vars:
+            value = os.getenv(var)
+            status = "✅ SET" if value else "❌ MISSING"
+            # Don't log full values for security, just first/last few chars
+            masked_value = f"{value[:4]}...{value[-4:]}" if value and len(value) > 8 else "MISSING"
+            print(f"  {var}: {status} ({masked_value})")
+        print()
+        
         # STEP 1: PARSE THE WEBHOOK DATA FROM META
         # When users send messages, Meta packages the data in a complex nested structure
         # await = wait for this to complete (HTTP data might take time to arrive)
@@ -533,11 +549,19 @@ async def whatsapp_handler(request: Request) -> Response:
     # This is our safety net - if anything goes wrong, we handle it gracefully
     except Exception as e:
         
-        # LOG DETAILED ERROR INFORMATION FOR DEBUGGING
-        # logger.error() = write error details to our log file for developers to review
-        # f"..." = f-string to include the actual error message
-        # exc_info=True = include full error traceback (like a stack trace)
-        logger.error(f"Error processing message: {e}", exc_info=True)
+        # 🚨 ENHANCED ERROR LOGGING FOR DEBUGGING
+        import traceback
+        
+        # GET DETAILED ERROR INFORMATION
+        error_msg = f"Error processing message: {str(e)}"
+        full_traceback = traceback.format_exc()
+        
+        # LOG ERROR DETAILS MULTIPLE WAYS FOR VISIBILITY
+        print(f"🚨 WEBHOOK ERROR: {error_msg}")
+        print(f"🚨 FULL TRACEBACK:\n{full_traceback}")
+        
+        # Also log using standard logger
+        logger.error(f"{error_msg}\n{full_traceback}")
         
         # RETURN GENERIC ERROR TO META (DON'T EXPOSE INTERNAL DETAILS)
         # status_code=500 = "Internal Server Error"
