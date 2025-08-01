@@ -7,10 +7,13 @@ WORKDIR /app
 # Set environment variables (e.g., set Python to run in unbuffered mode)
 ENV PYTHONUNBUFFERED 1
 
-# Install system dependencies for building libraries
+# Install system dependencies for building libraries and audio processing
 RUN apt-get update && apt-get install -y \
     build-essential \
     g++ \
+    portaudio19-dev \
+    python3-pyaudio \
+    alsa-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the dependency management files (lock file and pyproject.toml) first
