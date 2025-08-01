@@ -123,7 +123,7 @@ class Settings(BaseSettings):
                                                                     # Creates images from descriptions
                                                                     # Used by: image_node for visual responses
     
-    ITT_MODEL_NAME: str = "llama-3.2-90b-vision-preview"          # Image-to-text model
+    ITT_MODEL_NAME: str = "meta-llama/llama-4-scout-17b-16e-instruct"          # Image-to-text model
                                                                     # Describes images you send to Ava
                                                                     # Used by: Processing images you share
 
