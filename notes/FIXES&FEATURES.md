@@ -556,3 +556,33 @@ The key insight: Build the "memory and intelligence" first,
 then add "actions and automation" on top. This creates a
 solid foundation that makes every subsequent feature easier
 to build and more powerful!
+
+### Feature Priority For Getting Users
+
+1.  Core Feature: AI Memory | Very Long Term Memory ⭐⭐⭐⭐⭐
+
+- User behavior: "Remember what I told you about John's
+  contractor issue last month"
+- Why it drives adoption: This is INSTANT value that no
+  other WhatsApp user has
+- Stickiness: Once they store memories, they can't leave
+- Word-of-mouth: "Holy shit, my WhatsApp never forgets
+  anything!"
+
+2. Supporting Feature: Note-Taking with "Don't Reply Feature" ⭐⭐⭐
+
+- User behavior: Voice note → clean organized text
+- Why needed: Captures the memories in the first place
+- Demo value: Send rambling voice note, get back perfect
+  summary
+
+3. Research - "Look up the best Thai restaurants near me"
+4. Simple Reminders - "Remind me to call John tomorrow at
+   3pm"
+
+### Feature Priority For "WOW"
+
+5. Calling
+6. Voice Email-Handling
+7. Voice Habit Tracking
+8. Workflow Builder

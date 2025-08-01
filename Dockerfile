@@ -32,5 +32,5 @@ RUN uv pip install -e .
 # Expose the port
 EXPOSE 8080
 
-# Run the FastAPI app using uvicorn
-CMD ["/app/.venv/bin/fastapi", "run", "ai_companion/interfaces/whatsapp/webhook_endpoint.py", "--port", "8080", "--host", "0.0.0.0"]
+# Run the FastAPI app using uvicorn directly
+CMD ["/app/.venv/bin/uvicorn", "ai_companion.interfaces.whatsapp.webhook_endpoint:app", "--host", "0.0.0.0", "--port", "8080"]
