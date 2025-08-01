@@ -951,31 +951,61 @@ async def send_response(
     # SEND MESSAGE VIA WHATSAPP BUSINESS API
     # Now make the actual HTTP request to deliver the message
     
-    # CREATE HTTP CLIENT FOR API REQUEST
-    # async with = context manager that automatically cleans up the client
-    # httpx.AsyncClient() = web client for making HTTP requests to Meta's API
-    async with httpx.AsyncClient() as client:
-        
-        # MAKE POST REQUEST TO WHATSAPP API
-        # await = wait for message sending to complete
-        # client.post() = HTTP POST request (sending data to Meta's servers)
-        response = await client.post(
-            # API URL: Graph API endpoint for sending messages
-            # f"..." = f-string to insert our phone number ID
-            f"https://graph.facebook.com/v21.0/{WHATSAPP_PHONE_NUMBER_ID}/messages",
+    try:
+        # CREATE HTTP CLIENT FOR API REQUEST
+        # async with = context manager that automatically cleans up the client
+        # httpx.AsyncClient() = web client for making HTTP requests to Meta's API
+        async with httpx.AsyncClient() as client:
             
-            # headers = authentication and content type info
-            headers=headers,
-            
-            # json = the message data (automatically converts dictionary to JSON)
-            json=json_data,
-        )
+            # MAKE POST REQUEST TO WHATSAPP API
+            # await = wait for message sending to complete
+            # client.post() = HTTP POST request (sending data to Meta's servers)
+            response = await client.post(
+                # API URL: Graph API endpoint for sending messages
+                # f"..." = f-string to insert our phone number ID
+                f"https://graph.facebook.com/v21.0/{WHATSAPP_PHONE_NUMBER_ID}/messages",
+                
+                # headers = authentication and content type info
+                headers=headers,
+                
+                # json = the message data (automatically converts dictionary to JSON)  
+                json=json_data,
+            )
 
-    # RETURN SUCCESS/FAILURE STATUS FOR ERROR HANDLING
-    # whatsapp_handler() needs to know if message delivery succeeded
-    # response.status_code = HTTP status code returned by Meta (200 = success)
-    # == 200 = comparison that returns True if successful, False if failed
-    return response.status_code == 200
+        # 🚨 DETAILED WHATSAPP API RESPONSE LOGGING
+        print(f"🔍 WHATSAPP API RESPONSE:")
+        print(f"  Status Code: {response.status_code}")
+        print(f"  Headers: {dict(response.headers)}")
+        
+        try:
+            response_json = response.json()
+            print(f"  Response Body: {response_json}")
+        except:
+            print(f"  Response Text: {response.text}")
+        
+        # CHECK FOR SUCCESS
+        is_success = response.status_code == 200
+        print(f"  Success: {is_success}")
+        
+        # LOG FAILURE DETAILS
+        if not is_success:
+            print(f"🚨 WHATSAPP API FAILED:")
+            print(f"  Status: {response.status_code}")
+            print(f"  Reason: {response.reason_phrase if hasattr(response, 'reason_phrase') else 'Unknown'}")
+            
+        return is_success
+        
+    except Exception as e:
+        # 🚨 CATCH ANY HTTP/NETWORK ERRORS
+        import traceback
+        error_msg = f"WhatsApp API request failed: {str(e)}"
+        full_traceback = traceback.format_exc()
+        
+        print(f"🚨 WHATSAPP API ERROR: {error_msg}")
+        print(f"🚨 FULL TRACEBACK:\n{full_traceback}")
+        logger.error(f"{error_msg}\n{full_traceback}")
+        
+        return False
 
 
 async def upload_media(media_content: BytesIO, mime_type: str) -> str:
@@ -1049,43 +1079,62 @@ async def upload_media(media_content: BytesIO, mime_type: str) -> str:
     # UPLOAD FILE TO WHATSAPP MEDIA API
     # This is a different API endpoint than message sending - just for file storage
     
-    # CREATE HTTP CLIENT FOR UPLOAD REQUEST
-    # async with = context manager for automatic cleanup
-    # httpx.AsyncClient() = web client for making HTTP requests
-    async with httpx.AsyncClient() as client:
-        
-        # MAKE FILE UPLOAD REQUEST TO META
-        # await = wait for file upload to complete (can take time for large files)
-        # client.post() = HTTP POST request with file upload
-        response = await client.post(
-            # Media API URL: different endpoint than message sending
-            # f"..." = f-string to insert our phone number ID
-            f"https://graph.facebook.com/v21.0/{WHATSAPP_PHONE_NUMBER_ID}/media",
+    try:
+        # CREATE HTTP CLIENT FOR UPLOAD REQUEST
+        # async with = context manager for automatic cleanup
+        # httpx.AsyncClient() = web client for making HTTP requests
+        async with httpx.AsyncClient() as client:
             
-            # headers = authentication info
-            headers=headers,
+            # MAKE FILE UPLOAD REQUEST TO META
+            # await = wait for file upload to complete (can take time for large files)
+            # client.post() = HTTP POST request with file upload
+            response = await client.post(
+                # Media API URL: different endpoint than message sending
+                # f"..." = f-string to insert our phone number ID
+                f"https://graph.facebook.com/v21.0/{WHATSAPP_PHONE_NUMBER_ID}/media",
+                
+                # headers = authentication info
+                headers=headers,
+                
+                # files = the actual file data to upload
+                files=files,
+                
+                # data = additional form fields Meta requires
+                data=data,
+            )
             
-            # files = the actual file data to upload
-            files=files,
+            # 🚨 DETAILED MEDIA UPLOAD RESPONSE LOGGING
+            print(f"🔍 MEDIA UPLOAD API RESPONSE:")
+            print(f"  Status Code: {response.status_code}")
             
-            # data = additional form fields Meta requires
-            data=data,
-        )
-        
-        # PARSE UPLOAD RESPONSE
-        # .json() = convert Meta's JSON response to Python dictionary
-        # Contains media_id if successful, error details if failed
-        result = response.json()
+            try:
+                result = response.json()
+                print(f"  Response Body: {result}")
+            except:
+                print(f"  Response Text: {response.text}")
+                result = {}
 
-    # VALIDATE UPLOAD SUCCESS AND EXTRACT MEDIA_ID
-    # Meta returns a dictionary with "id" field containing the media reference
-    # if "id" not in result = check if upload failed
-    if "id" not in result:
-        # Upload failed - throw exception that gets caught by send_response()
-        # This triggers fallback to text message in send_response()
-        raise Exception("Failed to upload media")
-    
-    # RETURN MEDIA_ID FOR USE IN MESSAGE SENDING
-    # result["id"] = Meta's reference number for our uploaded file
-    # send_response() uses this ID to reference the uploaded media in message payload
-    return result["id"]
+        # VALIDATE UPLOAD SUCCESS AND EXTRACT MEDIA_ID
+        # Meta returns a dictionary with "id" field containing the media reference
+        # if "id" not in result = check if upload failed
+        if "id" not in result:
+            # Upload failed - log details and throw exception
+            print(f"🚨 MEDIA UPLOAD FAILED:")
+            print(f"  Status: {response.status_code}")
+            print(f"  Response: {result}")
+            raise Exception(f"Failed to upload media: {result}")
+        
+        print(f"✅ MEDIA UPLOAD SUCCESS: ID = {result['id']}")
+        return result["id"]
+        
+    except Exception as e:
+        # 🚨 CATCH ANY UPLOAD ERRORS
+        import traceback
+        error_msg = f"Media upload failed: {str(e)}"
+        full_traceback = traceback.format_exc()
+        
+        print(f"🚨 MEDIA UPLOAD ERROR: {error_msg}")
+        print(f"🚨 FULL TRACEBACK:\n{full_traceback}")
+        logger.error(f"{error_msg}\n{full_traceback}")
+        
+        raise Exception(error_msg)
