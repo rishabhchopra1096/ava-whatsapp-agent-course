@@ -412,45 +412,89 @@ async def whatsapp_handler(request: Request) -> Response:
             # STEP 4: PROCESS THROUGH AVA'S BRAIN (IDENTICAL TO CHAINLIT PROCESSING)
             # Now we have the content text, send it through Ava's complete LangGraph workflow
             
+            # 🔍 DEBUG: LOG MESSAGE PROCESSING START
+            print(f"📋 STARTING LANGGRAPH PROCESSING:")
+            print(f"  📱 User: {from_number}")
+            print(f"  💬 Content: {content[:100]}{'...' if len(content) > 100 else ''}")
+            print(f"  🔗 Session ID: {session_id}")
+            print(f"  📄 Content Length: {len(content)} chars")
+            print()
+            
             # SETUP CONVERSATION MEMORY DATABASE CONNECTION
             # async with = Python context manager that automatically handles opening/closing resources
             # Like automatically locking/unlocking a file cabinet when you're done using it
             # AsyncSqliteSaver = Ava's memory system that remembers conversation history
             # .from_conn_string() = connect to SQLite database file at the specified path
             # settings.SHORT_TERM_MEMORY_DB_PATH = file path where conversation history is stored
-            async with AsyncSqliteSaver.from_conn_string(settings.SHORT_TERM_MEMORY_DB_PATH) as short_term_memory:
+            try:
+                print(f"🔍 CONNECTING TO MEMORY DATABASE:")
+                print(f"  📁 Database Path: {settings.SHORT_TERM_MEMORY_DB_PATH}")
                 
-                # BUILD AVA'S COMPLETE WORKFLOW GRAPH
-                # graph_builder.compile() = creates Ava's complete LangGraph workflow
-                # checkpointer=short_term_memory = connect the memory system so Ava remembers conversations
-                # This creates the IDENTICAL workflow used in Chainlit: memory→router→context→response nodes
-                graph = graph_builder.compile(checkpointer=short_term_memory)
-                
-                # PROCESS USER MESSAGE THROUGH COMPLETE AVA WORKFLOW
-                # await = wait for Ava's brain to complete processing (this takes time)
-                # graph.ainvoke() = run the message through Ava's complete LangGraph workflow
-                await graph.ainvoke(
-                    # FIRST PARAMETER: The message data to process
-                    {
+                async with AsyncSqliteSaver.from_conn_string(settings.SHORT_TERM_MEMORY_DB_PATH) as short_term_memory:
+                    print(f"✅ MEMORY DATABASE CONNECTED SUCCESSFULLY")
+                    
+                    # BUILD AVA'S COMPLETE WORKFLOW GRAPH
+                    # graph_builder.compile() = creates Ava's complete LangGraph workflow
+                    # checkpointer=short_term_memory = connect the memory system so Ava remembers conversations
+                    # This creates the IDENTICAL workflow used in Chainlit: memory→router→context→response nodes
+                    print(f"🔍 BUILDING LANGGRAPH WORKFLOW:")
+                    print(f"  🧠 Compiling graph with memory checkpointer...")
+                    
+                    graph = graph_builder.compile(checkpointer=short_term_memory)
+                    print(f"✅ LANGGRAPH WORKFLOW COMPILED SUCCESSFULLY")
+                    
+                    # PREPARE GRAPH INPUT DATA
+                    graph_input = {
                         "messages": [HumanMessage(content=content)],  # Wrap user's text in LangChain message format
                         "user_phone_number": from_number,             # NEW: Pass phone number for voice calling
                         "user_id": from_number,                       # NEW: Use phone as user ID
-                    },
+                    }
+                    graph_config = {"configurable": {"thread_id": session_id}}
                     
-                    # SECOND PARAMETER: Configuration for this processing run
-                    {"configurable": {"thread_id": session_id}},    # Use phone number to isolate conversations
-                )
+                    print(f"🔍 INVOKING LANGGRAPH WORKFLOW:")
+                    print(f"  📨 Input: {len(graph_input)} keys")
+                    print(f"  🔧 Config: thread_id = {session_id}")
+                    print(f"  🚀 Starting graph.ainvoke()...")
+                    
+                    # PROCESS USER MESSAGE THROUGH COMPLETE AVA WORKFLOW
+                    # await = wait for Ava's brain to complete processing (this takes time)
+                    # graph.ainvoke() = run the message through Ava's complete LangGraph workflow
+                    await graph.ainvoke(graph_input, graph_config)
+                    
+                    print(f"✅ LANGGRAPH WORKFLOW COMPLETED SUCCESSFULLY")
+                    
+                    # HumanMessage(content=content) = tells Ava "this text came from a human user"
+                    # thread_id: session_id = each phone number gets its own conversation thread
+                    # This is how Ava keeps different users' conversations separate
+                    
+                    # GET AVA'S FINAL STATE AFTER PROCESSING
+                    # After the workflow completes, we need to see what Ava decided to do
+                    # await = wait for state retrieval to complete
+                    # graph.aget_state() = get the final state of Ava's workflow
+                    # config = same configuration (thread_id) to get the right conversation's state
+                    print(f"🔍 RETRIEVING FINAL WORKFLOW STATE:")
+                    print(f"  🔧 Config: thread_id = {session_id}")
+                    
+                    output_state = await graph.aget_state(config={"configurable": {"thread_id": session_id}})
+                    print(f"✅ FINAL STATE RETRIEVED SUCCESSFULLY")
+                    print(f"  📊 State Keys: {list(output_state.values.keys()) if output_state.values else 'None'}")
+                    
+            except Exception as graph_error:
+                print(f"🚨 LANGGRAPH PROCESSING ERROR:")
+                print(f"  📱 User: {from_number}")
+                print(f"  💬 Content: {content[:100]}...")
+                print(f"  ❌ Error: {str(graph_error)}")
                 
-                # HumanMessage(content=content) = tells Ava "this text came from a human user"
-                # thread_id: session_id = each phone number gets its own conversation thread
-                # This is how Ava keeps different users' conversations separate
+                # Get detailed traceback
+                import traceback
+                full_traceback = traceback.format_exc()
+                print(f"  📚 Full Traceback:\n{full_traceback}")
                 
-                # GET AVA'S FINAL STATE AFTER PROCESSING
-                # After the workflow completes, we need to see what Ava decided to do
-                # await = wait for state retrieval to complete
-                # graph.aget_state() = get the final state of Ava's workflow
-                # config = same configuration (thread_id) to get the right conversation's state
-                output_state = await graph.aget_state(config={"configurable": {"thread_id": session_id}})
+                # Log to standard logger as well
+                logger.error(f"LangGraph processing failed for {from_number}: {str(graph_error)}\n{full_traceback}")
+                
+                # Re-raise the exception so outer try/catch handles it
+                raise
 
             # STEP 5: EXTRACT AVA'S RESPONSE DETAILS FROM FINAL STATE
             # output_state.values = dictionary containing all data from Ava's workflow
