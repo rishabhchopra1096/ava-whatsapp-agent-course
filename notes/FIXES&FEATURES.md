@@ -31,13 +31,14 @@
 3. Change elevenlabs (expensive) to Groq Chip (cheaper)
 4. Llama is dumb, fast. I should use a smarter model like gemini-flash which is fast, but not dumb.
 5. Image should only be shared when asked for. Not when inferred. Can't work like that.
-   > Switch to pure Supabase
+6. Switch to pure Supabase
+7. The current personality is super rude. Doesn't analyse images, etc. Always busy. Don't like this behavior. Not smart, doesnt' understand context.
+8. It needs to be able to take in youtube links, pdf, locations, links, etc and be able to analyse them easily.
 
 # LEARN
 
 1. FastAPI/Webhook
 2. Docker
-3.
 
 # FIXES.md
 
