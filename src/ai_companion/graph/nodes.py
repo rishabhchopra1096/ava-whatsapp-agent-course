@@ -60,7 +60,9 @@ from ai_companion.modules.memory.long_term.memory_manager import get_memory_mana
 # Ava's daily schedule
 from ai_companion.modules.schedules.context_generation import ScheduleContextGenerator  
 # Configuration values (API keys, model names, etc.)
-from ai_companion.settings import settings  
+from ai_companion.settings import settings
+# Voice calling context helper function
+from ai_companion.interfaces.vapi.voice_context_manager import extract_calling_reason_from_message  
 
 
 async def router_node(state: AICompanionState):
@@ -119,23 +121,29 @@ async def router_node(state: AICompanionState):
                     # Extract calling reason for better context
                     calling_reason = extract_calling_reason_from_message(latest_message.content)
                     
-                    # 📊 LOG COMPREHENSIVE VOICE CALL DETECTION
-                    import logging
-                    logging.info(f"🎙️ VOICE CALL REQUEST DETECTED:")
-                    logging.info(f"   📝 Message: {message_content[:100]}{'...' if len(message_content) > 100 else ''}")
-                    logging.info(f"   🎯 Trigger: {next(trigger for trigger in call_triggers if trigger in message_content)}")
-                    logging.info(f"   📋 Reason: {calling_reason}")
-                    logging.info(f"   👤 Message type: {latest_message.type}")
+                    # 📊 LOG COMPREHENSIVE VOICE CALL DETECTION (Enhanced visibility)
+                    detected_trigger = next(trigger for trigger in call_triggers if trigger in message_content)
                     
-                    # Import datetime for timestamp
+                    print(f"🎙️ VOICE CALL REQUEST DETECTED:")
+                    print(f"   📝 Message: {message_content[:100]}{'...' if len(message_content) > 100 else ''}")
+                    print(f"   🎯 Trigger: {detected_trigger}")
+                    print(f"   📋 Reason: {calling_reason}")
+                    print(f"   👤 Message type: {latest_message.type}")
+                    print(f"   🔧 Setting workflow to: voice_call")
+                    
+                    # Also log to standard logger
+                    import logging
                     from datetime import datetime
-                    logging.info(f"   ⏰ Detection time: {datetime.now().isoformat()}")
+                    logging.info(f"🎙️ VOICE CALL DETECTED: trigger='{detected_trigger}' reason='{calling_reason}' time={datetime.now().isoformat()}")
+                    
+                    print(f"   ⏰ Detection time: {datetime.now().isoformat()}")
+                    print()
                     
                     # Return voice_call workflow instead of asking LLM
                     return {
                         "workflow": "voice_call",
                         "calling_reason": calling_reason,
-                        "detected_trigger": next(trigger for trigger in call_triggers if trigger in message_content)
+                        "detected_trigger": detected_trigger
                     }
     
     # STEP 3: Ask the LLM to make the decision (for non-voice-call messages)
