@@ -566,6 +566,28 @@ async def whatsapp_handler(request: Request) -> Response:
                 # image_data = actual image file bytes
                 success = await send_response(from_number, response_message, "image", image_data)
             
+            # VOICE CALL RESPONSE - AVA INITIATED A PHONE CALL
+            elif workflow == "voice_call":
+                
+                # 📞 LOG VOICE CALL COMPLETION
+                print(f"📞 VOICE CALL REQUEST COMPLETED:")
+                print(f"  📱 User: {from_number}")
+                print(f"  💬 Confirmation: {response_message[:100]}{'...' if len(response_message) > 100 else ''}")
+                
+                # SEND CONFIRMATION MESSAGE TO WHATSAPP
+                # voice_calling_node has already initiated the call and prepared confirmation text
+                # We just need to send this confirmation back to the user via WhatsApp
+                # This lets them know the call is coming
+                success = await send_response(from_number, response_message, "text")
+                
+                # LOG CALL TRACKING INFO (if available)
+                if "active_call" in output_state.values and output_state.values["active_call"]:
+                    call_details = output_state.values["active_call"]
+                    print(f"📞 CALL TRACKING:")
+                    print(f"  🆔 Call ID: {call_details.get('call_id', 'Unknown')}")
+                    print(f"  ⏰ Initiated: {call_details.get('timestamp', 'Unknown')}")
+                    print(f"  📋 Status: Call should ring within 10-15 seconds")
+            
             # TEXT RESPONSE - AVA WANTS TO SEND A REGULAR TEXT MESSAGE (MOST COMMON)
             else:
                 # SEND TEXT MESSAGE TO USER
