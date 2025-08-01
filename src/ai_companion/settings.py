@@ -148,9 +148,10 @@ class Settings(BaseSettings):
 
     # 💾 DATABASE PATHS - Where Ava stores different types of data
     
-    SHORT_TERM_MEMORY_DB_PATH: str = "/app/data/memory.db"  # Local database for conversation state
-                                                            # Different from Qdrant (long-term memory)
-                                                            # Used by: conversation persistence
+    SHORT_TERM_MEMORY_DB_PATH: str = "/tmp/memory.db"  # Local database for conversation state
+                                                       # Using /tmp for Railway deployment (non-persistent)
+                                                       # Different from Qdrant (long-term memory)
+                                                       # Used by: conversation persistence
 
 
 # STEP 5: Create the global settings instance
