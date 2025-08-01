@@ -4,6 +4,17 @@
 2. Basically, you already have 2 interfaces: ChainLit + Whatsapp. Now, the thing is that whatsapp uses async operations so that multiple users can chat at the same time. I'll need to implement something similar with VAPI.
 3. This can be used for:
 
+- Calls: "This AI just made a real phone call"
+- Workflow Generator: "Check Product Hunt daily for AI tutoring tools"
+- Integration: "It found the restaurant, called them, and put the dinner in my calendar" "All from one WhatsApp message"
+- Research | Contextualised Intelligence: Based on what it knows about you, gives a restaurant pick.
+- Email Handling: Drafts responses for me. I can call it to discuss the emails for today, and what to reply to them.
+- Habit Tracking: It calls me everyday/whatsapps me to discuss my habit-tracker - and fills it automatically.
+- Note-Taking: Takes notes in google sheets, docs, notion databaset, etc.
+- Todo-List: Stores/updates TODO-Lists
+- Reminders: Calls/Whatsapps for Reminding the person
+- AI Memory | Very Long Term Memory: "Remind me about the conversation with Joh about the contractor"
+
 - AI Co-Founder for Solo Founders
 - AI Employee (Voice Agent for Businesses)
 - AI Job Searcher
@@ -20,7 +31,7 @@
 3. Change elevenlabs (expensive) to Groq Chip (cheaper)
 4. Llama is dumb, fast. I should use a smarter model like gemini-flash which is fast, but not dumb.
 5. Image should only be shared when asked for. Not when inferred. Can't work like that.
-6.
+   > Switch to pure Supabase
 
 # LEARN
 
@@ -245,3 +256,303 @@ await graph.ainvoke(
 
 - WhatsApp tokens should be properly validated
 - Need input sanitization for user messages before LLM processing
+
+### Moving to Supabase
+
+📁 Files That Need Changes:
+
+🔴 Major Changes (Core Database Logic):
+
+1. src/ai_companion/modules/memory/long_term/vector_store.py
+
+- Current: 500 lines using QdrantClient
+- Change: Replace with Supabase client + pgvector
+- Effort: Complete rewrite (80% of file)
+
+2. src/ai_companion/modules/memory/long_term/memory_manager.py
+
+- Current: Uses vector_store methods
+- Change: Update method calls to match new Supabase interface
+- Effort: Moderate changes (30% of file)
+
+🟡 Medium Changes (Configuration):
+
+3. src/ai_companion/settings.py
+
+# Current Qdrant settings
+
+QDRANT_URL: str
+QDRANT_API_KEY: str | None
+
+# New Supabase settings
+
+SUPABASE_URL: str
+SUPABASE_KEY: str
+DATABASE_URL: str # PostgreSQL connection
+Effort: 10-15 lines changed
+
+4. docker-compose.yml
+
+- Remove: Qdrant service (entire section)
+- Remove: Qdrant volumes and dependencies
+- Effort: Delete ~30 lines
+
+5. .env
+
+# Remove
+
+QDRANT_URL=...
+QDRANT_API_KEY=...
+
+# Add
+
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
+DATABASE_URL=postgresql://...
+Effort: 3-4 lines changed
+
+🟢 Minor Changes (Dependencies):
+
+6. pyproject.toml
+
+# Remove
+
+qdrant-client = "^1.13.0"
+
+# Add
+
+supabase = "^2.0.0"
+asyncpg = "^0.29.0" # PostgreSQL driver
+Effort: 2-3 lines
+
+7. Dockerfile & Dockerfile.chainlit
+
+- Remove: Qdrant-related packages
+- Add: PostgreSQL client libraries
+- Effort: 2-3 lines each
+
+📊 Code Change Breakdown:
+
+| File               | Lines Changed | Effort Level | Time Estimate |
+| ------------------ | ------------- | ------------ | ------------- |
+| vector_store.py    | 400+ lines    | High         | 6-8 hours     |
+| memory_manager.py  | 50-80 lines   | Medium       | 2-3 hours     |
+| settings.py        | 10-15 lines   | Low          | 30 minutes    |
+| docker-compose.yml | 30 lines      | Low          | 15 minutes    |
+| .env               | 4 lines       | Low          | 5 minutes     |
+| pyproject.toml     | 3 lines       | Low          | 5 minutes     |
+| Dockerfiles        | 6 lines       | Low          | 15 minutes    |
+
+🎯 Core Challenge: vector_store.py Rewrite
+
+Current Structure:
+
+class VectorStore:
+def **init**(self):
+self.client = QdrantClient(url=..., api_key=...)
+
+      def store_memory(self, text: str, metadata: dict):
+          # Qdrant-specific code
+
+      def search_memories(self, query: str, k: int):
+          # Qdrant-specific search
+
+New Structure:
+
+class VectorStore:
+def **init**(self):
+self.supabase = create_client(url=..., key=...)
+
+      def store_memory(self, text: str, metadata: dict):
+          # PostgreSQL with pgvector
+
+      def search_memories(self, query: str, k: int):
+          # SQL with vector similarity search
+
+🚧 Migration Strategy:
+
+Phase 1: Drop-in Replacement (1-2 days)
+
+- Rewrite vector_store.py with same interface
+- Update dependencies and config
+- Result: Same functionality, different database
+
+Phase 2: Enhanced Features (Later)
+
+- Add user management tables
+- Add todos, calendar, notes tables
+- Enhance LangGraph integration
+
+🎯 Effort Assessment:
+
+Total code changes needed:
+
+- 7 files modified
+- ~500 lines of meaningful changes
+- 80% concentrated in vector_store.py
+
+Migration complexity: Medium
+
+- Not a complete rewrite (interfaces stay same)
+- Core logic preserved (just database calls change)
+- Most files barely touched (just config changes)
+
+Time estimate:
+
+- Experienced developer: 1-2 days
+- Learning as you go: 3-4 days
+- With testing: Add 1-2 days
+
+💡 The Good News:
+
+What DOESN'T need to change:
+
+- ✅ LangGraph workflow (stays identical)
+- ✅ Memory injection/extraction logic
+- ✅ All the AI modules (STT, TTS, etc.)
+- ✅ Chainlit and WhatsApp interfaces
+- ✅ 90% of the codebase!
+
+Migration verdict: Moderate effort, high reward - most of Ava stays
+untouched!
+
+🏗️ Feature Dependency Analysis:
+
+🎯 Foundation Layer (Build First - Everything Depends on
+These)
+
+1. AI Memory | Very Long Term Memory 🔥
+
+- Dependencies: None (pure foundation)
+- Enables: Research, Note-Taking, Todo-List, Contextual
+  Intelligence, Email Handling
+- Why first: Without memory, AI can't be contextual or
+  personal
+- Implementation: Enhanced Supabase migration we discussed
+
+2. Note-Taking 🔥
+
+- Dependencies: AI Memory (to organize/categorize)
+- Enables: Todo-List, Research, Email Handling, Habit
+  Tracking
+- Why second: Data capture foundation for everything else
+- Implementation: Structured storage + categorization
+
+3. Research | Contextualised Intelligence 🔥
+
+- Dependencies: AI Memory + Note-Taking (for context)
+- Enables: Workflow Generator, Integration, Email Handling
+- Why third: The "brain" that makes decisions
+- Implementation: Web search + memory-based personalization
+
+🔧 Action Layer (Build Second - These Take Actions)
+
+4. Todo-List
+
+- Dependencies: Note-Taking + AI Memory
+- Enables: Reminders, Workflow Generator, Integration
+- Natural flow: Notes → Todos → Actions
+
+5. Reminders
+
+- Dependencies: Todo-List + AI Memory
+- Enables: Habit Tracking, Workflow Generator
+- Natural flow: Todos → Scheduled reminders
+
+6. Calls
+
+- Dependencies: AI Memory (for context), Research (for
+  information)
+- Enables: Habit Tracking, Email Handling, Integration
+- Why later: Complex infrastructure, but unlocks major
+  capabilities
+
+🤖 Automation Layer (Build Third - These Coordinate
+Everything)
+
+7. Workflow Generator
+
+- Dependencies: Research + Note-Taking + Todo-List +
+  Reminders
+- Enables: Integration, advanced automations
+- Why later: Needs all foundation pieces working
+
+8. Integration
+
+- Dependencies: ALL previous features
+- Enables: Complex multi-step workflows
+- Why last: Orchestrates everything together
+
+🎨 Specialized Features (Build in Parallel)
+
+9. Email Handling
+
+- Dependencies: AI Memory + Research + Calls (for
+  discussion)
+- Can build: After foundation layer is solid
+
+10. Habit Tracking
+
+- Dependencies: AI Memory + Calls/Reminders + Note-Taking
+- Can build: After action layer is ready
+
+🎯 Optimal Build Sequence:
+
+Phase 1: Intelligence Foundation (Months 1-2)
+
+AI Memory → Note-Taking → Research/Contextual Intelligence
+Result: Smart AI that remembers and understands context
+
+Phase 2: Action Foundation (Months 3-4)
+
+Todo-List → Reminders → Calls
+Result: AI that can take real-world actions
+
+Phase 3: Specialization (Months 5-6)
+
+Email Handling + Habit Tracking (parallel development)
+Result: AI that handles specific use cases well
+
+Phase 4: Automation (Months 7-8)
+
+Workflow Generator → Integration
+Result: AI that works autonomously and coordinates
+everything
+
+💡 Why This Order is Natural:
+
+Data Flow Logic:
+
+Memory (stores) → Notes (capture) → Research (enhance) →
+Todos (plan) → Reminders (schedule) → Calls (execute) →
+Workflows (automate) → Integration (orchestrate)
+
+Complexity Graduation:
+
+- Phase 1: Data management (easier)
+- Phase 2: External actions (moderate)
+- Phase 3: Domain expertise (moderate)
+- Phase 4: Orchestration (hardest)
+
+User Value Progression:
+
+- Phase 1: "It remembers everything I tell it"
+- Phase 2: "It actually does things for me"
+- Phase 3: "It handles my specific needs"
+- Phase 4: "It works like a human assistant"
+
+🚀 Strategic Advantage of This Order:
+
+1. Each phase is demoable - You can show progress at every
+   stage
+2. Each phase is useful - Users get value even if you stop
+   early
+3. Technical debt minimized - Foundation supports
+   everything built on top
+4. Risk managed - If complex features fail, simpler ones
+   still work
+
+The key insight: Build the "memory and intelligence" first,
+then add "actions and automation" on top. This creates a
+solid foundation that makes every subsequent feature easier
+to build and more powerful!
