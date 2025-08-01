@@ -4776,3 +4776,26263 @@ Now that you have idle messages configured:
 - **[Background messages](/assistants/background-messages):** Add contextual information silently
 - **[Assistant hooks](/assistants/assistant-hooks):** Handle call events and state changes
 - **[Voice formatting plan](/assistants/voice-formatting-plan):** Control speech patterns and delivery
+
+---
+
+title: Background speech denoising
+description: Filter out noise and background speech while users are talking
+
+---
+
+## Overview
+
+Background speech denoising helps create clearer conversations by filtering out unwanted sounds while users speak. Vapi offers two complementary denoising technologies that can be used independently or together for optimal results.
+
+**In this guide, you'll learn to:**
+
+- Enable Smart Denoising using Krisp technology (recommended for most users)
+- Configure experimental Fourier denoising with customizable parameters
+- Combine both methods for enhanced noise reduction
+- Fine-tune settings for different environments
+
+<Note>
+**For most use cases, Smart Denoising alone provides excellent results.** Fourier denoising is a highly experimental feature that requires significant tuning and may not work well in all environments.
+</Note>
+
+## Denoising methods
+
+### Smart Denoising (Krisp)
+
+Smart Denoising uses Krisp's AI-powered technology to remove background noise in real-time. This method is highly effective for common noise sources like:
+
+- Keyboard typing
+- Background conversations
+- Traffic and street noise
+- Air conditioning and fans
+- Pet sounds
+
+### Fourier Denoising (Experimental)
+
+Fourier denoising uses frequency-domain filtering to remove consistent background noise. This experimental method offers fine-grained control through multiple parameters and includes automatic media detection for TV/music/radio backgrounds.
+
+<Warning>
+Fourier denoising is highly experimental and comes with significant limitations:
+- Requires extensive tweaking to work properly
+- May not work well in all audio environments (e.g., when headphones are used)
+- Can introduce audio artifacts or distortions
+- Should only be used when Smart Denoising alone is insufficient
+
+**For most users, Smart Denoising should be sufficient.** Only proceed with Fourier denoising if you have specific requirements and are prepared to test extensively.
+</Warning>
+
+## Configuration
+
+Background speech denoising is configured through the `backgroundSpeechDenoisingPlan` property on your assistant:
+
+<CodeBlocks>
+```typescript title="TypeScript SDK"
+import { VapiClient } from "@vapi-ai/server-sdk";
+
+const vapi = new VapiClient({
+token: process.env.VAPI_API_KEY
+});
+
+const assistant = await vapi.assistants.create({
+name: "Customer Support",
+backgroundSpeechDenoisingPlan: {
+// Enable Smart Denoising
+smartDenoisingPlan: {
+enabled: true
+},
+// Enable Fourier Denoising (optional)
+fourierDenoisingPlan: {
+enabled: true,
+mediaDetectionEnabled: true,
+staticThreshold: -35,
+baselineOffsetDb: -15,
+windowSizeMs: 3000,
+baselinePercentile: 85
+}
+}
+});
+
+````
+```python title="Python SDK"
+from vapi import Vapi
+import os
+
+client = Vapi(token=os.getenv("VAPI_API_KEY"))
+
+assistant = client.assistants.create(
+    name="Customer Support",
+    backgroundSpeechDenoisingPlan={
+        # Enable Smart Denoising
+        "smartDenoisingPlan": {
+            "enabled": True
+        },
+        # Enable Fourier Denoising (optional)
+        "fourierDenoisingPlan": {
+            "enabled": True,
+            "mediaDetectionEnabled": True,
+            "staticThreshold": -35,
+            "baselineOffsetDb": -15,
+            "windowSizeMs": 3000,
+            "baselinePercentile": 85
+        }
+    }
+)
+````
+
+```bash title="cURL"
+curl -X POST "https://api.vapi.ai/assistant" \
+     -H "Authorization: Bearer $VAPI_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "name": "Customer Support",
+       "backgroundSpeechDenoisingPlan": {
+         "smartDenoisingPlan": {
+           "enabled": true
+         },
+         "fourierDenoisingPlan": {
+           "enabled": true,
+           "mediaDetectionEnabled": true,
+           "staticThreshold": -35,
+           "baselineOffsetDb": -15,
+           "windowSizeMs": 3000,
+           "baselinePercentile": 85
+         }
+       }
+     }'
+```
+
+</CodeBlocks>
+
+## Smart Denoising configuration
+
+Smart Denoising has a simple on/off configuration:
+
+<ParamField path="smartDenoisingPlan.enabled" type="boolean" default="false">
+  Enable or disable Krisp-powered smart denoising
+</ParamField>
+
+### Example: Smart Denoising only
+
+<CodeBlocks>
+```typescript title="TypeScript SDK"
+const assistant = await vapi.assistants.create({
+  name: "Support Agent",
+  backgroundSpeechDenoisingPlan: {
+    smartDenoisingPlan: {
+      enabled: true
+    }
+  }
+});
+```
+```python title="Python SDK"
+assistant = client.assistants.create(
+    name="Support Agent",
+    backgroundSpeechDenoisingPlan={
+        "smartDenoisingPlan": {
+            "enabled": True
+        }
+    }
+)
+```
+</CodeBlocks>
+
+## Fourier Denoising configuration
+
+Fourier denoising offers multiple parameters for fine-tuning:
+
+<ParamField path="fourierDenoisingPlan.enabled" type="boolean" default="false">
+  Enable or disable experimental Fourier denoising
+</ParamField>
+
+<ParamField path="fourierDenoisingPlan.mediaDetectionEnabled" type="boolean" default="true">
+  Automatically detect and filter consistent background media (TV/music/radio)
+</ParamField>
+
+<ParamField path="fourierDenoisingPlan.staticThreshold" type="number" default="-35">
+  Fallback threshold in dB when no baseline is established (-80 to 0)
+</ParamField>
+
+<ParamField path="fourierDenoisingPlan.baselineOffsetDb" type="number" default="-15">
+  How far below the rolling baseline to filter audio, in dB (-30 to -5)
+  - Lower values (e.g., -10) = more aggressive filtering
+  - Higher values (e.g., -20) = more conservative filtering
+</ParamField>
+
+<ParamField path="fourierDenoisingPlan.windowSizeMs" type="number" default="3000">
+  Rolling window size in milliseconds for baseline calculation (1000 to 30000)
+  - Larger windows = slower adaptation, more stability
+  - Smaller windows = faster adaptation, less stability
+</ParamField>
+
+<ParamField path="fourierDenoisingPlan.baselinePercentile" type="number" default="85">
+  Percentile for baseline calculation (1 to 99)
+  - Higher percentiles (e.g., 85) = focus on louder speech
+  - Lower percentiles (e.g., 50) = include quieter speech
+</ParamField>
+
+### Example: Adding Fourier Denoising to Smart Denoising
+
+<CodeBlocks>
+```typescript title="TypeScript SDK"
+const assistant = await vapi.assistants.create({
+  name: "Call Center Agent",
+  backgroundSpeechDenoisingPlan: {
+    // Always enable Smart Denoising first
+    smartDenoisingPlan: {
+      enabled: true
+    },
+    // Add Fourier Denoising for additional filtering
+    fourierDenoisingPlan: {
+      enabled: true,
+      mediaDetectionEnabled: true,
+      // More aggressive filtering for noisy environments
+      baselineOffsetDb: -10,
+      // Faster adaptation for dynamic environments
+      windowSizeMs: 2000,
+      // Focus on louder, clearer speech
+      baselinePercentile: 90
+    }
+  }
+});
+```
+```python title="Python SDK"
+assistant = client.assistants.create(
+    name="Call Center Agent",
+    backgroundSpeechDenoisingPlan={
+        # Always enable Smart Denoising first
+        "smartDenoisingPlan": {
+            "enabled": True
+        },
+        # Add Fourier Denoising for additional filtering
+        "fourierDenoisingPlan": {
+            "enabled": True,
+            "mediaDetectionEnabled": True,
+            # More aggressive filtering for noisy environments
+            "baselineOffsetDb": -10,
+            # Faster adaptation for dynamic environments
+            "windowSizeMs": 2000,
+            # Focus on louder, clearer speech
+            "baselinePercentile": 90
+        }
+    }
+)
+```
+</CodeBlocks>
+
+## Combined denoising
+
+For maximum noise reduction, combine both methods. Processing order:
+
+1. Smart Denoising (Krisp) processes first
+2. Fourier Denoising processes the Krisp output
+
+## Environment-specific configurations
+
+### Quiet office environment
+
+Minimal speech denoising for clear environments:
+
+<CodeBlocks>
+```typescript title="TypeScript SDK"
+const assistant = await vapi.assistants.create({
+  name: "Office Assistant",
+  backgroundSpeechDenoisingPlan: {
+    smartDenoisingPlan: {
+      enabled: true
+    }
+    // No Fourier denoising needed
+  }
+});
+```
+```python title="Python SDK"
+assistant = client.assistants.create(
+    name="Office Assistant",
+    backgroundSpeechDenoisingPlan={
+        "smartDenoisingPlan": {
+            "enabled": True
+        }
+        # No Fourier denoising needed
+    }
+)
+```
+</CodeBlocks>
+
+### Noisy call center
+
+Aggressive filtering for high-noise environments:
+
+<CodeBlocks>
+```typescript title="TypeScript SDK"
+const assistant = await vapi.assistants.create({
+  name: "Call Center Agent",
+  backgroundSpeechDenoisingPlan: {
+    smartDenoisingPlan: {
+      enabled: true
+    },
+    fourierDenoisingPlan: {
+      enabled: true,
+      mediaDetectionEnabled: true,
+      baselineOffsetDb: -10, // Aggressive filtering
+      windowSizeMs: 2000,    // Fast adaptation
+      baselinePercentile: 90 // Focus on clear speech
+    }
+  }
+});
+```
+```python title="Python SDK"
+assistant = client.assistants.create(
+    name="Call Center Agent",
+    backgroundSpeechDenoisingPlan={
+        "smartDenoisingPlan": {
+            "enabled": True
+        },
+        "fourierDenoisingPlan": {
+            "enabled": True,
+            "mediaDetectionEnabled": True,
+            "baselineOffsetDb": -10,  # Aggressive filtering
+            "windowSizeMs": 2000,      # Fast adaptation
+            "baselinePercentile": 90   # Focus on clear speech
+        }
+    }
+)
+```
+</CodeBlocks>
+
+### Home environment with TV/music
+
+Optimized for media background noise:
+
+<CodeBlocks>
+```typescript title="TypeScript SDK"
+const assistant = await vapi.assistants.create({
+  name: "Home Assistant",
+  backgroundSpeechDenoisingPlan: {
+    smartDenoisingPlan: {
+      enabled: true
+    },
+    fourierDenoisingPlan: {
+      enabled: true,
+      mediaDetectionEnabled: true, // Essential for TV/music
+      baselineOffsetDb: -15,
+      windowSizeMs: 4000,
+      baselinePercentile: 80
+    }
+  }
+});
+```
+```python title="Python SDK"
+assistant = client.assistants.create(
+    name="Home Assistant",
+    backgroundSpeechDenoisingPlan={
+        "smartDenoisingPlan": {
+            "enabled": True
+        },
+        "fourierDenoisingPlan": {
+            "enabled": True,
+            "mediaDetectionEnabled": True,  # Essential for TV/music
+            "baselineOffsetDb": -15,
+            "windowSizeMs": 4000,
+            "baselinePercentile": 80
+        }
+    }
+)
+```
+</CodeBlocks>
+
+## Best practices
+
+<Tip>
+**For most users, Smart Denoising alone is the recommended solution.** It handles the vast majority of common noise scenarios effectively without configuration complexity. Only consider adding Fourier denoising if you have specific requirements that Smart Denoising cannot address.
+</Tip>
+
+### When to use each method
+
+**Smart Denoising only:**
+
+- General-purpose noise reduction
+- Unpredictable noise patterns
+- When simplicity is preferred
+
+**Smart Denoising + Fourier Denoising:**
+
+- Maximum noise reduction required
+- Consistent background noise that Smart Denoising alone cannot fully handle
+- Complex acoustic environments with media (TV/music/radio)
+- Premium user experiences requiring fine-tuned control
+- Willing to invest time in testing and tuning
+- Not using headphones (Fourier may cause issues with headphone audio)
+
+<Note>
+Fourier Denoising should never be used alone. It's designed to complement Smart Denoising by providing additional filtering after Krisp has done the initial noise reduction.
+</Note>
+
+### Performance considerations
+
+**Audio quality**: Aggressive filtering may affect voice quality. Test different settings to find the right balance between noise reduction and natural speech preservation.
+
+### Testing recommendations
+
+1. Test in your target environment
+2. Start with default settings
+3. Adjust parameters incrementally
+4. Monitor user feedback
+5. A/B test different configurations
+
+## Troubleshooting fourier denoising
+
+<AccordionGroup>
+  <Accordion title="Voice sounds robotic or distorted">
+    Reduce filtering aggressiveness:
+    - Increase `baselineOffsetDb` (e.g., -20 instead of -15)
+    - Decrease `baselinePercentile` (e.g., 75 instead of 85)
+    - Try Smart Denoising only
+  </Accordion>
+  <Accordion title="Background noise still audible">
+    Increase filtering:
+    - Enable both denoising methods
+    - Decrease `baselineOffsetDb` (e.g., -12 instead of -15)
+    - Ensure `mediaDetectionEnabled` is true for TV/music
+  </Accordion>
+  <Accordion title="Speech cutting out intermittently">
+    Adjust detection sensitivity:
+    - Increase `windowSizeMs` for more stability
+    - Adjust `staticThreshold` if baseline isn't establishing
+    - Check if user's voice level is consistent
+  </Accordion>
+</AccordionGroup>
+
+---
+
+title: Pronunciation dictionaries
+subtitle: Control how your AI assistant pronounces specific words and phrases
+slug: assistants/pronunciation-dictionaries
+
+---
+
+## Overview
+
+Pronunciation dictionaries allow you to customize how your AI assistant pronounces specific words, names, acronyms, or technical terms. This feature is particularly useful for ensuring consistent pronunciation of brand names, proper nouns, or industry-specific terminology that might be mispronounced by default.
+
+**Note:** Pronunciation dictionaries are exclusive to ElevenLabs voices and require specific model configurations.
+
+## How Pronunciation Dictionaries Work
+
+<Steps>
+  <Step title="Create Pronunciation Rules">
+    Define specific words or phrases and how they should be pronounced using either phonetic notation or word substitutions.
+  </Step>
+
+  <Step title="Upload Dictionary to Vapi">
+    Create a pronunciation dictionary through Vapi's API with your custom rules.
+  </Step>
+
+  <Step title="Configure Your Assistant">
+    Associate the pronunciation dictionary with your assistant's voice configuration.
+  </Step>
+
+  <Step title="Automatic Application">
+    When your assistant encounters the specified words during conversation, it will use your custom pronunciations automatically.
+  </Step>
+</Steps>
+
+## Sample Audio Examples
+
+Below are examples demonstrating the difference between pronunciations with and without pronunciation dictionaries:
+
+Corrected pronunciations:
+
+- "Nginx" → "Engine-X" (using alias rule)
+- "Kubernetes" → "/ˌkuːbərˈneɪtiːz/" (using phoneme rule)
+
+**Without Pronunciation Dictionary:**
+<audio controls src="file:437f63fe-1c71-4f92-bcd0-3c7264cef664">Your browser does not support the audio element.</audio>
+
+**With Pronunciation Dictionary:**
+<audio controls src="file:8886b7fe-720b-4b58-babb-05cc5afb0e00">Your browser does not support the audio element.</audio>
+
+## Prerequisites
+
+- A Vapi assistant configured with an ElevenLabs voice
+- Understanding of phonetic notation (IPA or CMU Arpabet) for phoneme-based rules
+- Access to Vapi's API for dictionary creation
+
+## Types of Pronunciation Rules
+
+### Phoneme Rules
+
+Phoneme rules specify exact pronunciation using phonetic alphabets. These provide the most precise control over pronunciation.
+
+**Supported Alphabets:**
+
+- **IPA (International Phonetic Alphabet)**: More universal, uses symbols like `/tə'meɪtoʊ/`
+- **CMU Arpabet**: ASCII-based format, uses notation like `T AH M EY T OW`
+
+**Model Compatibility:**
+Phoneme rules only work with specific ElevenLabs models:
+
+- `eleven_turbo_v2`
+- `eleven_flash_v2`
+
+### Alias Rules
+
+Alias rules replace words with alternative spellings or phrases. These work with all ElevenLabs models and are useful for:
+
+- Converting acronyms to full phrases (e.g., "UN" → "United Nations")
+- Providing phonetic spellings for difficult words
+- Standardizing pronunciation across different contexts
+
+## Implementation
+
+<Steps>
+  <Step title="Create a Pronunciation Dictionary">
+    Use Vapi's API to create a pronunciation dictionary with your custom rules.
+
+    ```bash
+    POST https://api.vapi.ai/provider/11labs/pronunciation-dictionary
+    Content-Type: application/json
+    Authorization: Bearer YOUR_API_KEY
+    ```
+
+    ```json
+    {
+      "name": "My Custom Dictionary",
+      "rules": [
+        {
+          "stringToReplace": "tomato",
+          "type": "phoneme",
+          "phoneme": "/tə'meɪtoʊ/",
+          "alphabet": "ipa"
+        },
+        {
+          "stringToReplace": "Vapi",
+          "type": "phoneme",
+          "phoneme": "V AE P IY",
+          "alphabet": "cmu-arpabet"
+        },
+        {
+          "stringToReplace": "UN",
+          "type": "alias",
+          "alias": "United Nations"
+        }
+      ]
+    }
+    ```
+
+    The API will respond with:
+    ```json
+    {
+      "pronunciationDictionaryId": "rjshI10OgN6KxqtJBqO4",
+      "versionId": "xJl0ImZzi3cYp61T0UQG",
+      "name": "My Custom Dictionary",
+      "rules": [...],
+      "createdAt": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+  </Step>
+
+  <Step title="Configure Your Assistant's Voice">
+    Update your assistant configuration to use the pronunciation dictionary.
+
+    ```json
+    {
+      "voice": {
+        "model": "eleven_turbo_v2_5",
+        "voiceId": "sarah",
+        "provider": "11labs",
+        "stability": 0.5,
+        "similarityBoost": 0.75,
+        "pronunciationDictionaryLocators": [
+          {
+            "pronunciationDictionaryId": "rjshI10OgN6KxqtJBqO4",
+            "versionId": "xJl0ImZzi3cYp61T0UQG"
+          }
+        ]
+      }
+    }
+    ```
+
+    <Note>
+      When a pronunciation dictionary is added, SSML parsing will be automatically enabled for your assistant.
+    </Note>
+
+  </Step>
+
+  <Step title="Test Your Pronunciation">
+    Create a test call or use the Vapi playground to verify that your custom pronunciations are working correctly.
+  </Step>
+</Steps>
+
+## Using Your Own ElevenLabs Account (BYOK)
+
+If you're using your own ElevenLabs API key (Bring Your Own Key), you can create pronunciation dictionaries directly in your ElevenLabs account and reference them in Vapi:
+
+1. Create a pronunciation dictionary in your ElevenLabs account
+2. Note the `pronunciationDictionaryId` and `versionId` from ElevenLabs
+3. Use these IDs in your Vapi assistant configuration:
+
+```json
+{
+  "voice": {
+    "model": "eleven_turbo_v2_5",
+    "voiceId": "your-voice-id",
+    "provider": "11labs",
+    "pronunciationDictionaryLocators": [
+      {
+        "pronunciationDictionaryId": "your-elevenlabs-dict-id",
+        "versionId": "your-elevenlabs-version-id"
+      }
+    ]
+  }
+}
+```
+
+## Managing Pronunciation Dictionaries
+
+### List Your Dictionaries
+
+```bash
+GET https://api.vapi.ai/provider/11labs/pronunciation-dictionary
+Authorization: Bearer YOUR_API_KEY
+```
+
+### Update Dictionary Rules
+
+```bash
+PATCH https://api.vapi.ai/provider/11labs/pronunciation-dictionary/{dictionaryId}
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+```
+
+```json
+{
+  "rules": [
+    {
+      "stringToReplace": "tomato",
+      "type": "phoneme",
+      "phoneme": "/tə'mɑːtoʊ/",
+      "alphabet": "ipa"
+    }
+  ]
+}
+```
+
+## Best Practices
+
+<Note>
+- **Case Sensitivity**: Pronunciation dictionary searches are case-sensitive. Create separate entries for different capitalizations if needed.
+- **Order Matters**: Rules are applied in the order they appear in the dictionary. The first matching rule is used.
+- **Testing**: Always test pronunciation changes with your specific voice and model combination.
+- **Phoneme Accuracy**: Ensure proper stress marking for multi-syllable words when using phoneme rules.
+- **Model Compatibility**: Remember that phoneme rules only work with specific ElevenLabs models.
+</Note>
+
+## Common Issues
+
+**Pronunciation Not Applied**
+
+- Verify you're using a compatible ElevenLabs model for phoneme rules
+- Check that the `stringToReplace` exactly matches the text in your content (case-sensitive)
+- Ensure the pronunciation dictionary is properly referenced in your voice configuration
+
+**SSML Conflicts**
+
+- When pronunciation dictionaries are enabled, SSML parsing is automatically activated
+- Ensure any existing SSML tags in your content are properly formatted
+
+**Performance Impact**
+
+- Large dictionaries may slightly increase processing time
+- Consider organizing rules by frequency of use for optimal performance
+
+---
+
+title: Pronunciation dictionaries
+subtitle: Control how your AI assistant pronounces specific words and phrases
+slug: assistants/pronunciation-dictionaries
+
+---
+
+## Overview
+
+Pronunciation dictionaries allow you to customize how your AI assistant pronounces specific words, names, acronyms, or technical terms. This feature is particularly useful for ensuring consistent pronunciation of brand names, proper nouns, or industry-specific terminology that might be mispronounced by default.
+
+**Note:** Pronunciation dictionaries are exclusive to ElevenLabs voices and require specific model configurations.
+
+## How Pronunciation Dictionaries Work
+
+<Steps>
+  <Step title="Create Pronunciation Rules">
+    Define specific words or phrases and how they should be pronounced using either phonetic notation or word substitutions.
+  </Step>
+
+  <Step title="Upload Dictionary to Vapi">
+    Create a pronunciation dictionary through Vapi's API with your custom rules.
+  </Step>
+
+  <Step title="Configure Your Assistant">
+    Associate the pronunciation dictionary with your assistant's voice configuration.
+  </Step>
+
+  <Step title="Automatic Application">
+    When your assistant encounters the specified words during conversation, it will use your custom pronunciations automatically.
+  </Step>
+</Steps>
+
+## Sample Audio Examples
+
+Below are examples demonstrating the difference between pronunciations with and without pronunciation dictionaries:
+
+Corrected pronunciations:
+
+- "Nginx" → "Engine-X" (using alias rule)
+- "Kubernetes" → "/ˌkuːbərˈneɪtiːz/" (using phoneme rule)
+
+**Without Pronunciation Dictionary:**
+<audio controls src="file:437f63fe-1c71-4f92-bcd0-3c7264cef664">Your browser does not support the audio element.</audio>
+
+**With Pronunciation Dictionary:**
+<audio controls src="file:8886b7fe-720b-4b58-babb-05cc5afb0e00">Your browser does not support the audio element.</audio>
+
+## Prerequisites
+
+- A Vapi assistant configured with an ElevenLabs voice
+- Understanding of phonetic notation (IPA or CMU Arpabet) for phoneme-based rules
+- Access to Vapi's API for dictionary creation
+
+## Types of Pronunciation Rules
+
+### Phoneme Rules
+
+Phoneme rules specify exact pronunciation using phonetic alphabets. These provide the most precise control over pronunciation.
+
+**Supported Alphabets:**
+
+- **IPA (International Phonetic Alphabet)**: More universal, uses symbols like `/tə'meɪtoʊ/`
+- **CMU Arpabet**: ASCII-based format, uses notation like `T AH M EY T OW`
+
+**Model Compatibility:**
+Phoneme rules only work with specific ElevenLabs models:
+
+- `eleven_turbo_v2`
+- `eleven_flash_v2`
+
+### Alias Rules
+
+Alias rules replace words with alternative spellings or phrases. These work with all ElevenLabs models and are useful for:
+
+- Converting acronyms to full phrases (e.g., "UN" → "United Nations")
+- Providing phonetic spellings for difficult words
+- Standardizing pronunciation across different contexts
+
+## Implementation
+
+<Steps>
+  <Step title="Create a Pronunciation Dictionary">
+    Use Vapi's API to create a pronunciation dictionary with your custom rules.
+
+    ```bash
+    POST https://api.vapi.ai/provider/11labs/pronunciation-dictionary
+    Content-Type: application/json
+    Authorization: Bearer YOUR_API_KEY
+    ```
+
+    ```json
+    {
+      "name": "My Custom Dictionary",
+      "rules": [
+        {
+          "stringToReplace": "tomato",
+          "type": "phoneme",
+          "phoneme": "/tə'meɪtoʊ/",
+          "alphabet": "ipa"
+        },
+        {
+          "stringToReplace": "Vapi",
+          "type": "phoneme",
+          "phoneme": "V AE P IY",
+          "alphabet": "cmu-arpabet"
+        },
+        {
+          "stringToReplace": "UN",
+          "type": "alias",
+          "alias": "United Nations"
+        }
+      ]
+    }
+    ```
+
+    The API will respond with:
+    ```json
+    {
+      "pronunciationDictionaryId": "rjshI10OgN6KxqtJBqO4",
+      "versionId": "xJl0ImZzi3cYp61T0UQG",
+      "name": "My Custom Dictionary",
+      "rules": [...],
+      "createdAt": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+  </Step>
+
+  <Step title="Configure Your Assistant's Voice">
+    Update your assistant configuration to use the pronunciation dictionary.
+
+    ```json
+    {
+      "voice": {
+        "model": "eleven_turbo_v2_5",
+        "voiceId": "sarah",
+        "provider": "11labs",
+        "stability": 0.5,
+        "similarityBoost": 0.75,
+        "pronunciationDictionaryLocators": [
+          {
+            "pronunciationDictionaryId": "rjshI10OgN6KxqtJBqO4",
+            "versionId": "xJl0ImZzi3cYp61T0UQG"
+          }
+        ]
+      }
+    }
+    ```
+
+    <Note>
+      When a pronunciation dictionary is added, SSML parsing will be automatically enabled for your assistant.
+    </Note>
+
+  </Step>
+
+  <Step title="Test Your Pronunciation">
+    Create a test call or use the Vapi playground to verify that your custom pronunciations are working correctly.
+  </Step>
+</Steps>
+
+## Using Your Own ElevenLabs Account (BYOK)
+
+If you're using your own ElevenLabs API key (Bring Your Own Key), you can create pronunciation dictionaries directly in your ElevenLabs account and reference them in Vapi:
+
+1. Create a pronunciation dictionary in your ElevenLabs account
+2. Note the `pronunciationDictionaryId` and `versionId` from ElevenLabs
+3. Use these IDs in your Vapi assistant configuration:
+
+```json
+{
+  "voice": {
+    "model": "eleven_turbo_v2_5",
+    "voiceId": "your-voice-id",
+    "provider": "11labs",
+    "pronunciationDictionaryLocators": [
+      {
+        "pronunciationDictionaryId": "your-elevenlabs-dict-id",
+        "versionId": "your-elevenlabs-version-id"
+      }
+    ]
+  }
+}
+```
+
+## Managing Pronunciation Dictionaries
+
+### List Your Dictionaries
+
+```bash
+GET https://api.vapi.ai/provider/11labs/pronunciation-dictionary
+Authorization: Bearer YOUR_API_KEY
+```
+
+### Update Dictionary Rules
+
+```bash
+PATCH https://api.vapi.ai/provider/11labs/pronunciation-dictionary/{dictionaryId}
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+```
+
+```json
+{
+  "rules": [
+    {
+      "stringToReplace": "tomato",
+      "type": "phoneme",
+      "phoneme": "/tə'mɑːtoʊ/",
+      "alphabet": "ipa"
+    }
+  ]
+}
+```
+
+## Best Practices
+
+<Note>
+- **Case Sensitivity**: Pronunciation dictionary searches are case-sensitive. Create separate entries for different capitalizations if needed.
+- **Order Matters**: Rules are applied in the order they appear in the dictionary. The first matching rule is used.
+- **Testing**: Always test pronunciation changes with your specific voice and model combination.
+- **Phoneme Accuracy**: Ensure proper stress marking for multi-syllable words when using phoneme rules.
+- **Model Compatibility**: Remember that phoneme rules only work with specific ElevenLabs models.
+</Note>
+
+## Common Issues
+
+**Pronunciation Not Applied**
+
+- Verify you're using a compatible ElevenLabs model for phoneme rules
+- Check that the `stringToReplace` exactly matches the text in your content (case-sensitive)
+- Ensure the pronunciation dictionary is properly referenced in your voice configuration
+
+**SSML Conflicts**
+
+- When pronunciation dictionaries are enabled, SSML parsing is automatically activated
+- Ensure any existing SSML tags in your content are properly formatted
+
+**Performance Impact**
+
+- Large dictionaries may slightly increase processing time
+- Consider organizing rules by frequency of use for optimal performance
+
+---
+
+title: Speech configuration
+subtitle: Control when your assistant starts and stops speaking
+slug: customization/speech-configuration
+
+---
+
+## Overview
+
+Speech configuration lets you control exactly when your assistant starts and stops speaking during a conversation. By tuning these settings, you can make your assistant feel more natural, avoid interrupting the customer, and reduce awkward pauses.
+
+<Note>
+Speech speed can be controlled, but only PlayHT currently supports this feature with the `speed` field. Other providers do not currently support speed.
+</Note>
+
+The two main components are:
+
+- **Speaking Plan**: Controls when the assistant begins speaking after the customer finishes or pauses.
+- **Stop Speaking Plan**: Controls when the assistant stops speaking if the customer starts talking.
+
+Fine-tuning these plans helps you adapt the assistant's responsiveness to your use case—whether you want fast, snappy replies or a more patient, human-like conversation flow.
+
+<Note>
+Currently, these configurations can only be set via API.
+</Note>
+
+The rest of this page explains each setting and provides practical examples for different scenarios.
+
+## Start Speaking Plan
+
+This plan defines the parameters for when the assistant begins speaking after the customer pauses or finishes.
+
+- **Wait Time Before Speaking**: You can set how long the assistant waits before speaking after the customer finishes. The default is 0.4 seconds, but you can increase it if the assistant is speaking too soon, or decrease it if there's too much delay.
+  **Example:** For tech support calls, set `waitSeconds` for the assistant to more than 1.0 seconds to give customers time to complete their thoughts, even if they have some pauses in between.
+
+- **Smart Endpointing Plan**: This feature uses advanced processing to detect when the customer has truly finished speaking, especially if they pause mid-thought. It can be configured in three ways:
+
+  - **Off**: Disabled by default
+  - **LiveKit**: Recommended for English conversations as it provides the most sophisticated solution for detecting natural speech patterns and pauses. LiveKit can be fine-tuned using the `waitFunction` parameter to adjust response timing based on the probability that the user is still speaking.
+  - **Vapi**: Recommended for non-English conversations or as an alternative when LiveKit isn't suitable
+
+  ![LiveKit Smart Endpointing Configuration](file:899dd9de-421e-4d6e-9381-4ec753c0f259)
+
+  **LiveKit Smart Endpointing Configuration:**
+  When using LiveKit, you can customize the `waitFunction` parameter which determines how long the bot will wait to start speaking based on the likelihood that the user has finished speaking:
+
+  ```
+  waitFunction: "200 + 8000 * x"
+  ```
+
+  This function maps probabilities (0-1) to milliseconds of wait time. A probability of 0 means high confidence the caller has stopped speaking, while 1 means high confidence they're still speaking. The default function (`200 + 8000 * x`) creates a wait time between 200ms (when x=0) and 8200ms (when x=1). You can customize this with your own mathematical expression, such as `4000 * (1 - cos(pi * x))` for a different response curve.
+
+  **Example:** In insurance claims, smart endpointing helps avoid interruptions while customers think through complex responses. For instance, when the assistant asks "do you want a loan," the system can intelligently wait for the complete response rather than interrupting after the initial "yes" or "no." For responses requiring number sequences like "What's your account number?", the system can detect natural pauses between digits without prematurely ending the customer's turn to speak.
+
+- **Transcription-Based Detection**: Customize how the assistant determines that the customer has stopped speaking based on what they're saying. This offers more control over the timing. **Example:** When a customer says, "My account number is 123456789, I want to transfer $500."
+  - The system detects the number "123456789" and waits for 0.5 seconds (`WaitSeconds`) to ensure the customer isn't still speaking.
+  - If the customer were to finish with an additional line, "I want to transfer $500.", the system uses `onPunctuationSeconds` to confirm the end of the speech and then proceed with the request processing.
+  - In a scenario where the customer has been silent for a long and has already finished speaking but the transcriber is not confident to punctuate the transcription, `onNoPunctuationSeconds` is used for 1.5 seconds.
+
+## Stop Speaking Plan
+
+The Stop Speaking Plan defines when the assistant stops talking after detecting customer speech.
+
+- **Words to Stop Speaking**: Define how many words the customer needs to say before the assistant stops talking. If you want immediate reaction, set this to 0. Increase it to avoid interruptions by brief acknowledgments like "okay" or "right". **Example:** While setting an appointment with a clinic, set `numWords` to 2-3 words to allow customers to finish brief clarifications without triggering interruptions.
+
+- **Voice Activity Detection**: Adjust how long the customer needs to be speaking before the assistant stops. The default is 0.2 seconds, but you can tweak this to balance responsiveness and avoid false triggers.
+  **Example:** For a banking call center, setting a higher `voiceSeconds` value ensures accuracy by reducing false positives. This avoids interruptions caused by background sounds, even if it slightly delays the detection of speech onset. This tradeoff is essential to ensure the assistant processes only correct and intended information.
+
+- **Pause Before Resuming**: Control how long the assistant waits before starting to talk again after being interrupted. The default is 1 second, but you can adjust it depending on how quickly the assistant should resume.
+  **Example:** For quick queries (e.g., "What's the total order value in my cart?"), set `backoffSeconds` to 1 second.
+
+Here's a code snippet for Stop Speaking Plan -
+
+```json
+ "stopSpeakingPlan": {
+    "numWords": 0,
+    "voiceSeconds": 0.2,
+    "backoffSeconds": 1
+  }
+```
+
+## Considerations for Configuration
+
+- **Customer Style**: Think about whether the customer pauses mid-thought or provides continuous speech. Adjust wait times and enable smart endpointing as needed.
+
+- **Background Noise**: If there's a lot of background noise, you may need to tweak the settings to avoid false triggers. Default for phone calls is 'office' and default for web calls is 'off'.
+
+```json
+  "backgroundSound": "off",
+```
+
+- **Conversation Flow**: Aim for a balance where the assistant is responsive but not intrusive. Test different settings to find the best fit for your needs.
+
+---
+
+title: Voice pipeline configuration
+subtitle: Configure start and stop speaking plans for natural conversation flow
+slug: customization/voice-pipeline-configuration
+description: >-
+Complete guide to configuring VAPI's voice pipeline for optimal conversation
+timing and interruption handling
+
+---
+
+## Overview
+
+Configure VAPI's voice pipeline to create natural conversation experiences through precise timing control. This guide covers how voice data moves through processing stages and how to optimize endpointing and interruption detection.
+
+**Voice pipeline configuration enables you to:**
+
+- Fine-tune conversation timing for specific use cases
+- Control when and how your assistant begins responding
+- Configure interruption detection and recovery behavior
+- Optimize response timing for different languages and contexts
+
+For implementation examples, see **[Configuration examples](#configuration-examples)**.
+
+## Quick start
+
+### English conversations (recommended)
+
+```json
+{
+  "startSpeakingPlan": {
+    "smartEndpointingPlan": {
+      "provider": "livekit",
+      "waitFunction": "2000 / (1 + exp(-10 * (x - 0.5)))"
+    },
+    "waitSeconds": 0.4
+  },
+  "stopSpeakingPlan": {
+    "numWords": 0,
+    "voiceSeconds": 0.2,
+    "backoffSeconds": 1.0
+  }
+}
+```
+
+**What this provides:**
+
+- Smart endpointing detects when users finish speaking (English only)
+- Fast interruption using voice detection (50-100ms response)
+- Natural timing with balanced wait periods
+
+### Non-English languages
+
+```json
+{
+  "startSpeakingPlan": {
+    "transcriptionEndpointingPlan": {
+      "onPunctuationSeconds": 0.1,
+      "onNoPunctuationSeconds": 1.5,
+      "onNumberSeconds": 0.5
+    },
+    "waitSeconds": 0.4
+  },
+  "stopSpeakingPlan": {
+    "numWords": 0,
+    "voiceSeconds": 0.2,
+    "backoffSeconds": 1.0
+  }
+}
+```
+
+**What this provides:**
+
+- Text-based endpointing works with any language
+- Punctuation detection for natural conversation flow
+- Same fast interruption and timing as English setup
+
+## Voice pipeline flow
+
+### Complete processing pipeline
+
+```
+User Audio → VAD → Transcription → Start Speaking Decision → LLM → TTS → waitSeconds → Assistant Audio
+```
+
+### Start speaking process
+
+<Steps>
+  <Step title="User stops speaking">
+    Voice Activity Detection (VAD) detects utterance-stop
+  </Step>
+  <Step title="Endpointing decision">
+    System evaluates completion using: - Custom Rules (highest priority) - Smart
+    Endpointing Plan (LiveKit for English) - Transcription Endpointing Plan
+    (fallback)
+  </Step>
+  <Step title="Response generation">
+    LLM request sent immediately → TTS processes → waitSeconds applied →
+    Assistant speaks
+  </Step>
+</Steps>
+
+### Stop speaking process
+
+<Steps>
+  <Step title="User starts speaking">
+    VAD detects utterance-start during assistant speech
+  </Step>
+  <Step title="Interruption evaluation">
+    System checks for: - `interruptionPhrases` → Instant pipeline clear -
+    `acknowledgementPhrases` → Ignore interruption - Threshold evaluation based
+    on `numWords` setting
+  </Step>
+  <Step title="Pipeline management">
+    If threshold met → Clear pipeline → Apply `backoffSeconds` → Ready for next
+    input
+  </Step>
+</Steps>
+
+## Start speaking plan
+
+The start speaking plan determines when your assistant begins responding after a user stops talking.
+
+### Transcription endpointing
+
+Analyzes transcription text to determine user completion based on patterns like punctuation and numbers.
+
+<Tabs>
+  <Tab title="Configuration">
+    ```json
+    {
+      "startSpeakingPlan": {
+        "transcriptionEndpointingPlan": {
+          "onPunctuationSeconds": 0.1,
+          "onNoPunctuationSeconds": 1.5,
+          "onNumberSeconds": 0.5
+        },
+        "waitSeconds": 0.4
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Properties">
+    **onPunctuationSeconds** (Default: 0.1)  
+    Wait time after punctuation marks are detected
+
+    **onNoPunctuationSeconds** (Default: 1.5)
+    Wait time when no punctuation is detected
+
+    **onNumberSeconds** (Default: 0.5)
+    Wait time after numbers are detected
+
+  </Tab>
+</Tabs>
+
+**When to use:**
+
+- Non-English languages (LiveKit not supported)
+- Fallback when smart endpointing unavailable
+- Predictable, rule-based endpointing behavior
+
+### Smart endpointing
+
+Uses AI models to analyze speech patterns, context, and audio cues to predict when users have finished speaking. Only available for English conversations.
+
+<Tabs>
+  <Tab title="Configuration">
+    ```json
+    {
+      "startSpeakingPlan": {
+        "smartEndpointingPlan": {
+          "provider": "livekit",
+          "waitFunction": "2000 / (1 + exp(-10 * (x - 0.5)))"
+        },
+        "waitSeconds": 0.4
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Providers">
+    **livekit**  
+    Advanced model trained on conversation data (recommended for English)
+
+    **vapi**
+    Alternative VAPI-trained model
+
+  </Tab>
+</Tabs>
+
+**When to use:**
+
+- English conversations
+- Natural conversation flow requirements
+- Reduced false endpointing triggers
+
+### Wait function
+
+Mathematical expression that determines wait time based on speech completion probability. The function takes a confidence value (0-1) and returns a wait time in milliseconds.
+
+**Aggressive (Fast Response):**
+
+```json
+"waitFunction": "2000 / (1 + exp(-10 * (x - 0.5)))"
+```
+
+- **Behavior:** Responds quickly when confident user is done speaking
+- **Use case:** Customer service, gaming, real-time interactions
+- **Timing:** ~200ms wait at 50% confidence, ~50ms at 90% confidence
+
+**Normal (Balanced):**
+
+```json
+"waitFunction": "(20 + 500 * sqrt(x) + 2500 * x^3 + 700 + 4000 * max(0, x-0.5)) / 2"
+```
+
+- **Behavior:** Waits for natural pauses in conversation
+- **Use case:** Most conversations, general purpose
+- **Timing:** ~800ms wait at 50% confidence, ~300ms at 90% confidence
+
+**Conservative (Careful Response):**
+
+```json
+"waitFunction": "700 + 4000 * max(0, x-0.5)"
+```
+
+- **Behavior:** Very patient, rarely interrupts users
+- **Use case:** Healthcare, formal settings, sensitive conversations
+- **Timing:** ~2700ms wait at 50% confidence, ~700ms at 90% confidence
+
+### Wait seconds
+
+Final audio delay applied after all processing completes, before the assistant speaks.
+
+**Range:** 0-5 seconds (Default: 0.4)
+
+**Recommended settings:**
+
+- **0.0-0.2:** Gaming, real-time interactions
+- **0.3-0.5:** Standard conversations, customer service
+- **0.6-0.8:** Healthcare, formal settings
+
+#### Pipeline timing relationship
+
+`waitSeconds` is applied at the END of the voice pipeline processing:
+
+```
+Endpointing Triggers → LLM Processes → TTS Generates → waitSeconds Delay → Assistant Speaks
+```
+
+**Relationship with other timing components:**
+
+- **Endpointing timing:** Varies by method (smart vs transcription)
+- **LLM processing:** ~800ms average for standard responses
+- **TTS generation:** ~500ms average for short responses
+- **waitSeconds:** Applied as final delay before audio output
+
+#### Complete pipeline timeline
+
+Understanding exact timing helps optimize your voice pipeline configuration. This timeline shows what happens at every moment during the conversation flow.
+
+```
+0.0s: User stops speaking
+0.1s: Smart endpointing evaluation begins
+0.6s: Smart endpointing triggers (varies by waitFunction)
+0.6s: LLM request sent immediately
+1.4s: LLM response received (0.8s processing)
+1.9s: TTS audio generated (0.5s processing)
+1.9s: waitSeconds (0.4s) starts
+2.3s: Assistant begins speaking
+```
+
+**Total Response Time:** Smart Endpointing (0.6s) + LLM (0.8s) + TTS (0.5s) + waitSeconds (0.4s) = **2.3s**
+
+**Key optimization insights:**
+
+- The 0.6s endpointing time varies based on your waitFunction choice
+- Aggressive functions reduce endpointing to ~0.2s
+- Conservative functions increase endpointing to ~2.7s
+- Total response time ranges from 1.9s (aggressive) to 4.7s (conservative)
+
+### Custom endpointing rules
+
+Highest priority rules that override all other endpointing decisions when patterns match.
+
+```json
+{
+  "customEndpointingRules": [
+    {
+      "type": "assistant",
+      "regex": "(phone|email|address)",
+      "timeoutSeconds": 3.0
+    },
+    {
+      "type": "user",
+      "regex": "\\d{3}-\\d{3}-\\d{4}",
+      "timeoutSeconds": 2.0
+    }
+  ]
+}
+```
+
+**Use cases:**
+
+- **Data collection:** Extended wait times for phone numbers, addresses
+- **Spelling:** Extra time for letter-by-letter input
+- **Complex responses:** Additional processing time for detailed information
+
+## Stop speaking plan
+
+The stop speaking plan controls how interruptions are detected and handled when users speak while the assistant is talking.
+
+### Number of words
+
+Sets the interruption detection method and threshold.
+
+**VAD-based (numWords = 0):**
+
+```json
+{
+  "stopSpeakingPlan": {
+    "numWords": 0,
+    "voiceSeconds": 0.2
+  }
+}
+```
+
+- **How it works:** Uses Voice Activity Detection for faster interruption (50-100ms)
+- **Benefits:** Language independent, very responsive
+- **Considerations:** More sensitive to background noise
+
+**Transcription-based (numWords > 0):**
+
+```json
+{
+  "stopSpeakingPlan": {
+    "numWords": 2
+  }
+}
+```
+
+- **How it works:** Waits for specified number of transcribed words
+- **Benefits:** More accurate, reduces false positives
+- **Considerations:** Slower response (200-500ms delay)
+
+**Range:** 0-10 words (Default: 0)
+
+### Voice seconds
+
+VAD duration threshold when `numWords = 0`. Determines how long voice activity must be detected before triggering an interruption.
+
+**Range:** 0-0.5 seconds (Default: 0.2)
+
+**Recommended settings:**
+
+- **0.1:** Very sensitive (risk of background noise triggering)
+- **0.2:** Balanced sensitivity (recommended)
+- **0.4:** Conservative (reduces false positives)
+
+#### The numWords=0 and voiceSeconds relationship
+
+When `numWords = 0`, the voice pipeline uses **Voice Activity Detection (VAD)** instead of waiting for transcription:
+
+```
+User Starts Speaking → VAD Detects Voice → Continuous for voiceSeconds Duration → Interrupt Assistant
+```
+
+**Why this matters:**
+
+- **Faster:** VAD detection ~50-100ms vs transcription 200-500ms
+- **More sensitive:** Detects "um", "uh", throat clearing, background noise
+- **Language independent:** Works with any language
+
+### Backoff seconds
+
+Duration that blocks all assistant audio output after user interruption, creating a recovery period.
+
+**Range:** 0-10 seconds (Default: 1.0)
+
+**Recommended settings:**
+
+- **0.5:** Quick recovery for fast-paced interactions
+- **1.0:** Natural pause for most conversations
+- **2.0:** Deliberate pause for formal settings
+
+#### Pipeline timing relationship
+
+```
+User Interrupts → Assistant Audio Stopped → backoffSeconds Blocks All Output → Ready for New Input
+```
+
+**Relationship with waitSeconds:**
+
+- `backoffSeconds`: Applied during interruption (blocks output)
+- `waitSeconds`: Applied to normal responses (delays output)
+- **Sequential, not cumulative:** `backoffSeconds` completes first, then normal flow resumes with `waitSeconds`
+
+#### Complete interruption timeline
+
+**How to read this timeline:** This shows the complete flow from interruption to recovery. Notice how backoffSeconds creates a "quiet period" before normal processing resumes.
+
+```
+0.0s: Assistant speaking: "I can help you book..."
+1.2s: User interrupts: "Actually, wait"
+1.2s: backoffSeconds (1.0s) starts → All audio blocked
+2.2s: backoffSeconds completes → Ready for new input
+2.5s: User says: "What about tomorrow?"
+3.0s: Endpointing triggers → LLM processes
+3.8s: TTS completes → waitSeconds (0.4s) starts
+4.2s: Assistant responds: "For tomorrow..."
+```
+
+**Total Recovery Time:** backoffSeconds (1.0s) + normal processing (1.8s) + waitSeconds (0.4s) = **3.2s**
+
+**Key insight:** Adjust backoffSeconds based on how quickly you want the assistant to recover from interruptions. Healthcare might use 2.0s for deliberate pauses, while gaming might use 0.5s for quick recovery.
+
+## Configuration examples
+
+### E-commerce customer support
+
+```json
+{
+  "startSpeakingPlan": {
+    "waitSeconds": 0.4,
+    "smartEndpointingPlan": {
+      "provider": "livekit",
+      "waitFunction": "2000 / (1 + exp(-10 * (x - 0.5)))"
+    }
+  },
+  "stopSpeakingPlan": {
+    "numWords": 0,
+    "voiceSeconds": 0.15,
+    "backoffSeconds": 0.8
+  }
+}
+```
+
+**Optimized for:** Fast response to quick customer queries, efficient order status and product questions.
+
+### Non-English languages (Spanish example)
+
+```json
+{
+  "transcriber": { "language": "es" },
+  "startSpeakingPlan": {
+    "waitSeconds": 0.4,
+    "transcriptionEndpointingPlan": {
+      "onPunctuationSeconds": 0.1,
+      "onNoPunctuationSeconds": 2.0
+    }
+  },
+  "stopSpeakingPlan": {
+    "numWords": 0,
+    "voiceSeconds": 0.3,
+    "backoffSeconds": 1.2
+  }
+}
+```
+
+**Optimized for:** Text-based endpointing with longer timeouts for different speech patterns and international support.
+
+### Education and training
+
+```json
+{
+  "startSpeakingPlan": {
+    "waitSeconds": 0.7,
+    "smartEndpointingPlan": {
+      "provider": "livekit",
+      "waitFunction": "(20 + 500 * sqrt(x) + 2500 * x^3 + 700 + 4000 * max(0, x-0.5)) / 2"
+    },
+    "customEndpointingRules": [
+      {
+        "type": "assistant",
+        "regex": "(spell|define|explain|example)",
+        "timeoutSeconds": 4.0
+      }
+    ]
+  },
+  "stopSpeakingPlan": {
+    "numWords": 1,
+    "backoffSeconds": 1.5
+  }
+}
+```
+
+**Optimized for:** Learning pace with extra time for complex questions and explanations.
+
+## Next steps
+
+Now that you understand voice pipeline configuration:
+
+- **[Speech configuration](speech-configuration):** Learn about provider-specific voice settings
+- **[Custom transcriber](custom-transcriber):** Configure transcription providers for your language
+- **[Voice fallback plan](../voice-fallback-plan):** Set up backup voice options
+- **[Debugging voice agents](../debugging):** Troubleshoot voice pipeline issues
+
+---
+
+title: Voice Fallback Plan
+subtitle: >-
+Configure fallback voices that activate automatically if your primary voice
+fails.
+slug: voice-fallback-plan
+
+---
+
+<Note>
+  Voice fallback plans can currently only be configured through the API. We are working on making this available through our dashboard.
+</Note>
+
+## Introduction
+
+Voice fallback plans give you the ability to continue your call in the event that your primary voice fails. Your assistant will sequentially fallback to only the voices you configure within your plan, in the exact order you specify.
+
+<Note>
+  Without a fallback plan configured, your call will end with an error in the event that your chosen voice provider fails.
+</Note>
+
+## How It Works
+
+When a voice failure occurs, Vapi will:
+
+1. Detect the failure of the primary voice
+2. If a custom fallback plan exists:
+
+- Switch to the first fallback voice in your plan
+- Continue through your specified list if subsequent failures occur
+- Terminate only if all voices in your plan have failed
+
+## Configuration
+
+Add the `fallbackPlan` property to your assistant's voice configuration, and specify the fallback voices within the `voices` property.
+
+- Please note that fallback voices must be valid JSON configurations, and not strings.
+- The order matters. Vapi will choose fallback voices starting from the beginning of the list.
+
+```json
+{
+  "voice": {
+    "provider": "openai",
+    "voiceId": "shimmer",
+    "fallbackPlan": {
+      "voices": [
+        {
+          "provider": "cartesia",
+          "voiceId": "248be419-c632-4f23-adf1-5324ed7dbf1d"
+        },
+        {
+          "provider": "playht",
+          "voiceId": "jennifer"
+        }
+      ]
+    }
+  }
+}
+```
+
+## Best practices
+
+- Use <b>different providers</b> for your fallback voices to protect against provider-wide outages.
+- Select voices with **similar characteristics** (tone, accent, gender) to maintain consistency in the user experience.
+
+## How will pricing work?
+
+There is no change to the pricing of the voices. Your call will not incur any extra fees while using fallback voices, and you will be able to see the cost for each voice in your end-of-call report.
+
+---
+
+title: OpenAI Realtime
+subtitle: You can use OpenAI's newest speech-to-speech model with your Vapi assistants.
+slug: openai-realtime
+
+---
+
+<Note>
+  The Realtime API is currently in beta, and not recommended for production use by OpenAI. We're excited to have you try this new feature and welcome your [feedback](https://discord.com/invite/pUFNcf2WmH) as we continue to refine and improve the experience.
+</Note>
+
+OpenAI’s Realtime API enables developers to use a native speech-to-speech model. Unlike other Vapi configurations which orchestrate a transcriber, model and voice API to simulate speech-to-speech, OpenAI’s Realtime API natively processes audio in and audio out.
+
+To start using it with your Vapi assistants, select `gpt-4o-realtime-preview-2024-12-17` as your model.
+
+- Please note that only OpenAI voices may be selected while using this model. The voice selection will not act as a TTS (text-to-speech) model, but rather as the voice used within the speech-to-speech model.
+- Also note that we don’t currently support Knowledge Bases with the Realtime API.
+- Lastly, note that our Realtime integration still retains the rest of Vapi's orchestration layer such as Endpointing and Interruption models to enable a reliable conversational flow.
+
+---
+
+title: Provider Keys
+subtitle: Bring your own API keys to Vapi.
+slug: customization/provider-keys
+
+---
+
+Have a custom model or voice with one of the providers? Or an enterprise account with volume pricing?
+
+No problem! You can bring your own API keys to Vapi. You can add them in the [Dashboard](https://dashboard.vapi.ai) under the **Provider Keys** tab. Once your API key is validated, you won't be charged when using that provider through Vapi. Instead, you'll be charged directly by the provider.
+
+## Transcription Providers
+
+Currently, the only available transcription provider is `deepgram`. To use a custom model, you can specify the deepgram model ID in the `transcriber.model` parameter of the [Assistant](/api-reference/assistants/create-assistant).
+
+## Model Providers
+
+We are currently have support for any OpenAI-compatible endpoint. This includes services like [OpenRouter](https://openrouter.ai/), [AnyScale](https://www.anyscale.com/), [Together AI](https://www.together.ai/), or your own server.
+
+To use one of these providers, you can specify the `provider` and `model` in the `model` parameter of the [Assistant](/api-reference/assistants/create-assistant).
+
+You can find more details in the [Custom LLMs](/customization/custom-llm/fine-tuned-openai-models) section of the documentation.
+
+## Voice Providers
+
+All voice providers are supported. Once you've validated your API through the [Dashboard](https://dashboard.vapi.ai), any voice ID from your provider can be used in the `voice.voiceId` field of the [Assistant](/api-reference/assistants/create-assistant).
+
+## Cloud Providers
+
+Vapi stores recordings of conversations with assistants in the cloud. By default, Vapi stores these recordings in its
+own bucket in Cloudflare R2. You can configure Vapi to store recordings in your own bucket in AWS S3, GCP, or
+Cloudflare R2.
+
+You can find more details on how to configure your Cloud Provider keys here:
+
+- [AWS S3](/providers/cloud/s3)
+- [GCP Cloud Storage](/providers/cloud/gcp)
+- [Cloudflare R2](/providers/cloud/cloudflare)
+
+---
+
+title: Custom transcriber
+subtitle: Integrate your own transcription service with Vapi
+slug: customization/custom-transcriber
+
+---
+
+## Overview
+
+A custom transcriber lets you use your own transcription service with Vapi, instead of a built-in provider. This is useful if you need more control, want to use a specific provider like Deepgram, or have custom processing needs.
+
+This guide shows you how to set up Deepgram as your custom transcriber. The same approach can be adapted for other providers.
+
+You'll learn how to:
+
+- Stream audio from Vapi to your server
+- Forward audio to Deepgram for transcription
+- Return real-time transcripts back to Vapi
+
+## Why Use a Custom Transcriber?
+
+- **Flexibility:** Integrate with your preferred transcription service.
+- **Control:** Implement specialized processing that isn't available with built‑in providers.
+- **Cost Efficiency:** Leverage your existing transcription infrastructure while maintaining full control over the pipeline.
+- **Customization:** Tailor the handling of audio data, transcript formatting, and buffering according to your specific needs.
+
+## How it works
+
+<Steps>
+  <Step title="Connection initialization">
+    Vapi connects to your custom transcriber endpoint (e.g. `/api/custom-transcriber`) via WebSocket. It sends an initial JSON message like this:
+    ```json
+    {
+      "type": "start",
+      "encoding": "linear16",
+      "container": "raw",
+      "sampleRate": 16000,
+      "channels": 2
+    }
+    ```
+  </Step>
+  <Step title="Audio streaming">
+    Vapi then streams binary PCM audio to your server.
+  </Step>
+  <Step title="Transcription processing">
+    Your server forwards the audio to Deepgram (or your chosen transcriber) using its SDK. Deepgram processes the audio and returns transcript events that include a `channel_index` (e.g. `[0, ...]` for customer, `[1, ...]` for assistant). The service buffers the incoming data, processes the transcript events (with debouncing and channel detection), and emits a final transcript.
+  </Step>
+  <Step title="Response">
+    The final transcript is sent back to Vapi as a JSON message:
+    ```json
+    {
+      "type": "transcriber-response",
+      "transcription": "The transcribed text",
+      "channel": "customer" // or "assistant"
+    }
+    ```
+  </Step>
+</Steps>
+
+## Implementation steps
+
+<Steps>
+  <Step title="Project setup">
+    Create a new Node.js project and install the required dependencies:
+    ```bash
+    mkdir vapi-custom-transcriber
+    cd vapi-custom-transcriber
+    npm init -y
+    ```
+    
+    <CodeBlocks>
+    ```bash title="npm"
+    npm install ws express dotenv @deepgram/sdk
+    ```
+
+    ```bash title="yarn"
+    yarn add ws express dotenv @deepgram/sdk
+    ```
+
+    ```bash title="pnpm"
+    pnpm add ws express dotenv @deepgram/sdk
+    ```
+
+    ```bash title="bun"
+    bun add ws express dotenv @deepgram/sdk
+    ```
+    </CodeBlocks>
+
+    Create a `.env` file with the following content:
+    ```env
+    DEEPGRAM_API_KEY=your_deepgram_api_key
+    PORT=3001
+    ```
+
+  </Step>
+
+  <Step title="Add code files">
+    Add the following files to your project:
+
+    **transcriptionService.js**
+    ```js
+    const { createClient, LiveTranscriptionEvents } = require("@deepgram/sdk");
+    const EventEmitter = require("events");
+
+    const PUNCTUATION_TERMINATORS = [".", "!", "?"];
+    const MAX_RETRY_ATTEMPTS = 3;
+    const DEBOUNCE_DELAY_IN_SECS = 3;
+    const DEBOUNCE_DELAY = DEBOUNCE_DELAY_IN_SECS * 1000;
+    const DEEPGRAM_API_KEY = process.env["DEEPGRAM_API_KEY"] || "";
+
+    class TranscriptionService extends EventEmitter {
+      constructor(config, logger) {
+        super();
+        this.config = config;
+        this.logger = logger;
+        this.flowLogger = require("./fileLogger").createNamedLogger(
+          "transcriber-flow.log"
+        );
+        if (!DEEPGRAM_API_KEY) {
+          throw new Error("Missing Deepgram API Key");
+        }
+        this.deepgramClient = createClient(DEEPGRAM_API_KEY);
+        this.logger.logDetailed(
+          "INFO",
+          "Initializing Deepgram live connection",
+          "TranscriptionService",
+          {
+            model: "nova-2",
+            sample_rate: 16000,
+            channels: 2,
+          }
+        );
+        this.deepgramLive = this.deepgramClient.listen.live({
+          encoding: "linear16",
+          channels: 2,
+          sample_rate: 16000,
+          model: "nova-2",
+          smart_format: true,
+          interim_results: true,
+          endpointing: 800,
+          language: "en",
+          multichannel: true,
+        });
+        this.finalResult = { customer: "", assistant: "" };
+        this.audioBuffer = [];
+        this.retryAttempts = 0;
+        this.lastTranscriptionTime = Date.now();
+        this.pcmBuffer = Buffer.alloc(0);
+
+        this.deepgramLive.addListener(LiveTranscriptionEvents.Open, () => {
+          this.logger.logDetailed(
+            "INFO",
+            "Deepgram connection opened",
+            "TranscriptionService"
+          );
+          this.deepgramLive.on(LiveTranscriptionEvents.Close, () => {
+            this.logger.logDetailed(
+              "INFO",
+              "Deepgram connection closed",
+              "TranscriptionService"
+            );
+            this.emitTranscription();
+            this.audioBuffer = [];
+          });
+          this.deepgramLive.on(LiveTranscriptionEvents.Metadata, (data) => {
+            this.logger.logDetailed(
+              "DEBUG",
+              "Deepgram metadata received",
+              "TranscriptionService",
+              data
+            );
+          });
+          this.deepgramLive.on(LiveTranscriptionEvents.Transcript, (event) => {
+            this.handleTranscript(event);
+          });
+          this.deepgramLive.on(LiveTranscriptionEvents.Error, (err) => {
+            this.logger.logDetailed(
+              "ERROR",
+              "Deepgram error received",
+              "TranscriptionService",
+              { error: err }
+            );
+            this.emit("transcriptionerror", err);
+          });
+        });
+      }
+
+      send(payload) {
+        if (payload instanceof Buffer) {
+          this.pcmBuffer =
+            this.pcmBuffer.length === 0
+              ? payload
+              : Buffer.concat([this.pcmBuffer, payload]);
+        } else {
+          this.logger.warn("TranscriptionService: Received non-Buffer data chunk.");
+        }
+        if (this.deepgramLive.getReadyState() === 1 && this.pcmBuffer.length > 0) {
+          this.sendBufferedData(this.pcmBuffer);
+          this.pcmBuffer = Buffer.alloc(0);
+        }
+      }
+
+      sendBufferedData(bufferedData) {
+        try {
+          this.logger.logDetailed(
+            "INFO",
+            "Sending buffered data to Deepgram",
+            "TranscriptionService",
+            { bytes: bufferedData.length }
+          );
+          this.deepgramLive.send(bufferedData);
+          this.audioBuffer = [];
+          this.retryAttempts = 0;
+        } catch (error) {
+          this.logger.logDetailed(
+            "ERROR",
+            "Error sending buffered data",
+            "TranscriptionService",
+            { error }
+          );
+          this.retryAttempts++;
+          if (this.retryAttempts <= MAX_RETRY_ATTEMPTS) {
+            setTimeout(() => {
+              this.sendBufferedData(bufferedData);
+            }, 1000);
+          } else {
+            this.logger.logDetailed(
+              "ERROR",
+              "Max retry attempts reached, discarding data",
+              "TranscriptionService"
+            );
+            this.audioBuffer = [];
+            this.retryAttempts = 0;
+          }
+        }
+      }
+
+      handleTranscript(transcription) {
+        if (!transcription.channel || !transcription.channel.alternatives?.[0]) {
+          this.logger.logDetailed(
+            "WARN",
+            "Invalid transcript format",
+            "TranscriptionService",
+            { transcription }
+          );
+          return;
+        }
+        const text = transcription.channel.alternatives[0].transcript.trim();
+        if (!text) return;
+        const currentTime = Date.now();
+        const channelIndex = transcription.channel_index
+          ? transcription.channel_index[0]
+          : 0;
+        const channel = channelIndex === 0 ? "customer" : "assistant";
+        this.logger.logDetailed(
+          "INFO",
+          "Received transcript",
+          "TranscriptionService",
+          { channel, text }
+        );
+        if (transcription.is_final || transcription.speech_final) {
+          this.finalResult[channel] += ` ${text}`;
+          this.emitTranscription();
+        } else {
+          this.finalResult[channel] += ` ${text}`;
+          if (currentTime - this.lastTranscriptionTime >= DEBOUNCE_DELAY) {
+            this.logger.logDetailed(
+              "INFO",
+              `Emitting transcript after ${DEBOUNCE_DELAY_IN_SECS}s inactivity`,
+              "TranscriptionService"
+            );
+            this.emitTranscription();
+          }
+        }
+        this.lastTranscriptionTime = currentTime;
+      }
+
+      emitTranscription() {
+        for (const chan of ["customer", "assistant"]) {
+          if (this.finalResult[chan].trim()) {
+            const transcript = this.finalResult[chan].trim();
+            this.logger.logDetailed(
+              "INFO",
+              "Emitting transcription",
+              "TranscriptionService",
+              { channel: chan, transcript }
+            );
+            this.emit("transcription", transcript, chan);
+            this.finalResult[chan] = "";
+          }
+        }
+      }
+    }
+
+    module.exports = TranscriptionService;
+    ```
+
+    **server.js**
+    ```js
+    const express = require("express");
+    const http = require("http");
+    const TranscriptionService = require("./transcriptionService");
+    const FileLogger = require("./fileLogger");
+    require("dotenv").config();
+
+    const app = express();
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+
+    app.get("/", (req, res) => {
+      res.send("Custom Transcriber Service is running");
+    });
+
+    const server = http.createServer(app);
+
+    const config = {
+      DEEPGRAM_API_KEY: process.env.DEEPGRAM_API_KEY,
+      PORT: process.env.PORT || 3001,
+    };
+
+    const logger = new FileLogger();
+    const transcriptionService = new TranscriptionService(config, logger);
+
+    transcriptionService.setupWebSocketServer = function (server) {
+      const WebSocketServer = require("ws").Server;
+      const wss = new WebSocketServer({ server, path: "/api/custom-transcriber" });
+      wss.on("connection", (ws) => {
+        logger.logDetailed(
+          "INFO",
+          "New WebSocket client connected on /api/custom-transcriber",
+          "Server"
+        );
+        ws.on("message", (data, isBinary) => {
+          if (!isBinary) {
+            try {
+              const msg = JSON.parse(data.toString());
+              if (msg.type === "start") {
+                logger.logDetailed(
+                  "INFO",
+                  "Received start message from client",
+                  "Server",
+                  { sampleRate: msg.sampleRate, channels: msg.channels }
+                );
+              }
+            } catch (err) {
+              logger.error("JSON parse error", err, "Server");
+            }
+          } else {
+            transcriptionService.send(data);
+          }
+        });
+        ws.on("close", () => {
+          logger.logDetailed("INFO", "WebSocket client disconnected", "Server");
+          if (
+            transcriptionService.deepgramLive &&
+            transcriptionService.deepgramLive.getReadyState() === 1
+          ) {
+            transcriptionService.deepgramLive.finish();
+          }
+        });
+        ws.on("error", (error) => {
+          logger.error("WebSocket error", error, "Server");
+        });
+        transcriptionService.on("transcription", (text, channel) => {
+          const response = {
+            type: "transcriber-response",
+            transcription: text,
+            channel,
+          };
+          ws.send(JSON.stringify(response));
+          logger.logDetailed("INFO", "Sent transcription to client", "Server", {
+            channel,
+            text,
+          });
+        });
+        transcriptionService.on("transcriptionerror", (err) => {
+          ws.send(
+            JSON.stringify({ type: "error", error: "Transcription service error" })
+          );
+          logger.error("Transcription service error", err, "Server");
+        });
+      });
+    };
+
+    transcriptionService.setupWebSocketServer(server);
+
+    server.listen(config.PORT, () => {
+      console.log(`Server is running on http://localhost:${config.PORT}`);
+    });
+    ```
+
+  </Step>
+
+  <Step title="Test your integration">
+    1. **Deploy your server:**
+    ```bash
+    node server.js
+    ```
+    2. **Expose your server:**
+    Use a tool like ngrok to expose your server via HTTPS/WSS.
+    3. **Initiate a call with Vapi:**
+    Use the following CURL command (update the placeholders with your actual values):
+    ```bash
+    curl -X POST https://api.vapi.ai/call \
+         -H "Authorization: Bearer YOUR_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+      "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+      "customer": {
+        "number": "CUSTOMER_PHONE_NUMBER"
+      },
+      "assistant": {
+        "transcriber": {
+          "provider": "custom-transcriber",
+          "server": {
+            "url": "wss://your-server.ngrok.io/api/custom-transcriber"
+          },
+          "secret": "your_optional_secret_value"
+        },
+        "firstMessage": "Hello! I am using a custom transcriber with Deepgram."
+      },
+      "name": "CustomTranscriberTest"
+    }'
+    ```
+    
+    **Expected behavior:**
+    - Vapi connects via WebSocket to your custom transcriber at `/api/custom-transcriber`.
+    - The `"start"` message initializes the Deepgram session.
+    - PCM audio data is forwarded to Deepgram.
+    - Deepgram returns transcript events, which are processed with channel detection and debouncing.
+    - The final transcript is sent back as a JSON message:
+      ```json
+      {
+        "type": "transcriber-response",
+        "transcription": "The transcribed text",
+        "channel": "customer" // or "assistant"
+      }
+      ```
+  </Step>
+</Steps>
+
+## Notes and limitations
+
+- **Streaming support requirement:**  
+  The custom transcriber must support streaming. Vapi sends continuous audio data over the WebSocket, and your server must handle this stream in real time.
+- **Secret header:**  
+  The custom transcriber configuration accepts an optional field called **`secret`**. When set, Vapi will send this value with every request as an HTTP header named `x-vapi-secret`. This can also be configured via a headers field.
+- **Buffering:**  
+  The solution buffers PCM audio and performs simple validation (e.g. ensuring stereo PCM data length is a multiple of 4). If the audio data is malformed, it is trimmed to a valid length.
+- **Channel detection:**  
+  Transcript events from Deepgram include a `channel_index` array. The service uses the first element to determine whether the transcript is from the customer (`0`) or the assistant (`1`). Ensure Deepgram's response format remains consistent with this logic.
+
+---
+
+## Conclusion
+
+Using a custom transcriber with Vapi gives you the flexibility to integrate any transcription service into your call flows. This guide walked you through the setup, usage, and testing of a solution that streams real-time audio, processes transcripts with multi‑channel detection, and returns formatted responses back to Vapi. Follow the steps above and use the provided code examples to build your custom transcriber solution.
+
+---
+
+title: Introduction to Tools
+subtitle: Extend your assistant's capabilities with powerful function calling tools.
+slug: tools
+
+---
+
+[**Tools**](/api-reference/tools/create) allow your assistant to take actions beyond just conversation. They enable your assistant to perform tasks like transferring calls, accessing external data, or triggering actions in your application. Tools can be either built-in default tools provided by Vapi or custom tools that you create.
+
+There are three types of tools available:
+
+1. **Default Tools**: Built-in functions provided by Vapi for common operations like call transfers and control.
+2. **Custom Tools**: Your own functions that can be called by the assistant to interact with your systems.
+3. **Integration Tools**: Pre-built integrations with platforms like [Make](https://www.make.com/en/integrations/vapi) and GoHighLevel (GHL) that let you trigger automated workflows via voice.
+
+<Info>
+  Tools are configured as part of your assistant's model configuration. You can find the complete API reference [here](/api-reference/tools/create-tool).
+</Info>
+
+## Available Tools
+
+<CardGroup cols={3}>
+  <Card 
+    title="Default Tools" 
+    icon="gear" 
+    href="/tools/default-tools"
+  >
+    Built-in tools for call control, transfers, and basic operations
+  </Card>
+  <Card 
+    title="Custom Tools" 
+    icon="screwdriver-wrench" 
+    href="/tools/custom-tools"
+  >
+    Create your own tools to extend assistant capabilities
+  </Card>
+  <Card 
+    title="Make & GHL Tools" 
+    icon="puzzle-piece" 
+    href="/tools/GHL"
+  >
+    Import Make scenarios and GHL workflows as voice-activated tools
+  </Card>
+</CardGroup>
+
+## Integration Tools
+
+With Make and GHL integrations, you can:
+
+- Import existing Make scenarios and GHL workflows directly into Vapi
+- Trigger automated workflows using voice commands
+- Connect your voice AI to hundreds of apps and services
+- Automate complex business processes through voice interaction
+
+Common use cases include:
+
+- Booking appointments via voice
+- Updating CRM records during calls
+- Triggering email or SMS follow-ups
+- Processing orders and payments
+- Managing customer support tickets
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card 
+    title="Function Calling" 
+    icon="square-terminal"
+  >
+    Assistants can trigger functions based on conversation context
+  </Card>
+  <Card 
+    title="Async Support" 
+    icon="clock"
+  >
+    Tools can run synchronously or asynchronously
+  </Card>
+  <Card 
+    title="Server Integration" 
+    icon="server"
+  >
+    Connect tools to your backend via webhooks
+  </Card>
+  <Card 
+    title="Error Handling" 
+    icon="triangle-exclamation"
+  >
+    Built-in error handling and fallback options
+  </Card>
+</CardGroup>
+
+## Learn More
+
+<CardGroup cols={2}>
+  <Card
+    title="Make & GHL Integration Guide"
+    icon="puzzle-piece"
+    href="/tools/GHL"
+  >
+    Learn how to import and use Make scenarios and GHL workflows as voice-activated tools
+  </Card>
+  <Card
+    title="Join Our Discord"
+    icon="fa-brands fa-discord"
+    color="#5A65EA"
+    href="https://discord.gg/pUFNcf2WmH"
+  >
+    Get help with tool integrations from our community
+  </Card>
+</CardGroup>
+
+---
+
+title: Default Tools
+subtitle: >-
+Adding Transfer Call, End Call, Dial Keypad, and API Request capabilities to
+your assistants.
+slug: tools/default-tools
+
+---
+
+Vapi voice assistants are given additional functions: `transferCall`, `endCall`, `sms`, `dtmf` (to dial a keypad with [DTMF](https://en.wikipedia.org/wiki/DTMF)), and `apiRequest`. These functions can be used to transfer calls, hang up calls, send SMS messages, enter digits on the keypad, and integrate business logic with your existing APIs.
+
+<Info>
+To add Default Tools to your agent, you need to add them in the `tools` array of your assistant. You can do this in your api request, or by creating a new tool in the dashboard tools page, and assigning it to your assistant.
+</Info>
+
+#### Transfer Call
+
+This function is provided when `transferCall` is included in the assistant's list of available tools (see configuration options [here](/api-reference/assistants/create#request.body.model.openai.tools.transferCall)). This function can be used to transfer the call to any of the `destinations` defined in the tool configuration (see details on destination options [here](/api-reference/assistants/create#request.body.model.openai.tools.transferCall.destinations)).
+
+```json
+{
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an assistant at a law firm. When the user asks to be transferred, use the transferCall function."
+      }
+    ],
+    "tools": [
+      {
+          "type": "transferCall",
+          "destinations" : {
+            {
+              "type": "number",
+              "number": "+16054440129"
+            }
+          }
+      }
+    ]
+  }
+}
+```
+
+#### End Call
+
+This function is provided when `endCall` is included in the assistant's list of available tools (see configuration options [here](/api-reference/assistants/create#request.body.model.openai.tools.endCall)). The assistant can use this function to end the call.
+
+```json
+{
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an assistant at a law firm. If the user is being mean, use the endCall function."
+      }
+    ],
+    "tools": [
+      {
+        "type": "endCall"
+      }
+    ]
+  }
+}
+```
+
+#### Send Text
+
+This function is provided when `sms` is included in the assistant's list of available tool (see configuration options [here](/api-reference/assistants/create#request.body.model.openai.tools.sms)). The assistant can use this function to send SMS messages using a configured Twilio account.
+
+```json
+{
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an assistant. When the user asks you to send a text message, use the sms function."
+      }
+    ],
+    "tools": [
+      {
+        "type": "sms",
+        "metadata": {
+          "from": "+15551234567"
+        }
+      }
+    ]
+  }
+}
+```
+
+#### Dial Keypad (DTMF)
+
+This function is provided when `dtmf` is included in the assistant's list of available tools (see configuration options [here](/api-reference/assistants/create#request.body.model.openai.tools.dtmf)). The assistant will be able to enter digits on the keypad.
+Useful for IVR navigation or data entry.
+
+```json
+{
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an assistant at a law firm. When you hit a menu, use the dtmf function to enter the digits."
+      }
+    ],
+    "tools": [
+      {
+        "type": "dtmf"
+      }
+    ]
+  }
+}
+```
+
+There are three methods for sending DTMF in a phone call:
+
+1. **In-band**: tones are transmitted as part of the regular audio stream. This is the simplest method, but it can suffer from quality issues if the audio stream is compressed or degraded.
+2. **Out-of-band via RFC 2833**: tones are transmitted separately from the audio stream, within RTP (Real-Time Protocol) packets. It's typically more reliable than in-band DTMF, particularly for VoIP applications where the audio stream might be compressed. RFC 2833 is the standard that initially defined this method. It is now replaced by RFC 4733 but this method is still referred by RFC 2833.
+3. **Out-of-band via SIP INFO messages**: tones are sent as separate SIP INFO messages. While this can be more reliable than in-band DTMF, it's not as widely supported as the RFC 2833 method.
+
+<Note>
+Vapi's DTMF tool integrates with telephony provider APIs to send DTMF tones using the out-of-band RFC 2833 method. This approach is widely supported and more reliable for transmitting the signals, especially in VoIP environments.
+Note, the tool's effectiveness depends on the IVR system's configuration and their capturing method. If you are running into issues, try different telephony providers or have your assistant say the options out loud if available.
+</Note>
+
+#### API Request
+
+This tool allows your assistant to make HTTP requests to any external API endpoint during conversations. This tool fills the gap between Vapi and your existing business logic, bringing your own endpoints into the conversation flow.
+See configuration options [here](/api-reference/tools/create).
+
+##### Dynamic Variables with LiquidJS
+
+Use **LiquidJS syntax** to reference conversation variables and user data in your URLs, headers, and request bodies. This allows your API requests to adapt dynamically based on the conversation context.
+
+##### Basic Examples
+
+**GET Request Example**
+
+```json
+{
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You help users check their order status. When they provide an order number, use the checkOrderStatus function."
+      }
+    ],
+    "tools": [
+      {
+        "type": "apiRequest",
+        "function": {
+          "name": "api_request_tool"
+        },
+        "name": "checkOrderStatus",
+        "url": "https://api.yourcompany.com/orders/{{orderNumber}}",
+        "method": "GET",
+        "body": {
+          "type": "object",
+          "properties": {
+            "orderNumber": {
+              "description": "The user's order number",
+              "type": "string"
+            }
+          },
+          "required": ["orderNumber"]
+        }
+      }
+    ]
+  }
+}
+```
+
+**POST Request Example**
+
+```json
+{
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You help users book appointments. When they want to schedule, use the bookAppointment function."
+      }
+    ],
+    "tools": [
+      {
+        "type": "apiRequest",
+        "function": {
+          "name": "api_request_tool"
+        },
+        "name": "bookAppointment",
+        "url": "https://api.yourcompany.com/appointments",
+        "method": "POST",
+        "headers": {
+          "type": "object",
+          "properties": {
+            "x-api-key": {
+              "type": "string",
+              "value": "123456789"
+            }
+          }
+        },
+        "body": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "description": "The date of the appointment",
+              "type": "string"
+            },
+            "customerName": {
+              "description": "The name of the customer",
+              "type": "string"
+            },
+            "customerPhoneNumber": {
+              "description": "The phone number of the customer",
+              "type": "string"
+            }
+          },
+          "required": ["date", "customerName", "customerPhoneNumber"]
+        }
+      }
+    ]
+  }
+}
+```
+
+##### Advanced Configuration
+
+**With Retry Logic**
+
+```json
+{
+  "type": "apiRequest",
+  "function": {
+    "name": "api_request_tool"
+  },
+  "name": "checkOrderStatus",
+  "url": "https://api.yourcompany.com/orders/{{orderNumber}}",
+  "method": "GET",
+  "body": {
+    "type": "object",
+    "properties": {
+      "orderNumber": {
+        "description": "The user's order number",
+        "type": "string"
+      }
+    },
+    "required": ["orderNumber"]
+  },
+  "backoffPlan": {
+    "type": "exponential",
+    "maxRetries": 3,
+    "baseDelaySeconds": 1
+  },
+  "timeoutSeconds": 45
+}
+```
+
+<Accordion title="Custom Functions: Deprecated">
+### Custom Functions
+
+<Warning>The **Custom Functions** feature is being deprecated in favor of [Tools](/tools-calling). Please refer to the **Tools** section instead. We're working on a solution to migrate your existing functions over to make this a seamless transtion.</Warning>
+
+In addition to the predefined functions, you can also define custom functions. These functions are similar to OpenAI functions and your chosen LLM will trigger them as needed based on your instructions.
+
+The functions array in the assistant definition allows you to define custom functions that the assistant can call during a conversation. Each function is an object with the following properties:
+
+- `name`: The name of the function. It must be a string containing a-z, A-Z, 0-9, underscores, or dashes, with a maximum length of 64.
+- `description`: A brief description of what the function does. This is used by the AI to decide when and how to call the function.
+- `parameters`: An object that describes the parameters the function accepts. The type property should be "object", and the properties property should be an object where each key is a parameter name and each value is an object describing the type and purpose of the parameter.
+
+Here's an example of a function definition:
+
+```json
+{
+  "functions": [
+    {
+      "name": "bookAppointment",
+      "description": "Used to book the appointment.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "datetime": {
+            "type": "string",
+            "description": "The date and time of the appointment in ISO format."
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+In this example, the bookAppointment function accepts one parameter, `datetime`, which is a string representing the date and time of the appointment in ISO format.
+
+In addition to defining custom functions, you can specify a `serverUrl` where Vapi will send the function call information. This URL can be configured at the account level or at the assistant level.
+At the account level, the `serverUrl` is set in the Vapi Dashboard. All assistants under the account will use this URL by default for function calls.
+At the assistant level, the `serverUrl` can be specified in the assistant configuration when creating or updating an assistant. This allows different assistants to use different URLs for function calls. If a `serverUrl` is specified at the assistant level, it will override the account-level Server URL.
+
+If the `serverUrl` is not defined either at the account level or the assistant level, the function call will simply be added to the chat history. This can be particularly useful when you want a function call to trigger an action on the frontend.
+
+For instance, the frontend can listen for specific function calls in the chat history and respond by updating the user interface or performing other actions. This allows for a dynamic and interactive user experience, where the frontend can react to changes in the conversation in real time.
+</Accordion>
+
+---
+
+title: Custom Tools
+subtitle: >-
+Learn how to create and configure Custom Tools for use by your Vapi
+assistants.
+slug: tools/custom-tools
+
+---
+
+This guide shows you how to create custom tools for your Vapi assistants. We recommend using the Vapi dashboard's dedicated Tools section, which provides a visual interface for creating and managing tools that can be reused across multiple assistants. For advanced users, API configuration is also available.
+
+## Creating Tools in the Dashboard (Recommended)
+
+### Step 1: Navigate to the Tools Section
+
+1. Open your [Vapi Dashboard](https://dashboard.vapi.ai)
+2. Click **Tools** in the left sidebar
+3. Click **Create Tool** to start building your custom tool
+
+### Step 2: Configure Your Tool
+
+The dashboard provides a user-friendly interface to configure your tool:
+
+1. **Tool Type**: Select "Function" for custom API integrations
+2. **Tool Name**: Give your tool a descriptive name (e.g., "Weather Lookup")
+3. **Description**: Explain what your tool does
+4. **Tool Configuration**:
+   - **Tool Name**: The identifier for your function (e.g., `get_weather`)
+   - **Parameters**: Define the input parameters your function expects
+   - **Server URL**: The endpoint where your function is hosted
+
+### Step 3: Configure Messages
+
+Set up the messages your assistant will speak during tool execution. For example, if you want custom messages you can add something like this:
+
+- **Request Start**: "Checking the weather forecast. Please wait..."
+- **Request Complete**: "The weather information has been retrieved."
+- **Request Failed**: "I couldn't get the weather information right now."
+- **Request Delayed**: "There's a slight delay with the weather service."
+
+### Step 4: Advanced Settings
+
+Configure additional options:
+
+- **Async Mode**: Enable if the tool should run asynchronously
+- **Timeout Settings**: Set how long to wait for responses
+- **Error Handling**: Define fallback behaviors
+
+## Example: Creating a Weather Tool
+
+Let's walk through creating a weather lookup tool:
+
+### Dashboard Configuration
+
+1. **Tool Name**: "Weather Lookup"
+2. **Description**: "Retrieves current weather information for any location"
+3. **Function Name**: `get_weather`
+4. **Parameters**:
+   - `location` (string, required): "The city or location to get weather for"
+5. **Server URL**: `https://api.openweathermap.org/data/2.5/weather`
+
+<Note>
+This example uses OpenWeatherMap's free API. You'll need to sign up at [openweathermap.org](https://openweathermap.org/api) to get a free API key and add it as a query parameter: `?appid=YOUR_API_KEY&q={location}`
+</Note>
+
+### Messages Configuration
+
+- **Request Start**: "Let me check the current weather for you..."
+- **Request Complete**: "Here's the weather information you requested."
+- **Request Failed**: "I'm having trouble accessing weather data right now."
+
+## Using Tools in Assistants
+
+Once created, your tools can be easily added to any assistant:
+
+### In the Dashboard
+
+1. Go to **Assistants** → Select your assistant
+2. Navigate to the **Tools** tab
+3. Click **Add Tool** and select your custom tool from the dropdown
+4. Save your assistant configuration
+
+### In Workflows
+
+Tools created in the Tools section are automatically available in the workflow builder:
+
+1. Add a **Tool Node** to your workflow
+2. Select your custom tool from the **Tool** dropdown
+3. Configure any node-specific settings
+
+### Using the Vapi CLI
+
+Manage your custom tools directly from the terminal:
+
+```bash
+# List all tools
+vapi tool list
+
+# Get tool details
+vapi tool get <tool-id>
+
+# Create a new tool (interactive)
+vapi tool create
+
+# Test a tool with sample data
+vapi tool test <tool-id>
+
+# Delete a tool
+vapi tool delete <tool-id>
+```
+
+Use the Vapi CLI to forward tool calls to your local server:
+
+```bash
+# Terminal 1: Create tunnel (e.g., with ngrok)
+ngrok http 4242
+
+# Terminal 2: Forward events
+vapi listen --forward-to localhost:3000/tools/webhook
+```
+
+<Note>
+`vapi listen` is a local forwarder that requires a separate tunneling service. Configure your tool's server URL to use the tunnel's public URL for testing. [Learn more →](/cli/webhook)
+</Note>
+
+## Alternative: API Configuration
+
+For advanced users who prefer programmatic control, you can also create and manage tools via the Vapi API:
+
+### Creating Tools via API
+
+```bash
+curl --location 'https://api.vapi.ai/tool' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer <YOUR_API_KEY>' \
+--data '{
+    "type": "function",
+    "function": {
+        "name": "get_weather",
+        "description": "Retrieves current weather information for any location",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "location": {
+                    "type": "string",
+                    "description": "The city or location to get weather for"
+                }
+            },
+            "required": ["location"]
+        }
+    },
+    "server": {
+        "url": "https://api.openweathermap.org/data/2.5/weather"
+    }
+}'
+```
+
+### Adding Tools to Assistants via API
+
+```bash
+curl --location --request PATCH 'https://api.vapi.ai/assistant/ASSISTANT_ID' \
+--header 'Authorization: Bearer <YOUR_API_KEY>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "model": {
+        "provider": "openai",
+        "model": "gpt-4o",
+        "toolIds": ["your-tool-id-here"]
+    }
+}'
+```
+
+## Request Format: Understanding the Tool Call Request
+
+When your server receives a tool call request from Vapi, it will be in the following format:
+
+```json
+{
+    "message": {
+        "timestamp": 1678901234567,
+        "type": "tool-calls",
+        "toolCallList": [
+            {
+                "id": "toolu_01DTPAzUm5Gk3zxrpJ969oMF",
+                "name": "get_weather",
+                "arguments": {
+                    "location": "San Francisco"
+                }
+            }
+        ],
+        "toolWithToolCallList": [
+            {
+                "type": "function",
+                "name": "get_weather",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "description": "Retrieves the current weather for a specified location"
+            },
+            "server": {
+                "url": "https://api.openweathermap.org/data/2.5/weather"
+            },
+            "messages": [],
+            "toolCall": {
+                "id": "toolu_01DTPAzUm5Gk3zxrpJ969oMF",
+                "type": "function",
+                "function": {
+                    "name": "get_weather",
+                    "parameters": {
+                        "location": "San Francisco"
+                    }
+                }
+            }
+        ],
+        "artifact": {
+            "messages": []
+        },
+        "assistant": {
+            "name": "Weather Assistant",
+            "description": "An assistant that provides weather information",
+            "model":{},
+            "voice":{},
+            "artifactPlans":{},
+            "startSpeakingPlan":{}
+        },
+        "call": {
+            "id": "call-uuid",
+            "orgId": "org-uuid",
+            "type": "webCall",
+            "assistant": {}
+        }
+    }
+}
+```
+
+<Note>
+For the complete API reference, see [ServerMessageToolCalls Type Definition](https://github.com/VapiAI/server-sdk-typescript/blob/main/src/api/types/ServerMessageToolCalls.ts#L7).
+</Note>
+
+## Server Response Format: Providing Results and Context
+
+When your Vapi assistant calls a tool (via the server URL you configured), your server will receive an HTTP request containing information about the tool call. Upon processing the request and executing the desired function, your server needs to send back a response in the following JSON format:
+
+```json
+{
+  "results": [
+    {
+      "toolCallId": "X",
+      "result": "Y"
+    }
+  ]
+}
+```
+
+**Breaking down the components:**
+
+- **toolCallId (X):** This is a unique identifier included in the initial request from Vapi. It allows the assistant to match the response with the corresponding tool call, ensuring accurate processing and context preservation.
+- **result (Y):** This field holds the actual output or result of your tool's execution. The format and content of "result" will vary depending on the specific function of your tool. It could be a string, a number, an object, an array, or any other data structure that is relevant to the tool's purpose.
+
+**Example:**
+
+Let's revisit the weather tool example from before. If the tool successfully retrieves the weather for a given location, the server response might look like this:
+
+```json
+{
+  "results": [
+    {
+      "toolCallId": "call_VaJOd8ZeZgWCEHDYomyCPfwN",
+      "result": "San Francisco's weather today is 62°C, partly cloudy."
+    }
+  ]
+}
+```
+
+**Some Key Points:**
+
+- Pay attention to the required parameters and response format of your functions.
+- Ensure your server is accessible and can handle the incoming requests from Vapi.
+- Make sure to add "Tools Calls" in both the Server and Client messages and remove the function calling from it.
+
+By following these guidelines and adapting the sample payload, you can easily configure a variety of tools to expand your Vapi assistant's capabilities and provide a richer, more interactive user experience.
+
+**Video Tutorial:**
+
+<iframe
+        src="https://www.youtube.com/embed/124iAuIiwr8?si=-gJjfdCUoZaYuDQx"
+        title="YouTube video player"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin"
+        width="100%"
+        height="400px"
+        allowfullscreen
+/>
+
+---
+
+title: Custom tools troubleshooting
+description: Resolve common issues with custom tool integrations
+
+---
+
+## Overview
+
+Troubleshoot and fix common issues with custom tool integrations in your Vapi assistants.
+
+**In this guide, you'll learn to:**
+
+- Diagnose why tools aren't triggering
+- Fix response format errors
+- Resolve parameter and token issues
+- Handle multiple tool scenarios
+
+## Quick diagnosis
+
+Start with the most common issue for your symptoms:
+
+<CardGroup cols={2}>
+  <Card title="Tool won't trigger" href="#tool-wont-trigger">
+    **Symptoms:** Assistant doesn't call your tool Check prompting and schema
+    setup
+  </Card>
+  <Card title="No result returned" href="#no-result-returned-error">
+    **Symptoms:** Logs show "no result returned" Fix response format issues
+  </Card>
+  <Card title="Response ignored" href="#response-ignored">
+    **Symptoms:** Tool returns data but assistant ignores it Resolve parsing and
+    format problems
+  </Card>
+  <Card title="Parameters cut off" href="#token-truncation">
+    **Symptoms:** Tool parameters or responses truncated Increase token limits
+  </Card>
+</CardGroup>
+
+## Tool won't trigger
+
+Your assistant doesn't call the tool even when it should.
+
+### Check your assistant prompting
+
+<CodeBlocks>
+  ```txt title="❌ Too vague" Handle weather requests ``` ```txt title="✅
+  Specific and clear" When user asks for weather, use weather_tool with city
+  parameter ```
+</CodeBlocks>
+
+<Warning>
+  Use the exact tool name in your assistant instructions. If your tool is named
+  `get_weather`, reference `get_weather` in prompts, not `weather_tool`.
+</Warning>
+
+### Verify required parameters
+
+Check that your tool schema includes all required parameters:
+
+```json title="Tool schema"
+{
+  "name": "get_weather",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "city": {
+        "type": "string",
+        "description": "City name for weather lookup"
+      }
+    },
+    "required": ["city"] // Must be array of required parameter names
+  }
+}
+```
+
+### Enable schema validation
+
+Add `strict: true` to catch validation errors early:
+
+```json title="Tool configuration" {7}
+{
+  "name": "get_weather",
+  "description": "Get current weather for a city",
+  "parameters": {
+    // ... your parameters
+  },
+  "strict": true,
+  "maxTokens": 500
+}
+```
+
+<Tip>
+  Check your call logs for "Schema validation errors" to identify parameter
+  issues.
+</Tip>
+
+## No result returned error
+
+Logs show "ok, no result returned" or similar messages.
+
+### Use the correct response format
+
+Your webhook **must** return this exact JSON structure:
+
+<CodeBlocks>
+```json title="✅ Success response"
+{
+  "results": [
+    {
+      "toolCallId": "call_123",
+      "result": "Your response as single-line string"
+    }
+  ]
+}
+```
+```json title="✅ Error response"
+{
+  "results": [
+    {
+      "toolCallId": "call_123", 
+      "error": "Error message as single-line string"
+    }
+  ]
+}
+```
+</CodeBlocks>
+
+### Common format mistakes
+
+<AccordionGroup>
+  <Accordion title="Wrong HTTP status code">
+    **Always return HTTP 200**, even for errors. Any other status code is ignored completely.
+    
+    ```json
+    // Return this with HTTP 200
+    {
+      "results": [
+        {
+          "toolCallId": "call_123",
+          "error": "Something went wrong"
+        }
+      ]
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Line breaks in response">
+    Use single-line strings only. Line breaks cause parsing errors.
+    
+    ```json title="❌ Has line breaks"
+    {
+      "result": "Line 1\nLine 2\nLine 3"
+    }
+    ```
+    
+    ```json title="✅ Single line"
+    {
+      "result": "Line 1, Line 2, Line 3"
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Missing results array">
+    The response must have the `results` array structure. Individual result objects won't work.
+  </Accordion>
+  
+  <Accordion title="Tool call ID mismatch">
+    The `toolCallId` in your response must exactly match the ID from the request.
+  </Accordion>
+  
+  <Accordion title="Wrong result data type">
+    Both `result` and `error` fields must be strings, not objects or arrays.
+  </Accordion>
+</AccordionGroup>
+
+## Response ignored
+
+Tool returns data but the assistant doesn't use it in conversation.
+
+### Fix line breaks and formatting
+
+<CodeBlocks>
+```json title="❌ Line breaks cause parsing errors"
+{
+  "results": [
+    {
+      "toolCallId": "call_123",
+      "result": "Temperature: 72°F\nCondition: Sunny\nHumidity: 45%"
+    }
+  ]
+}
+```
+```json title="✅ Single-line string works"
+{
+  "results": [
+    {
+      "toolCallId": "call_123", 
+      "result": "Temperature: 72°F, Condition: Sunny, Humidity: 45%"
+    }
+  ]
+}
+```
+</CodeBlocks>
+
+### Verify HTTP status and JSON structure
+
+<Steps>
+  <Step title="Check HTTP status">
+    Ensure your webhook returns HTTP 200. Any other status code causes the
+    response to be ignored.
+  </Step>
+
+{" "}
+
+<Step title="Validate JSON format">
+  Use a JSON validator to ensure your response structure is valid.
+</Step>
+
+  <Step title="Match tool call IDs">
+    For multiple tools, return results in the same order as calls were
+    triggered, with matching `toolCallId` values.
+  </Step>
+</Steps>
+
+## Token truncation
+
+Tool parameters or responses are getting cut off.
+
+### Increase token limits
+
+The default token limit is only 100. Increase it for complex tools:
+
+```json title="Tool configuration" {7}
+{
+  "name": "complex_tool",
+  "description": "Tool that needs more tokens",
+  "parameters": {
+    // ... your parameters
+  },
+  "maxTokens": 500 // Increase from default 100
+}
+```
+
+<Note>
+  Look for "Token truncation warnings" in your call logs to identify when this
+  occurs.
+</Note>
+
+## Multiple tools scenarios
+
+Some tools in parallel calls fail or return wrong results.
+
+### Handle multiple tool responses
+
+Return all results in the same order as the calls were triggered:
+
+```json title="Multiple tool response"
+{
+  "results": [
+    {
+      "toolCallId": "call_1",
+      "result": "First tool success"
+    },
+    {
+      "toolCallId": "call_2",
+      "error": "Second tool failed"
+    },
+    {
+      "toolCallId": "call_3",
+      "result": "Third tool success"
+    }
+  ]
+}
+```
+
+<Warning>
+  Use HTTP 200 for the entire response, even if some individual tools error.
+  Handle errors within the `results` array using the `error` field.
+</Warning>
+
+## Async vs sync behavior
+
+Tool behavior doesn't match your expectations.
+
+<Tabs>
+  <Tab title="Sync tools (recommended)">
+    **Configuration:** `"async": false` (default)
+    
+    **Behavior:**
+    - Wait for webhook response before resolving
+    - Tool call resolution depends on your response
+    - Use for immediate operations
+    
+    ```json
+    {
+      "name": "sync_tool",
+      "async": false,  // or omit (default)
+      // ... other config
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Async tools">
+    **Configuration:** `"async": true`
+    
+    **Behavior:**
+    - Tool call marked as resolved immediately
+    - Don't wait for actual processing
+    - Use for long-running operations
+    
+    ```json
+    {
+      "name": "async_tool", 
+      "async": true,
+      // ... other config
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+  Most tools should use sync behavior unless you specifically need async
+  processing for long-running operations.
+</Tip>
+
+## Reference: Required formats
+
+### Response format template
+
+<CodeBlocks>
+```json title="Success response"
+{
+  "results": [
+    {
+      "toolCallId": "call_123",
+      "result": "Single-line string response"
+    }
+  ]
+}
+```
+```json title="Error response"
+{
+  "results": [
+    {
+      "toolCallId": "call_123",
+      "error": "Single-line error message"  
+    }
+  ]
+}
+```
+</CodeBlocks>
+
+### Tool schema template
+
+```json title="Complete tool configuration"
+{
+  "name": "tool_name",
+  "description": "Clear description of what the tool does",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "param1": {
+        "type": "string",
+        "description": "Parameter description"
+      }
+    },
+    "required": ["param1"]
+  },
+  "strict": true,
+  "maxTokens": 500,
+  "async": false
+}
+```
+
+### Critical response rules
+
+<Check>**Always return HTTP 200** - Even for errors</Check>
+<Check>**Use single-line strings** - No `\n` line breaks</Check>
+<Check>**Match tool call IDs exactly** - From request to response</Check>
+<Check>**Include results array** - Required structure</Check>
+<Check>**String types only** - For result/error values</Check>
+
+## Debugging with call logs
+
+Look for these key error messages in your call logs:
+
+| Error Message               | What It Means               | How to Fix                 |
+| --------------------------- | --------------------------- | -------------------------- |
+| "ok, no result returned"    | Wrong response format       | Use correct JSON structure |
+| "Tool call ID mismatches"   | toolCallId doesn't match    | Ensure exact ID match      |
+| "HTTP errors"               | Webhook not returning 200   | Return HTTP 200 always     |
+| "Schema validation errors"  | Missing required parameters | Check required array       |
+| "Token truncation warnings" | Need more tokens            | Increase maxTokens         |
+| "Response parsing errors"   | Malformed JSON/line breaks  | Fix JSON format            |
+
+---
+
+title: Google Calendar Integration
+subtitle: >-
+Connect your assistant to Google Calendar for seamless appointment scheduling
+and availability checking.
+slug: tools/google-calendar
+
+---
+
+The Google Calendar integration allows your Vapi assistant to interact with Google Calendar in two ways:
+
+1. Create calendar events through voice commands
+2. Check calendar availability for scheduling
+
+This enables your assistant to schedule appointments, meetings, and other calendar events directly during phone calls, as well as check when you're available for meetings.
+
+## Prerequisites
+
+Before you can use the Google Calendar integration, you need to:
+
+1. Have a Google Calendar account
+2. Have access to the Vapi Dashboard
+3. Have an assistant created in Vapi
+
+## Setup Steps
+
+### 1. Connect Google Calendar Account
+
+First, you need to connect your Google Calendar account to Vapi:
+
+1. Navigate to the Vapi Dashboard
+2. Go to **Providers Keys** > **Tools Provider** > **Google Calendar**
+3. Click the **Connect** button
+4. A Google authorization popup will appear
+5. Follow the prompts to authorize Vapi to access your Google Calendar
+
+<Note>
+  The authorization process will request access to your Google Calendar to create events and check availability.
+</Note>
+
+<Frame caption="Connect Google Calendar">
+  <img
+    src="file:ece679ba-abab-4d7a-b056-3455bf189e76"
+    alt="Select files from your Assistant"
+  />
+</Frame>
+
+### 2. Create Calendar Tools
+
+After connecting your Google Calendar account, create the tools:
+
+1. Go to **Dashboard** > **Tools** page
+2. Click the **Create Tool** button
+3. Select **Google Calendar** from the available options
+4. Choose which tool(s) you want to create:
+   - Google Calendar Create Event Tool
+   - Google Calendar Check Availability Tool
+5. For each tool, provide a name and description explaining when it should be invoked
+
+<Note>
+  The description field is crucial as it helps the AI model understand when and how to use each tool. Be specific about the scenarios and conditions when each tool should be invoked.
+</Note>
+
+<Frame caption="Create Calendar Tools">
+  <img
+    src="file:d37525cd-af0d-4553-906c-32eeadc665e1"
+    alt="Tool Configuration"
+  />
+</Frame>
+
+### 3. Add Tools to Assistant
+
+Now, add your chosen calendar tool(s) to your assistant:
+
+1. Navigate to **Dashboard** > **Assistants** page
+2. Select your assistant
+3. Go to the **Tools** tab
+4. In the tools dropdown, select the calendar tool(s) you want to use
+5. Click **Publish** to save your changes
+
+<Frame caption="Add Tools to Assistant">
+  <img
+    src="file:4a4f62d4-3800-41c3-92ca-8436c94dd661"
+    alt="Add Tools to Assistant"
+  />
+</Frame>
+
+## Tool Configurations
+
+### Google Calendar Create Event Tool
+
+This tool uses the following fields to create events:
+
+- `summary`: The title or description of the calendar event
+- `startDateTime`: The start date and time of the event
+- `endDateTime`: The end date and time of the event
+- `attendees`: A list of email addresses for people to invite to the event
+- `timeZone`: The timezone for the event, defaults to UTC
+- `calendarId`: The calendar ID to create the event in, defaults to the primary calendar
+
+### Google Calendar Check Availability Tool
+
+This tool uses the following fields to check availability:
+
+- `startDateTime`: The start of the time range to check
+- `endDateTime`: The end of the time range to check
+- `timeZone`: The timezone for the availability check, defaults to UTC
+- `calendarId`: The calendar ID to check availability in, defaults to the primary calendar
+
+<Info>
+  All datetime fields should be provided in ISO 8601 format.
+</Info>
+
+## Example Usage
+
+Here's how the tools can be used in your assistant's configuration:
+
+```json
+{
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a scheduling assistant. When users want to schedule an appointment, first check their availability using the Check Availability tool, then use the Create Event tool to schedule the event if they're available.\n\n- Gather date and time range to check availability.\n- To book an appointment, gather the purpose of the appointment, ex: general checkup, dental cleaning and etc.\n\nNotes\n- Use the purpose as summary for booking appointment.\n- Current date: {{now}}"
+      }
+    ],
+    "tools": [
+      {
+        "type": "google.calendar.availability.check",
+        "name": "checkAvailability",
+        "description": "Use this tool to check calendar availability."
+      },
+      {
+        "type": "google.calendar.event.create",
+        "name": "scheduleAppointment",
+        "description": "Use this tool to schedule appointments and create calendar events. Notes: - All appointments are 30 mins. \n- Current date/time: {{now}}"
+      }
+    ]
+  }
+}
+```
+
+## Best Practices
+
+1. **Clear Instructions**: Provide clear instructions in your assistant's system message about when to use each calendar tool
+2. **Error Handling**: Include fallback responses for cases where either calendar tool fails
+3. **Time Zone Awareness**: Always specify the correct timezone for events and availability checks
+4. **Event Details**: Ensure all required fields are properly filled when creating events
+5. **Availability Flow**: Check availability before attempting to schedule events to avoid conflicts
+
+<CardGroup cols={2}>
+  <Card
+    title="Need Help?"
+    icon="question-circle"
+    href="https://discord.gg/pUFNcf2WmH"
+  >
+    Join our Discord community for support with Google Calendar integration
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference/tools/create"
+  >
+    View the complete API documentation for tools
+  </Card>
+</CardGroup>
+
+---
+
+title: Google Sheets Integration
+subtitle: Connect your assistant to Google Sheets for seamless data entry.
+slug: tools/google-sheets
+
+---
+
+The Google Sheets integration allows your Vapi assistant to interact with Google Sheets in a simple way:
+
+1. Add new rows to existing Google Sheets
+
+This enables your assistant to record information and add data to spreadsheets directly during phone calls.
+
+<Note>
+  The Google Sheets integration currently only supports adding new rows to spreadsheets. It does not support reading from or modifying existing data in the spreadsheet.
+</Note>
+
+## Prerequisites
+
+Before you can use the Google Sheets integration, you need to:
+
+1. Have a Google Sheets account
+2. Have access to the Vapi Dashboard
+3. Have an assistant created in Vapi
+4. Have a Google Sheet created and ready to receive data
+
+## Setup Steps
+
+### 1. Connect Google Sheets Account
+
+First, you need to connect your Google Sheets account to Vapi:
+
+1. Navigate to the Vapi Dashboard
+2. Go to **Providers Keys** > **Tools Provider** > **Google Sheets**
+3. Click the **Connect** button
+4. A Google authorization popup will appear
+5. Follow the prompts to authorize Vapi to access your Google Sheets
+
+<Note>
+  The authorization process will request access to your Google Sheets.
+</Note>
+
+### 2. Create and Configure Sheets Tool
+
+After connecting your Google Sheets account, create and configure the tool:
+
+1. Go to **Dashboard** > **Tools** page
+2. Click the **Create Tool** button
+3. Select **Google Sheets** from the available options
+4. Choose the Google Sheets Add Row Tool
+5. Provide a name and description explaining when it should be invoked
+6. Configure the tool with the following required fields:
+   - `spreadsheetId`: The ID of your Google Sheet
+   - `range`: The sheet name or range (e.g., "Sheet1" or "Sheet1!A:Z")
+
+<Note>
+  To find your spreadsheet ID:
+  1. Open your Google Sheet in a browser
+  2. Look at the URL: `https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit`
+  3. Copy the SPREADSHEET_ID portion (it's a long string of letters, numbers, and special characters)
+</Note>
+
+<Note>
+  The description field is crucial as it helps the AI model understand when and how to use the tool. Be specific about the scenarios and conditions when the tool should be invoked.
+</Note>
+
+### 3. Add Tool to Assistant
+
+Now, add the Google Sheets tool to your assistant:
+
+1. Navigate to **Dashboard** > **Assistants** page
+2. Select your assistant
+3. Go to the **Tools** tab
+4. In the tools dropdown, select the Google Sheets tool
+5. Click **Publish** to save your changes
+
+## Tool Configuration
+
+### Google Sheets Add Row Tool
+
+This tool uses the following fields to add data to your spreadsheet:
+
+- `spreadsheetId`: The ID of your Google Sheet (found in the sheet's URL)
+- `range`: The range where the data should be added (e.g., "Sheet1" or "Sheet1!A:Z")
+- `values`: An array of values to be added as a new row
+
+<Note>
+  The range field can be specified in two ways:
+  1. Just the sheet name (e.g., "Sheet1") - This will append to the next empty row
+  2. Sheet name with range (e.g., "Sheet1!A:Z") - This will append to the specified range
+</Note>
+
+## Example Usage
+
+Here's how the tool can be used in your assistant's configuration:
+
+```json
+{
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a customer feedback assistant. After each customer service call, collect feedback using the following process:\n\n1. Ask the customer if they would like to provide feedback\n2. If yes, ask for their rating (1-5 stars)\n3. Ask for specific comments about their experience\n4. Ask for any suggestions for improvement\n5. Confirm the feedback before adding it to the spreadsheet\n\nUse the Add Row tool to record the feedback with the following columns:\n- Timestamp\n- Rating (1-5)\n- Comments\n- Suggestions\n\nAlways be polite and thank the customer for their feedback."
+      }
+    ],
+    "tools": [
+      {
+        "type": "google.sheets.row.append",
+        "name": "addFeedback",
+        "description": "Use this tool to add customer feedback to the feedback spreadsheet. Collect all required information (rating, comments, suggestions) before adding the row."
+      }
+    ]
+  }
+}
+```
+
+## Best Practices
+
+1. **Data Validation**: Ensure all data is properly formatted before adding to the spreadsheet
+2. **Error Handling**: Include fallback responses for cases where the tool fails
+3. **User Confirmation**: Always confirm with the user before adding data to the spreadsheet
+4. **Sheet Structure**: Be aware of the spreadsheet's structure and column requirements
+
+<CardGroup cols={2}>
+  <Card
+    title="Need Help?"
+    icon="question-circle"
+    href="https://discord.gg/pUFNcf2WmH"
+  >
+    Join our Discord community for support with Google Sheets integration
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference/tools/create"
+  >
+    View the complete API documentation for tools
+  </Card>
+</CardGroup>
+
+---
+
+title: Slack Integration
+subtitle: Connect your assistant to Slack for seamless message sending.
+slug: tools/slack
+
+---
+
+The Slack integration allows your Vapi assistant to send messages to a pre-configured Slack channel during phone calls. This enables your assistant to notify team members, send updates, or share information directly through Slack.
+
+## Prerequisites
+
+Before you can use the Slack integration, you need to:
+
+1. Have a Slack workspace
+2. Have access to the Vapi Dashboard
+3. Have an assistant created in Vapi
+4. Have a Slack channel created where messages will be sent
+
+## Setup Steps
+
+### 1. Connect Slack Account
+
+First, you need to connect your Slack workspace to Vapi:
+
+1. Navigate to the Vapi Dashboard
+2. Go to **Providers Keys** > **Tools Provider** > **Slack**
+3. Click the **Connect** button
+4. A Slack authorization popup will appear
+5. Follow the prompts to authorize Vapi to access your Slack workspace
+
+<Note>
+  The authorization process will request access to send messages to your Slack workspace.
+</Note>
+
+### 2. Create Slack Tool
+
+After connecting your Slack workspace, create the tool:
+
+1. Go to **Dashboard** > **Tools** page
+2. Click the **Create Tool** button
+3. Select **Slack** from the available options
+4. Choose the Slack Send Message Tool
+5. Provide a name and description explaining when it should be invoked
+6. In the description field, specify the Slack channel where messages should be sent (e.g., "Send urgent notifications to the #customer-support channel")
+
+<Note>
+  The description field is crucial as it helps the AI model understand when and how to use the tool, and also specifies which channel to send messages to. Be specific about the scenarios, conditions, and target channel when the tool should be invoked.
+</Note>
+
+### 3. Add Tool to Assistant
+
+Now, add the Slack tool to your assistant:
+
+1. Navigate to **Dashboard** > **Assistants** page
+2. Select your assistant
+3. Go to the **Functions** tab
+4. In the tools dropdown, select the Slack tool
+5. Click **Publish** to save your changes
+
+## Tool Configuration
+
+### Slack Send Message Tool
+
+This tool sends messages to Slack channels based on the configuration specified in the tool's description:
+
+- The target channel is specified in the tool's description field
+- The message content is dynamically generated by the AI based on the conversation context
+
+<Note>
+  The channel name should be specified in the description in the format "#channel-name". Make sure the bot has been added to the channel before sending messages.
+</Note>
+
+## Example Usage
+
+Here's how the tool can be used in your assistant's configuration:
+
+```json
+{
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a customer service assistant. When a customer requests a callback or needs urgent attention, use the Slack tool to notify the support team. Always be professional and concise in your Slack messages."
+      }
+    ],
+    "tools": [
+      {
+        "type": "slack.message.send",
+        "name": "notifySupport",
+        "description": "Send urgent notifications to the #customer-support channel when a customer needs immediate attention or requests a callback. Include customer name, phone number, reason for callback, and any time constraints."
+      }
+    ]
+  }
+}
+```
+
+## Best Practices
+
+1. **Channel Selection**: Always verify the correct channel name before sending messages
+2. **Message Formatting**: Use clear and concise language in your Slack messages
+3. **Error Handling**: Include fallback responses for cases where the tool fails
+4. **User Confirmation**: Always confirm with the user before sending notifications to Slack
+5. **Channel Access**: Ensure the Slack bot has been added to the target channel
+
+<CardGroup cols={2}>
+  <Card
+    title="Need Help?"
+    icon="question-circle"
+    href="https://discord.gg/pUFNcf2WmH"
+  >
+    Join our Discord community for support with Slack integration
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference/tools/create"
+  >
+    View the complete API documentation for tools
+  </Card>
+</CardGroup>
+
+---
+
+title: Introduction to Knowledge Bases
+subtitle: >-
+Learn how to create and integrate custom knowledge bases into your voice AI
+assistants.
+slug: knowledge-base
+
+---
+
+<Frame>
+  <div class="video-embed-wrapper">
+    <iframe
+      src="https://www.youtube.com/embed/6QZHIiEaoco?si=H4lBlHy4W3TDtmh1"
+      title='An embedded YouTube video titled "Improve AI Voice Agent Accuracy with Query Tools | Vapi Tutorial"'
+      frameborder="0"
+      allow="fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowfullscreen
+      referrerpolicy="strict-origin-when-cross-origin"
+    />
+  </div>
+</Frame>
+
+## **What is Vapi's Knowledge Base?**
+
+A [**Knowledge Base**](/api-reference/knowledge-bases/create) is a collection of custom files that contain information on specific topics or domains. By integrating a Knowledge Base into your voice AI assistant, you can enable it to provide more accurate and informative responses to user queries based on your own data. Knowledge Bases are available through both the Vapi API and dashboard.
+
+### **Why Use a Knowledge Base?**
+
+Using a Knowledge Base with your voice AI assistant offers several benefits:
+
+- **Improved accuracy**: Your assistant can provide responses based on your verified information rather than general knowledge.
+- **Enhanced capabilities**: A Knowledge Base enables your assistant to answer complex domain-specific queries with detailed, contextually relevant responses.
+- **Customization**: With a Knowledge Base, you can tailor your assistant's responses to specific domains or topics, making it more effective for your particular use case.
+- **Up-to-date information**: You control the content, ensuring your assistant always has access to the latest information.
+
+<Info>
+  Knowledge Bases are configured through the API or dashboard. For advanced
+  configuration options, view all configurable properties in the [API
+  Reference](/api-reference/knowledge-bases/using-query-tool).
+</Info>
+
+## **How to Create a Knowledge Base**
+
+There are two main approaches to creating a Knowledge Base in Vapi:
+
+1. **Dashboard method**: A simplified approach using the Vapi UI
+2. **API method**: A more customizable approach using direct API calls
+
+### **Method 1: Using the Dashboard**
+
+#### **Step 1: Upload Your Files**
+
+1. Navigate to `Build > Files` in your Vapi dashboard
+2. Click the "Upload" button to add your files
+3. Select files in supported formats (`.txt`, `.pdf`, `.docx`, etc.)
+4. Wait for the upload to complete - you'll see your files listed in the Files section
+
+<Info>
+  Vapi supports various file formats for Knowledge Bases including: .txt, .pdf, .docx, .doc, .csv, .md, .tsv, .yaml, .json, .xml, and .log files.
+</Info>
+
+<Frame caption="Adding files to your Knowledge Base">
+  <img
+    src="file:7b56c627-e9b0-4471-8ba6-7cabb8375541"
+    alt="Adding files to your Knowledge Base"
+  />
+</Frame>
+
+#### **Step 2: Configure Your Assistant with the Knowledge Base**
+
+1. Navigate to `Build > Assistant`
+2. Select the assistant you want to enhance with the Knowledge Base
+3. In the assistant configuration, locate the "Files" or "Knowledge Base" section
+4. Select the files you uploaded in Step 1 to associate them with this assistant
+
+<Frame caption="Select files from your Assistant">
+  <img
+    src="file:a2068b09-3361-4e85-8915-d35ed4cdf8dc"
+    alt="Select files from your Assistant"
+  />
+</Frame>
+
+#### **Step 3: Publish the Assistant**
+
+1. Instruct your assistant to use the knowledge base when relevant by adding appropriate prompts in your assistant's configuration. This helps ensure the assistant knows when to reference the knowledge base versus using its general knowledge.
+
+   For example, if you have a knowledge base about your company's products, you might add this prompt:
+
+   ```
+   When users ask about our products, services, or company information, use the knowledge base to provide accurate details.
+   ```
+
+2. Review your assistant configuration to ensure all settings are correct
+3. Click the "Publish" button to make your changes live
+4. This automatically creates a default knowledge base (using the query tool) with the selected files for the assistant
+
+<Note>
+  When you publish an assistant with selected files, Vapi automatically creates
+  a query tool with those files configured as a knowledge base. For more
+  advanced configurations, use the API method described below or see our [Query
+  Tool documentation](/knowledge-base/using-query-tool).
+</Note>
+
+### **Method 2: Using the API**
+
+For more advanced configurations, you can create and configure Knowledge Bases using the API through the Query Tool. This method offers greater flexibility and control over your knowledge base setup.
+
+<Info>
+  For detailed instructions on creating and configuring knowledge bases via the
+  API, please refer to our dedicated guide: [Using the Query Tool for Knowledge
+  Bases](/knowledge-base/using-query-tool).
+</Info>
+
+The API method allows you to:
+
+- Upload files and obtain file IDs
+- Create custom query tools with specific knowledge base configurations
+- Configure multiple knowledge bases within a single query tool
+- Attach query tools to your assistants
+- Set advanced parameters for knowledge retrieval
+
+This approach is recommended for developers and users who need precise control over their knowledge base implementation or are integrating Vapi into existing systems programmatically.
+
+## **Best Practices for Creating Effective Knowledge Bases**
+
+- **Optimize file size**: Keep individual files smaller than 300KB to ensure quick processing and response times.
+- **Structure content logically**: Organize your files by topic or category with clear headings and sections.
+- **Use clear and concise language**: Write in plain language with well-defined terminology to improve retrieval accuracy.
+- **Update regularly**: Refresh your knowledge base files whenever information changes to maintain accuracy.
+- **Test thoroughly**: After configuration, test your assistant with various queries to ensure it retrieves information correctly.
+- **Provide context**: Include sufficient background information in your files to enable comprehensive responses.
+- **Consider file formats**: While plain text works well, structured formats can improve information retrieval for complex topics.
+
+<Tip>
+  For more information on creating effective Knowledge Bases, check out our
+  tutorial on [Best Practices for Knowledge Base
+  Creation](https://youtu.be/i5mvqC5sZxU).
+</Tip>
+
+By following these guidelines, you can create a comprehensive Knowledge Base that enhances the capabilities of your voice AI assistant and provides valuable information to users.
+
+<Info>
+  Currently, Vapi's Knowledge Base functionality supports Google as a provider
+  with the gemini-1.5-flash model for knowledge retrieval. For the most
+  up-to-date information on supported providers and models, please refer to our
+  [API documentation](api-reference/tools/create#request.body.query.knowledgeBases).
+</Info>
+
+---
+
+title: Using the Query Tool for Knowledge Bases
+subtitle: >-
+Learn how to configure and use the query tool to enhance your voice AI
+assistants with custom knowledge bases.
+slug: knowledge-base/using-query-tool
+
+---
+
+## **What is the Query Tool?**
+
+The Query Tool is a powerful feature that allows your voice AI assistant to access and retrieve information from custom knowledge bases. By configuring a query tool with specific file IDs, you can enable your assistant to provide accurate and contextually relevant responses based on your custom data.
+
+### **Benefits of Using the Query Tool**
+
+- **Enhanced contextual understanding**: Your assistant can access specific knowledge to answer domain-specific questions.
+- **Improved response accuracy**: Responses are based on your verified information rather than general knowledge.
+- **Customizable knowledge retrieval**: Configure multiple knowledge bases for different topics or domains.
+
+<Info>
+  Currently, the Query Tool only supports Google as a provider with the
+  gemini-1.5-flash model for knowledge base retrieval.
+</Info>
+
+## **How to Configure a Query Tool for Knowledge Bases**
+
+### **Step 1: Upload Your Files**
+
+Before creating a query tool, you need to upload the files that will form your knowledge base.
+
+#### Option 1: Using the Dashboard (Recommended)
+
+1. Navigate to **Files** in your Vapi dashboard
+2. Click **Upload File** or **Choose file**
+3. Select the files you want to upload from your computer
+4. Wait for the upload to complete and note the file IDs that are generated
+
+#### Option 2: Using the API
+
+Alternatively, you can upload files via the API:
+
+```bash
+curl --location 'https://api.vapi.ai/file' \
+--header 'Authorization: Bearer <YOUR_API_KEY>' \
+--form 'file=@"<PATH_TO_YOUR_FILE>"'
+```
+
+After uploading, you'll receive file IDs that you'll need for the next step.
+
+### **Step 2: Create a Query Tool**
+
+Create a query tool that references your knowledge base files:
+
+#### Option 1: Using the Dashboard (Recommended)
+
+1. Navigate to **Tools** in your Vapi dashboard
+2. Click **Create Tool**
+3. Select **Query** as the tool type
+4. Configure the tool:
+   - **Tool Name**: "Product Query"
+   - **Knowledge Bases**: Add your knowledge base with:
+     - **Name**: `product-kb`
+     - **Description**: "Use this knowledge base when the user asks or queries about the product or services"
+     - **File IDs**: Select the files you uploaded in Step 1
+
+#### Option 2: Using the API
+
+Alternatively, you can create the tool via API:
+
+```bash
+curl --location 'https://api.vapi.ai/tool/' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer <YOUR_API_KEY>' \
+--data '{
+    "type": "query",
+    "function": {
+        "name": "product-query"
+    },
+    "knowledgeBases": [
+        {
+            "provider": "google",
+            "name": "product-kb",
+            "description": "Use this knowledge base when the user asks or queries about the product or services",
+            "fileIds": [
+                "41a2bd44-d13c-4914-bbf7-b19807dd2cf4",
+                "ef82ae15-21b2-47bd-bde4-dea3922c1e49"
+            ]
+        }
+    ]
+}'
+```
+
+<Note>
+  The `description` field in the knowledge base configuration helps your
+  assistant understand when to use this particular knowledge base. Make it
+  descriptive of the content.
+</Note>
+
+### **Step 3: Attach the Query Tool to Your Assistant**
+
+After creating the query tool, you need to attach it to your assistant:
+
+#### Option 1: Using the Dashboard (Recommended)
+
+1. Navigate to **Assistants** in your Vapi dashboard
+2. Select the assistant you want to configure
+3. Go to the **Tools** section
+4. Click **Add Tool** and select your query tool from the dropdown
+5. Save and publish your assistant
+
+#### Option 2: Using the API
+
+Alternatively, you can attach the tool via API using the tool ID:
+
+```bash
+curl --location --request PATCH 'https://api.vapi.ai/assistant/ASSISTANT_ID' \
+--header 'Authorization: Bearer <YOUR_API_KEY>' \
+--data '{
+    "model": {
+        "temperature": 0.2,
+        "provider": "openai",
+        "model": "gpt-4o",
+        "toolIds": [
+            "9441840b-6f2f-4b0f-a0fc-de8512549a0c"
+        ]
+    }
+}'
+```
+
+<Warning>
+  When using the PATCH request, you must include the entire model object, not
+  just the toolIds field. This will overwrite any existing model configuration.
+</Warning>
+
+<Frame caption="Adding a query tool to your assistant">
+  <img
+    src="file:67a57a4d-ec99-4b87-979e-d1e7a9ca9c5b"
+    alt="Adding a query tool to your assistant"
+  />
+</Frame>
+
+## **Advanced Configuration Options**
+
+### **Multiple Knowledge Bases**
+
+You can configure multiple knowledge bases within a single query tool:
+
+```json
+"knowledgeBases": [
+    {
+        "provider": "google",
+        "name": "product-documentation",
+        "description": "Use this knowledge base for product specifications and features",
+        "fileIds": ["file-id-1", "file-id-2"]
+    },
+    {
+        "provider": "google",
+        "name": "troubleshooting-guide",
+        "description": "Use this knowledge base for troubleshooting and support questions",
+        "fileIds": ["file-id-3", "file-id-4"]
+    }
+]
+```
+
+### **Knowledge Base Description**
+
+The description field helps your assistant understand when to use a particular knowledge base. Make it specific and clear:
+
+```json
+"description": "Use this knowledge base when the user asks about pricing, subscription plans, or billing information"
+```
+
+## **Best Practices for Query Tool Configuration**
+
+- **Organize by topic**: Create separate knowledge bases for distinct topics to improve retrieval accuracy.
+- **Use descriptive names**: Name your knowledge bases clearly to help your assistant understand their purpose.
+- **Keep descriptions specific**: Write clear descriptions that tell the assistant exactly when to use each knowledge base.
+- **Update regularly**: Refresh your knowledge bases as information changes to ensure accuracy.
+- **Test thoroughly**: After configuration, test your assistant with various queries to ensure it retrieves information correctly.
+
+<Tip>
+  For optimal performance, keep individual files under 300KB and ensure they
+  contain clear, well-structured information.
+</Tip>
+
+By following these steps and best practices, you can effectively configure the query tool to enhance your voice AI assistant with custom knowledge bases, making it more informative and responsive to user queries.
+
+---
+
+title: Bring your own chunks/vectors from Trieve
+subtitle: Using Trieve for improved RAG with Vapi
+slug: knowledge-base/integrating-with-trieve
+
+---
+
+<Frame>
+  <div class="video-embed-wrapper">
+    <iframe
+      src="https://www.youtube.com/embed/KZkYPSJPPk8?si=IFyBAL1zAXrUwv2L"
+      title='An embedded YouTube video titled "Quickstart: Building a Hotel Voice Agent with Vapi and Trieve"'
+      frameborder="0"
+      allow="fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowfullscreen
+      referrerpolicy="strict-origin-when-cross-origin"
+    />
+  </div>
+</Frame>
+
+# Using Trieve with Vapi
+
+Vapi integrates with [Trieve](https://trieve.ai) through the BYOD (Bring Your Own Dataset) approach, allowing you to use your Trieve API key to import your existing Trieve datasets into Vapi.
+
+## Integrating with Trieve
+
+The BYOD approach offers flexibility and control over your datasets. You can:
+
+- Fully manage your datasets in Trieve's native interface
+- Use Trieve's advanced features like:
+  - Custom chunking rules
+  - Search playground testing
+  - Manual chunk editing
+  - Website crawling
+  - Dataset visualization
+
+### Step 1: Set Up Trieve Dataset
+
+1. Create an account at [Trieve](https://trieve.ai)
+2. Create a new dataset using Trieve's dashboard
+
+![Create dataset in Trieve](file:3ace5047-848a-4535-8cff-4e40ab965977)
+
+When creating your dataset in Trieve, selecting the right embedding model is crucial for optimizing performance and accuracy. Here are some of the available options:
+
+### jina-base-en
+
+- **Provider**: Jina AI (Hosted by Trieve)
+- **Performance**: Fast
+- **Description**: This model is designed for speed and efficiency, making it suitable for applications where quick response times are critical. It provides a good balance of performance and accuracy for general use cases.
+
+### text-embedding-3-small
+
+- **Provider**: OpenAI
+- **Performance**: Moderate
+- **Description**: A smaller model from OpenAI that offers a compromise between speed and accuracy. It is suitable for applications that require a balance between computational efficiency and the quality of embeddings.
+
+### text-embedding-3-large
+
+- **Provider**: OpenAI
+- **Performance**: Slow
+- **Description**: This larger model provides the highest accuracy among the options but at the cost of slower processing times. It is ideal for applications where the quality of embeddings is prioritized over speed.
+
+3. Add content through various methods:
+
+#### Upload Documents
+
+Upload documents directly through Trieve's interface:
+
+![Upload files in Trieve](file:995b96ed-aa74-41a6-9125-01bcb27f2783)
+
+When uploading files, you can configure advanced chunking options:
+
+![Upload files advanced options in Trieve](file:368ef730-d307-4f43-b86d-5fd25b05a7bd)
+
+#### Edit Individual Chunks
+
+After uploading documents, you can edit individual chunks to refine their content:
+
+![Edit chunk interface in Trieve](file:8c995c92-36cf-4be3-9551-0a9a62bf2f8d)
+
+##### Editing Options
+
+- **Chunk Content**: Modify the text directly in the rich text editor
+
+  - Fix formatting issues
+  - Correct errors or typos
+  - Split or combine chunks manually
+  - Add or remove content
+
+- **Metadata Fields**:
+  - Date: Update document timestamps
+  - Number Value: Adjust numeric metadata for filtering
+  - Location: Set or modify geographical coordinates
+  - Weight: Fine-tune search relevance with custom weights
+  - Fulltext Boost: Add terms to enhance search visibility
+  - Semantic Boost: Adjust vector embedding influence
+
+##### Best Practices for Chunk Editing
+
+1. **Content Length**
+
+   - Keep chunks between 200-1000 tokens
+   - Maintain logical content boundaries
+   - Ensure complete thoughts within each chunk
+
+2. **Metadata Optimization**
+
+   - Use consistent date formats
+   - Add relevant numeric values for filtering
+   - Apply weights strategically for important content
+
+3. **Search Enhancement**
+   - Use boost terms for critical keywords
+   - Balance semantic and fulltext boosts
+   - Test search results after significant edits
+
+### Advanced Chunking Options
+
+#### Metadata
+
+- Add custom metadata as JSON to associate with your chunks
+  - Useful for filtering and organizing content (e.g., `{"author": "John Doe", "category": "technical"}`)
+  - Keep metadata concise and relevant to avoid storage overhead
+  - Use consistent keys across related documents for better searchability
+
+#### Date
+
+- Specify the creation or relevant date for the document
+  - Important for version control and content freshness
+  - Helps with filtering outdated information
+  - Use actual document creation dates when possible
+
+#### Split Delimiters
+
+- Define custom delimiters (e.g., ".,?\n") to control where chunks are split
+  - Recommended defaults: ".,?\n" for general content
+  - Add semicolons (;) for technical documentation
+  - Use "\n\n" for markdown or structured content
+  - Avoid over-aggressive splitting that might break context
+
+#### Target Splits Per Chunk
+
+- Set the desired number of splits per chunk
+  - Default: 20 splits
+  - Recommended ranges:
+    - 15-25 for general content
+    - 10-15 for technical documentation
+    - 25-30 for narrative content
+  - Lower values create more granular chunks, better for precise retrieval
+  - Higher values maintain more context but may retrieve irrelevant information
+
+#### Rebalance Chunks
+
+- Enable to redistribute content evenly across chunks
+  - Recommended for documents with varying section lengths
+  - Helps maintain consistent chunk sizes
+  - May slightly impact natural content boundaries
+  - Best used with technical documentation or structured content
+
+#### Use gpt4o chunking
+
+- Enable GPT-4 optimized chunking for improved semantic coherence
+  - Recommended for:
+    - Complex technical documentation
+    - Content with intricate relationships
+    - Documents where context preservation is crucial
+  - Note: Increases processing time and cost
+  - Best for high-value content where accuracy is paramount
+
+#### Heading Based Chunking
+
+- Split content based on document headings
+  - Ideal for well-structured documents (e.g., documentation, reports)
+  - Works best with consistent heading hierarchy
+  - Consider enabling for:
+    - Technical documentation
+    - User manuals
+    - Research papers
+  - May create uneven chunk sizes based on section lengths
+
+#### System Prompt
+
+- Provide custom instructions for the chunking process
+  - Optional but powerful for specific use cases
+  - Example prompts:
+    - "Preserve code blocks as single chunks"
+    - "Keep API endpoint descriptions together"
+    - "Maintain question-answer pairs in the same chunk"
+  - Keep prompts clear and specific
+  - Test different prompts with sample content to optimize results
+
+#### Website Crawling
+
+Trieve offers powerful website crawling capabilities with extensive configuration options:
+
+![Website crawling in Trieve](file:82962d4d-6662-482c-a3b1-1bcdd2d9ef5f)
+
+##### Crawl Configuration Options
+
+- **Crawl Interval**: Set how often to refresh content
+
+  - Options: Daily, Weekly, Monthly
+  - Recommended: Daily for frequently updated content
+
+- **Page Limit**: Control the maximum number of pages to crawl
+
+  - Default: 1000 pages
+  - Adjust based on your site size and content relevance
+
+- **URL Patterns**
+
+  - Include/Exclude specific URL patterns using regex
+  - Example includes: `https://docs.example.com/*`
+  - Example excludes: `https://example.com/internal/*`
+
+- **Query Selectors**
+
+  - Include specific HTML elements for targeted content extraction
+  - Exclude navigation, footers, and other non-content elements
+  - Common excludes: `navbar`, `footer`, `aside`, `nav`, `form`
+
+- **Special Content Types**
+
+  - OpenAPI Spec: Toggle for API documentation crawling
+  - Shopify: Enable for e-commerce content
+  - YouTube Channel: Include video transcripts and descriptions
+
+- **Advanced Options**
+  - Boost Titles: Increase weight of page titles in search results
+  - Allow External Links: Include content from linked domains
+  - Ignore Sitemap: Skip sitemap-based crawling
+  - Remove Strings: Clean up headers and body content
+
+##### Best Practices for Crawling
+
+1. **Start Small**
+
+   - Begin with a low page limit
+   - Test with specific sections of your site
+   - Gradually expand coverage
+
+2. **Optimize Selectors**
+
+   - Remove navigation and UI elements
+   - Focus on main content areas
+   - Use browser inspector to identify key selectors
+
+3. **Monitor Performance**
+   - Check crawl logs regularly
+   - Adjust patterns based on results
+   - Balance frequency with server load
+
+### Step 2: Test and Refine
+
+Use Trieve's search playground to:
+
+- Test semantic search queries
+- Adjust chunk sizes
+- Edit chunks manually
+
+- Visualize vector embeddings
+- Fine-tune relevance scores
+
+![Search playground in Trieve](file:18de27b3-d44d-4b92-bb2a-31c4e5555b4a)
+
+### Step 3: Import to Vapi
+
+1. Create your Trieve API key from [Trieve's dashboard](https://dashboard.trieve.ai/org/keys)
+2. Add your Trieve API key to Vapi [Provider Credentials](https://dashboard.vapi.ai/keys)
+   ![Add Trieve API key in Vapi](file:997e9a79-be4d-4afa-b2ea-f87e9abecc64)
+3. Once your dataset is optimized in Trieve, import it to Vapi via POST request to the [create knowledge base route](/api-reference/knowledge-bases/create):
+
+```json
+{
+  "name": "trieve-dataset",
+  "provider": "trieve",
+  "searchPlan": {
+    "scoreThreshold": 0.2,
+    "searchType": "semantic"
+  },
+  "createPlan": {
+    "type": "import",
+    "providerId": "<Your Trieve Dataset ID>"
+  }
+}
+```
+
+## Best Practices
+
+1. **Dataset Organization**
+
+   - Segment datasets by domain knowledge boundaries
+   - Use semantic-based dataset naming (e.g., "api-docs-v2", "user-guides-2024")
+   - Version control chunking configurations in your codebase
+
+2. **Content Quality**
+
+   - Implement text normalization (Unicode normalization, whitespace standardization)
+   - Use regex patterns to clean formatting artifacts
+   - Validate chunk semantic coherence through embedding similarity scores
+
+3. **Performance Optimization**
+
+   - Target chunk sizes: 200-1000 tokens (optimal for current embedding models)
+   - Configure hybrid search with BM25 boost = 0.3 for technical content
+   - Set score thresholds dynamically based on embedding model (0.2 for text-embedding-3-small, 0.25 for text-embedding-3-large)
+
+4. **Maintenance**
+   - Implement automated content refresh cycles via Trieve's API
+   - Track search result relevance metrics (MRR, NDCG)
+   - Rotate API keys on 90-day cycles
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Search Relevance Issues**
+
+   - Implement cross-encoder reranking for critical queries
+   - Fine-tune BM25 vs semantic weights (recommended ratio: 0.3:0.7)
+   - Analyze chunk boundary overlap percentage (aim for 15-20%)
+
+2. **Integration Errors**
+
+   - Validate dataset permissions (READ_DATASET scope required)
+   - Check for dataset ID format compliance (UUID v4)
+   - Monitor rate limits (default: 100 requests/min)
+
+3. **Performance Optimization**
+   - Implement chunk size normalization (max variance: 20%)
+   - Enable query caching for frequent searches
+   - Use batch operations for bulk updates (max 100 chunks/request)
+
+Need help? Contact [support@vapi.ai](mailto:support@vapi.ai) for assistance.
+
+---
+
+title: Custom Keywords
+subtitle: Enhanced transcription accuracy guide
+slug: customization/custom-keywords
+
+---
+
+Vapi allows you to improve the accuracy of your transcriptions by leveraging Deepgram's keyword boosting feature. This is particularly useful when dealing with specialized terminology or uncommon proper nouns. By providing specific keywords to the Deepgram model, you can enhance transcription quality directly through Vapi.
+
+### Why Use Keyword Boosting?
+
+Keyword boosting is beneficial for:
+
+- Enhancing the recognition of specialized terms and proper nouns.
+- Improving transcription accuracy without the need for a custom-trained model.
+- Quickly updating the model's vocabulary with new or uncommon words.
+
+### Important Notes
+
+- Keywords should be uncommon words or proper nouns not frequently recognized by the model.
+- Custom model training is the most effective way to ensure accurate keyword recognition.
+- For more than 50 keywords, consider custom model training by contacting Deepgram.
+
+## Enabling Keyword Boosting in Vapi
+
+### API Call Integration
+
+To enable keyword boosting, you need to add a `keywords` parameter to your Vapi assistant's transcriber section. This parameter should include the keywords and their respective intensifiers.
+
+### Example of POST Request
+
+To create an assistant with keyword boosting enabled, you can make the following POST request to Vapi:
+
+```bash
+bashCopy code
+curl \
+  --request POST \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "name": "Emma",
+    "model": {
+        "model": "gpt-4o",
+        "provider": "openai"
+    },
+    "voice": {
+        "voiceId": "emma",
+        "provider": "azure"
+    },
+    "transcriber": {
+        "provider": "deepgram",
+        "model": "nova-2",
+        "language": "bg",
+        "smartFormat": true,
+        "keywords": [
+            "snuffleupagus:1"
+        ]
+    },
+    "firstMessage": "Hi, I am Emma, what is your name?",
+    "firstMessageMode": "assistant-speaks-first"
+  }' \
+  https://api.vapi.ai/assistant
+
+```
+
+In this configuration:
+
+- **name**: The name of the assistant.
+- **model**: Specifies the model and provider for the assistant's conversational capabilities.
+- **voice**: Specifies the voice and provider for the assistant's speech.
+- **transcriber**: Specifies Deepgram as the transcription provider, along with the model, language, smart formatting, and keywords for boosting.
+- **firstMessage**: The initial message the assistant will speak.
+- **firstMessageMode**: Specifies that the assistant speaks first.
+
+### Intensifiers
+
+Intensifiers are exponential factors that boost or suppress the likelihood of the specified keyword being recognized. The default intensifier is `1`. Higher values increase the likelihood, while `0` is equivalent to not specifying a keyword.
+
+- **Boosting Example:** `keywords=snuffleupagus:5`
+- **Suppressing Example:** `keywords=kansas:-10`
+
+### Best Practices for Keyword Boosting
+
+1. **Send Uncommon Keywords:** Focus on keywords not successfully transcribed by the model.
+2. **Send Keywords Once:** Avoid repeating keywords.
+3. **Use Individual Keywords:** Prefer individual terms over phrases.
+4. **Use Proper Spelling:** Spell proper nouns as you want them to appear in transcripts.
+5. **Moderate Intensifiers:** Start with small increments to avoid false positives.
+6. **Custom Model Training:** For extensive vocabulary needs, consider custom model training.
+
+### Additional Resources
+
+For more detailed information on Deepgram's keyword boosting feature, refer to the Deepgram Keyword Boosting Documentation.
+
+By following these guidelines, you can effectively utilize Deepgram's keyword boosting feature within your Vapi assistant, ensuring enhanced transcription accuracy for specialized terminology and uncommon proper nouns.
+
+---
+
+title: Custom voices
+subtitle: Use a custom voice with your preferred provider
+slug: customization/custom-voices/custom-voice
+
+---
+
+You can use your own custom voice with any supported provider by setting the `voice` property in your assistant configuration:
+
+```json
+{
+  "voice": {
+    "provider": "deepgram",
+    "voiceId": "your-voice-id"
+  }
+}
+```
+
+---
+
+title: ElevenLabs
+subtitle: Set up a custom ElevenLabs voice in Vapi
+slug: customization/custom-voices/elevenlabs
+
+---
+
+This guide outlines the procedure for integrating your cloned voice with ElevenLabs through the Vapi platform.
+
+<Note>An API subscription is required for this process to work.</Note>
+
+<Steps>
+  <Step title="Obtain an ElevenLabs API subscription">
+    Visit the [ElevenLabs pricing page](https://elevenlabs.io/pricing) and subscribe to an API plan that suits your needs.
+  </Step>
+  <Step title="Retrieve your API key">
+    Go to the 'Profile + Keys' section on the ElevenLabs website to get your API key.
+  </Step>
+  <Step title="Enter your API key in Vapi">
+    Navigate to the [Vapi Provider Key section](https://dashboard.vapi.ai/keys) and input your ElevenLabs API key under the ElevenLabs section.
+
+    Once you click save, your voice library will sync automatically.
+
+  </Step>
+  <Step title="Search and use your cloned voice">
+    After syncing, you can search for your cloned voice in the "voices" tab in the assistants page, use it with your assistant.
+  </Step>
+</Steps>
+
+**Video Tutorial:**
+
+<iframe
+  src="https://www.loom.com/embed/91568c17289740889c278f458f0d291c?sid=a0c812fa-5809-4ffa-8391-6a578c3e0608"
+  title="Loom video player"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+  referrerpolicy="strict-origin-when-cross-origin"
+  width="100%"
+  height="400px"
+  allowfullscreen
+/>
+
+---
+
+title: PlayHT
+subtitle: Set up a custom PlayHT voice in Vapi
+slug: customization/custom-voices/playht
+
+---
+
+You can use your own custom PlayHT voice with Vapi by following these steps.
+
+<Note>
+An API subscription is required for this process.
+</Note>
+
+<Steps>
+  <Step title="Get a PlayHT API subscription">
+    Visit the [PlayHT pricing page](https://play.ht/studio/pricing) and subscribe to an API plan.
+  </Step>
+  <Step title="Retrieve your user ID and secret key">
+    Go to the [API Access section](https://play.ht/studio/api-access) on PlayHT to get your User ID and Secret Key.
+  </Step>
+  <Step title="Enter your API keys in Vapi">
+    Navigate to the [Vapi Provider Key section](https://dashboard.vapi.ai/keys) and add your PlayHT API keys under the PlayHT section.
+  </Step>
+  <Step title="Sync your cloned voice">
+    From the [Voice Library](https://dashboard.vapi.ai/voice-library) in Vapi, select PlayHT as your voice provider and click on "Sync with PlayHT."
+  </Step>
+  <Step title="Search and use your cloned voice">
+    After syncing, you can search for your cloned voice within the voice library and use it with your assistant.
+  </Step>
+</Steps>
+
+**Video tutorial:**
+
+<iframe
+  src="https://www.loom.com/embed/45a6e43ae03945a783385f771ea9203d?sid=268071d7-d37f-43aa-843a-13c221af3ed5"
+  title="Loom video player"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+  referrerpolicy="strict-origin-when-cross-origin"
+  width="100%"
+  height="400px"
+  allowfullscreen
+/>
+
+---
+
+title: Tavus
+subtitle: Set up a custom Tavus replica in Vapi
+slug: customization/custom-voices/tavus
+
+---
+
+You can use your own custom Tavus replica with Vapi by following these steps.
+
+<Note>
+An API subscription is required for this process. These steps are only needed for custom Tavus replicas, not for stock replicas on the Vapi platform.
+</Note>
+
+<Steps>
+  <Step title="Get a Tavus API subscription">
+    Visit the [Tavus pricing page](https://platform.tavus.io/billing) and subscribe to an API plan.
+  </Step>
+  <Step title="Retrieve your API key">
+    Go to the [API Keys section](https://platform.tavus.io/api-keys) on Tavus to get your API key.
+  </Step>
+  <Step title="Enter your API key in Vapi">
+    Navigate to the [Vapi Provider Key section](https://dashboard.vapi.ai/keys) and add your Tavus API key under the Tavus section.
+  </Step>
+  <Step title="Add your custom replica ID">
+    After adding your API key, select Tavus as your assistant's voice provider and add your Custom Replica ID manually through the dashboard. Alternatively, use the API and specify the replica ID in the `voiceId` field.
+  </Step>
+</Steps>
+
+**Video tutorial:**
+
+<iframe
+  src="https://www.loom.com/embed/f3f8a6f3ec0d46c79874ee9e032ae332?sid=981ef281-a30b-46e3-ac19-1a2b2b176511"
+  title="Loom video player"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+  referrerpolicy="strict-origin-when-cross-origin"
+  width="100%"
+  height="400px"
+  allowfullscreen
+/>
+
+---
+
+title: Custom TTS integration
+subtitle: Learn to integrate your own text-to-speech system with VAPI
+slug: customization/custom-voices/custom-tts
+
+---
+
+## Overview
+
+Integrate your own Text-to-Speech (TTS) system with VAPI Assistant for complete control over voice synthesis. Whether you need brand-specific voices, advanced audio quality, or cost optimization, custom TTS gives you the flexibility to use any TTS provider while maintaining real-time performance.
+
+**In this guide, you'll learn to:**
+
+- Set up webhook authentication between VAPI and your TTS endpoint
+- Build a TTS server that handles VAPI's audio requirements
+- Process text requests and return properly formatted audio
+- Handle edge cases and troubleshoot common issues
+
+<Tip>
+  Custom TTS maintains VAPI's real-time performance while giving you complete
+  flexibility over voice synthesis, language support, and audio quality.
+</Tip>
+
+## How custom TTS works
+
+VAPI's custom TTS system operates through a webhook pattern:
+
+<Steps>
+  <Step title="Text conversion trigger">
+    During a conversation, VAPI needs to convert text to speech
+  </Step>
+  <Step title="Request to your endpoint">
+    VAPI sends a POST request to your TTS endpoint with text and audio
+    specifications
+  </Step>
+  <Step title="Audio generation">
+    Your system generates audio and returns it as raw PCM data
+  </Step>
+  <Step title="Real-time playback">
+    VAPI streams the audio to the caller in real-time
+  </Step>
+</Steps>
+
+### What you'll need
+
+- **Web server** that can receive POST requests and return audio data
+- **TTS system** (cloud API, local model, or custom solution)
+- **VAPI account** with access to custom voice configuration
+
+<Warning>
+  Your TTS system must generate audio in specific PCM format requirements to
+  ensure proper playback quality.
+</Warning>
+
+## Authentication setup
+
+VAPI needs secure communication with your TTS endpoint. Choose from these authentication options:
+
+### Secret header authentication
+
+The most common approach uses a secret token in the `X-VAPI-SECRET` header:
+
+<CodeBlocks>
+```json title="Assistant Configuration"
+{
+  "voice": {
+    "provider": "custom-voice",
+    "server": {
+      "url": "https://your-tts-api.com/synthesize",
+      "secret": "your-secret-token-here",
+      "timeoutSeconds": 30
+    }
+  }
+}
+```
+</CodeBlocks>
+
+### Enhanced authentication with custom headers
+
+Add extra headers for API versioning or enhanced security:
+
+<CodeBlocks>
+```json title="Assistant Configuration with Custom Headers"
+{
+  "voice": {
+    "provider": "custom-voice",
+    "server": {
+      "url": "https://your-tts-api.com/synthesize",
+      "secret": "your-secret-token",
+      "headers": {
+        "X-API-Version": "v1",
+        "X-Client-ID": "vapi-integration"
+      }
+    }
+  }
+}
+```
+</CodeBlocks>
+
+<Note>
+  Enterprise customers can use OAuth2 authentication through webhook credentials
+  for larger deployments.
+</Note>
+
+## Building your TTS integration
+
+### Configure your VAPI assistant
+
+Set up your assistant to use your custom TTS endpoint with fallback options:
+
+<CodeBlocks>
+```json title="Complete Assistant Configuration"
+{
+  "name": "Custom Voice Assistant",
+  "voice": {
+    "provider": "custom-voice",
+    "server": {
+      "url": "https://your-tts-endpoint.com/api/synthesize",
+      "secret": "your-webhook-secret",
+      "timeoutSeconds": 45,
+      "headers": {
+        "Content-Type": "application/json",
+        "X-API-Version": "v1"
+      }
+    },
+    "fallbackPlan": {
+      "voices": [
+        {
+          "provider": "eleven-labs",
+          "voiceId": "21m00Tcm4TlvDq8ikWAM"
+        }
+      ]
+    }
+  }
+}
+```
+</CodeBlocks>
+
+### Build your TTS server
+
+Here's a complete Node.js implementation that handles all requirements:
+
+<CodeBlocks>
+```javascript title="tts-server.js"
+const express = require('express');
+const crypto = require('crypto');
+
+const app = express();
+app.use(express.json({ limit: '50mb' }));
+
+// Main TTS endpoint
+app.post('/api/synthesize', async (req, res) => {
+const requestId = crypto.randomUUID();
+const startTime = Date.now();
+
+// Set up timeout protection
+const timeout = setTimeout(() => {
+if (!res.headersSent) {
+res.status(408).json({ error: 'Request timeout' });
+}
+}, 30000);
+
+try {
+console.log(`TTS request started: ${requestId}`);
+
+    // Extract and validate the request
+    const { message } = req.body;
+    if (!message) {
+      clearTimeout(timeout);
+      return res.status(400).json({ error: 'Missing message object' });
+    }
+
+    const { type, text, sampleRate } = message;
+
+    // Validate message type
+    if (type !== 'voice-request') {
+      clearTimeout(timeout);
+      return res.status(400).json({ error: 'Invalid message type' });
+    }
+
+    // Validate text content
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      clearTimeout(timeout);
+      return res.status(400).json({ error: 'Invalid or missing text' });
+    }
+
+    // Validate sample rate
+    const validSampleRates = [8000, 16000, 22050, 24000, 44100];
+    if (!validSampleRates.includes(sampleRate)) {
+      clearTimeout(timeout);
+      return res.status(400).json({
+        error: 'Unsupported sample rate',
+        supportedRates: validSampleRates,
+      });
+    }
+
+    console.log(
+      `Synthesizing: ${requestId}, length=${text.length}, rate=${sampleRate}Hz`
+    );
+
+    // Generate the audio (replace with your TTS implementation)
+    const audioBuffer = await synthesizeAudio(text, sampleRate);
+
+    if (!audioBuffer || audioBuffer.length === 0) {
+      throw new Error('TTS synthesis produced no audio');
+    }
+
+    clearTimeout(timeout);
+
+    // Return raw PCM audio to VAPI
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Length', audioBuffer.length);
+    res.write(audioBuffer);
+    res.end();
+
+    const duration = Date.now() - startTime;
+    console.log(
+      `TTS completed: ${requestId}, ${duration}ms, ${audioBuffer.length} bytes`
+    );
+
+} catch (error) {
+clearTimeout(timeout);
+const duration = Date.now() - startTime;
+console.error(`TTS failed: ${requestId}, ${duration}ms, ${error.message}`);
+
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'TTS synthesis failed', requestId });
+    }
+
+}
+});
+
+// Replace with your actual TTS implementation
+async function synthesizeAudio(text, sampleRate) {
+// Example: Call your TTS API here
+// const audioBuffer = await yourTTSProvider.synthesize(text, sampleRate);
+
+// Demo implementation (replace with real TTS)
+await new Promise(resolve => setTimeout(resolve, 100));
+
+const duration = Math.min(text.length _ 0.1, 10); // Max 10 seconds
+const samples = Math.floor(duration _ sampleRate);
+const buffer = Buffer.alloc(samples \* 2); // 16-bit = 2 bytes per sample
+
+for (let i = 0; i < samples; i++) {
+const value = Math.sin((2 _ Math.PI _ 440 _ i) / sampleRate) _ 16000;
+buffer.writeInt16LE(Math.round(value), i \* 2);
+}
+
+return buffer;
+}
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+console.error('Unhandled error:', error.message);
+res.status(500).json({ error: 'Internal server error' });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+console.log(`TTS server listening on port ${PORT}`);
+});
+
+module.exports = app;
+
+````
+</CodeBlocks>
+
+### Handle text processing
+
+Implement proper text validation and preprocessing:
+
+<CodeBlocks>
+```javascript title="Text Processing Functions"
+function preprocessText(text) {
+  // Handle SSML tags if your TTS supports them
+  if (text.includes('<speak>')) {
+    return parseSSML(text);
+  }
+
+  // Clean up problematic characters
+  return text
+    .replace(/[^\w\s\.,!?-]/g, '') // Remove special characters
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .trim();
+}
+
+function validateText(text) {
+  if (!text || text.trim().length === 0) {
+    throw new Error('Empty text provided');
+  }
+
+  if (!/[a-zA-Z]/.test(text)) {
+    throw new Error('No readable text found');
+  }
+
+  return text.trim();
+}
+````
+
+</CodeBlocks>
+
+## Request and response formats
+
+### VAPI request structure
+
+Every TTS request from VAPI follows this format:
+
+<CodeBlocks>
+```json title="VAPI TTS Request"
+{
+  "message": {
+    "type": "voice-request",
+    "text": "Hello, world! How can I help you today?",
+    "sampleRate": 24000,
+    "timestamp": 1677123456789,
+    "call": {
+      "id": "call-123",
+      "orgId": "org-456"
+    },
+    "assistant": {
+      "id": "assistant-789",
+      "name": "Customer Service Bot"
+    },
+    "customer": {
+      "number": "+1234567890"
+    }
+  }
+}
+```
+</CodeBlocks>
+
+### Required fields
+
+| Field        | Type   | Description                                                |
+| ------------ | ------ | ---------------------------------------------------------- |
+| `type`       | string | Always "voice-request"                                     |
+| `text`       | string | Text to synthesize                                         |
+| `sampleRate` | number | Target audio sample rate (8000, 16000, 22050, or 24000 Hz) |
+| `timestamp`  | number | Unix timestamp in milliseconds                             |
+
+### Your response requirements
+
+Your endpoint must respond with:
+
+- **HTTP 200 status**
+- **Content-Type: application/octet-stream**
+- **Raw PCM audio data** in the response body
+
+<CodeBlocks>
+```http title="Correct Response Headers"
+HTTP/1.1 200 OK
+Content-Type: application/octet-stream
+Transfer-Encoding: chunked
+
+[Raw PCM audio bytes]
+
+````
+</CodeBlocks>
+
+## Audio format requirements
+
+### PCM specifications
+
+Your TTS system must generate audio with these exact specifications:
+
+- **Format:** Raw PCM (no headers or containers)
+- **Channels:** 1 (mono only)
+- **Bit Depth:** 16-bit signed integer
+- **Byte Order:** Little-endian
+- **Sample Rate:** Must exactly match the `sampleRate` in the request
+
+<Warning>
+Any deviation from these specifications will cause audio distortion, playback failures, or call quality issues. VAPI streams audio in real-time during phone calls.
+</Warning>
+
+## Testing your integration
+
+### Create a test call
+
+Use VAPI's API to create a test call that exercises your TTS system:
+
+<CodeBlocks>
+```javascript title="Test Call Creation"
+async function testTTSWithVAPICall() {
+  const vapiApiKey = 'your-vapi-api-key';
+  const assistantId = 'your-assistant-id'; // Assistant with custom TTS
+
+  const callData = {
+    assistant: { id: assistantId },
+    phoneNumberId: 'your-phone-number-id',
+    customer: { number: '+1234567890' }, // Your test number
+  };
+
+  try {
+    const response = await fetch('https://api.vapi.ai/call', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${vapiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(callData),
+    });
+
+    const call = await response.json();
+    console.log('Test call created:', call.id);
+    return call;
+  } catch (error) {
+    console.error('Failed to create test call:', error);
+  }
+}
+````
+
+</CodeBlocks>
+
+### Monitor TTS requests
+
+Set up logging to see exactly what VAPI sends to your endpoint:
+
+<CodeBlocks>
+```javascript title="Request Monitoring Middleware"
+app.use('/api/synthesize', (req, res, next) => {
+  console.log('=== Incoming TTS Request ===');
+  console.log('Headers:', req.headers);
+  console.log('Body:', JSON.stringify(req.body, null, 2));
+  console.log('==============================');
+  next();
+});
+```
+</CodeBlocks>
+
+### Quick endpoint test
+
+Test your endpoint directly before full integration:
+
+<CodeBlocks>
+```javascript title="Direct Endpoint Test"
+async function quickEndpointTest() {
+  const testPayload = {
+    message: {
+      type: 'voice-request',
+      text: 'Hello, this is a test of the custom TTS system.',
+      sampleRate: 24000,
+      timestamp: Date.now(),
+    },
+  };
+
+try {
+const response = await fetch('http://localhost:3000/api/synthesize', {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+'X-VAPI-SECRET': 'your-test-secret',
+},
+body: JSON.stringify(testPayload),
+});
+
+    if (response.ok) {
+      const audioBuffer = await response.buffer();
+      console.log(`Audio generated: ${audioBuffer.length} bytes`);
+      require('fs').writeFileSync('test-output.pcm', audioBuffer);
+    } else {
+      console.error('Test failed:', await response.text());
+    }
+
+} catch (error) {
+console.error('Test error:', error);
+}
+}
+
+```
+</CodeBlocks>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Request timeouts">
+    **Symptoms:** VAPI doesn't receive your audio response, calls may drop
+
+    **Common causes:**
+    - TTS processing takes longer than configured timeout
+    - Network connectivity issues between VAPI and your server
+    - Server overload or unresponsiveness
+
+    **Solutions:**
+    - Increase `timeoutSeconds` in your assistant configuration
+    - Optimize your TTS processing speed
+    - Implement proper error handling and timeout protection
+  </Accordion>
+
+  <Accordion title="Audio playback problems">
+    **Symptoms:** No audio during calls, or distorted/garbled sound
+
+    **Common causes:**
+    - Wrong audio format (not raw PCM)
+    - Incorrect sample rate
+    - Sending stereo audio instead of mono
+    - Including audio file headers in response
+
+    **Solutions:**
+    - Ensure raw PCM format with no headers
+    - Match the exact sample rate from the request
+    - Generate mono audio only
+    - Verify 16-bit little-endian format
+  </Accordion>
+
+  <Accordion title="Authentication failures">
+    **Symptoms:** 401 Unauthorized responses in your server logs
+
+    **Common causes:**
+    - Secret token mismatch between VAPI config and server
+    - Missing X-VAPI-SECRET header validation
+    - Case sensitivity issues with header names
+
+    **Solutions:**
+    - Verify secret token matches exactly
+    - Implement proper header validation
+    - Check for case-sensitive header handling
+  </Accordion>
+
+  <Accordion title="High latency">
+    **Symptoms:** Noticeable delays during conversations
+
+    **Common causes:**
+    - TTS model loading time on first request
+    - Complex text processing before synthesis
+    - Network latency between services
+
+    **Solutions:**
+    - Pre-load TTS models at startup
+    - Optimize text preprocessing
+    - Use faster TTS models for real-time performance
+    - Consider geographic proximity of services
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+Now that you have custom TTS integration working:
+
+- **Advanced features:** Explore SSML support for enhanced voice control
+- **Performance optimization:** Implement caching and model warming strategies
+- **Voice cloning:** Integrate voice cloning APIs for personalized experiences
+- **Multi-language support:** Add language detection and voice switching
+
+<Tip>
+Consider implementing a fallback voice provider in your assistant configuration to ensure call continuity if your custom TTS endpoint experiences issues.
+</Tip>
+```
+
+---
+
+title: Fine-tuned OpenAI models
+subtitle: Use Another LLM or Your Own Server
+slug: customization/custom-llm/fine-tuned-openai-models
+
+---
+
+Vapi supports using any OpenAI-compatible endpoint as the LLM. This includes services like [OpenRouter](https://openrouter.ai/), [AnyScale](https://www.anyscale.com/), [Together AI](https://www.together.ai/), or your own server.
+
+<Accordion title="When to Use Custom LLMs">
+  - For an open-source LLM, like Mixtral
+  - To update the context during the conversation
+  - To customize the messages before they're sent to an LLM
+</Accordion>
+
+## Using an LLM provider
+
+You'll first want to POST your API key via the `/credential` endpoint:
+
+```json
+{
+  "provider": "openrouter",
+  "apiKey": "<YOUR OPENROUTER KEY>"
+}
+```
+
+Then, you can create an assistant with the model provider:
+
+```json
+{
+  "name": "My Assistant",
+  "model": {
+    "provider": "openrouter",
+    "model": "cognitivecomputations/dolphin-mixtral-8x7b",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an assistant."
+      }
+    ],
+    "temperature": 0.7
+  }
+}
+```
+
+## Using Fine-Tuned OpenAI Models
+
+To set up your OpenAI Fine-Tuned model, you need to follow these steps:
+
+1. Set the custom llm URL to `https://api.openai.com/v1`.
+2. Assign the custom llm key to the OpenAI key.
+3. Update the model to their model.
+4. Execute a PATCH request to the `/assistant` endpoint and ensure that `model.metadataSendMode` is set to off.
+
+## Using your server
+
+To set up your server to act as the LLM, you'll need to create an endpoint that is compatible with the [OpenAI Client](https://platform.openai.com/docs/api-reference/making-requests). For best results, your endpoint should also support streaming completions.
+
+If your server is making calls to an OpenAI compatble API, you can pipe the requests directly back in your response to Vapi.
+
+If you'd like your OpenAI-compatible endpoint to be authenticated, you can POST your server's API key and URL via the `/credential` endpoint:
+
+```json
+{
+  "provider": "custom-llm",
+  "apiKey": "<YOUR SERVER API KEY>"
+}
+```
+
+If your server isn't authenticated, you can skip this step.
+
+Then, you can create an assistant with the `custom-llm` model provider:
+
+```json
+{
+  "name": "My Assistant",
+  "model": {
+    "provider": "custom-llm",
+    "url": "<YOUR OPENAI COMPATIBLE ENDPOINT BASE URL>",
+    "model": "my-cool-model",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an assistant."
+      }
+    ],
+    "temperature": 0.7
+  }
+}
+```
+
+---
+
+title: 'Connecting Your Custom LLM to Vapi: A Comprehensive Guide'
+slug: customization/custom-llm/using-your-server
+
+---
+
+This guide provides a comprehensive walkthrough on integrating Vapi with OpenAI's gpt-4.1-mini model using a custom LLM configuration. We'll leverage Ngrok to expose a local development environment for testing and demonstrate the communication flow between Vapi and your LLM.
+
+## Prerequisites
+
+- **Vapi Account**: Access to the Vapi Dashboard for configuration.
+- **OpenAI API Key**: With access to the gpt-4.1-mini model.
+- **Python Environment**: Set up with the OpenAI library (`pip install openai`).
+- **Ngrok**: For exposing your local server to the internet.
+- **Code Reference**: Familiarize yourself with the `/openai-sse/chat/completions` endpoint function in the provided Github repository: [Server-Side Example Python Flask](https://github.com/VapiAI/server-side-example-python-flask/blob/main/app/api/custom_llm.py).
+
+## Step 1: Setting Up Your Local Development Environment
+
+**1. Create a Python Script (app.py):**
+
+```python
+from flask import Flask, request, jsonify
+import openai
+
+app = Flask(__name__)
+openai.api_key = "YOUR_OPENAI_API_KEY"  # Replace with your actual API key
+
+@app.route("/chat/completions", methods=["POST"])
+def chat_completions():
+    data = request.get_json()
+    # Extract relevant information from data (e.g., prompt, conversation history)
+    # ...
+
+    response = openai.ChatCompletion.create(
+        model="gpt-4.1-mini",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            # ... (Add messages from conversation history and current prompt)
+        ]
+    )
+    # Format response according to Vapi's structure
+    # ...
+    return jsonify(formatted_response)
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)  # You can adjust the port if needed
+```
+
+**2. Run the Script:**
+Execute the Python script using python app.py in your terminal. This will start the Flask server on the specified port (5000 in this example).
+
+**3. Expose with Ngrok:**
+Open a new terminal window and run ngrok http 5000 (replace 5000 with your chosen port) to create a public URL that tunnels to your local server.
+
+## Step 2: Configuring Vapi with Custom LLM
+
+**1. Access Vapi Dashboard:**
+Log in to your Vapi account and navigate to the "Model" section.
+
+**2. Select Custom LLM:**
+Choose the "Custom LLM" option to set up the integration.
+
+**3. Enter Ngrok URL:**
+Paste the public URL generated by ngrok (e.g., https://your-unique-id.ngrok.io) into the endpoint field. This will be the URL Vapi uses to communicate with your local server.
+
+**4. Test the Connection:**
+Send a test message through the Vapi interface to ensure it reaches your local server and receives a response from the OpenAI API. Verify that the response is displayed correctly in Vapi.
+
+## Authentication (Optional)
+
+For production deployments, you can secure your custom LLM endpoint using authentication. This ensures only authorized requests from Vapi can access your LLM server.
+
+![Custom LLM authentication configuration](file:da700304-a821-4bb7-9f10-5fca884cdbd2)
+
+### Configuration Options
+
+Vapi supports two authentication methods for custom LLMs:
+
+1. **API Key**: Simple authentication where Vapi includes a static API key in request headers. Your server validates this key to authorize requests.
+
+2. **OAuth2 Credentials**: More secure authentication using OAuth2 client credentials flow with automatic token refresh.
+
+### API Key Authentication
+
+When using API Key authentication:
+
+- Vapi sends your API key in the Authorization header to your custom LLM endpoint
+- Your server validates the API key before processing the request
+- Simple to implement and suitable for basic security requirements
+
+### OAuth2 Authentication
+
+When configuring OAuth2 in the Vapi dashboard:
+
+1. **OAuth2 URL**: Enter your OAuth2 token endpoint (e.g., `https://your-server.com/oauth/token`)
+2. **OAuth2 Client ID**: Your OAuth2 client identifier
+3. **OAuth2 Client Secret**: Your OAuth2 client secret
+
+### How OAuth2 Works
+
+1. Vapi requests an access token from your OAuth2 endpoint using client credentials
+2. Your server validates the credentials and returns an access token
+3. Vapi includes the token in the Authorization header for LLM requests
+4. Your server validates the token before processing requests
+5. Tokens automatically refresh when they expire
+
+## Step 3: Understanding the Communication Flow
+
+**1. Vapi Sends POST Request:**
+When a user interacts with your Vapi application, Vapi sends a POST request containing conversation context and metadata to the configured endpoint (your ngrok URL).
+
+**2. Local Server Processes Request:**
+Your Python script receives the POST request and the chat_completions function is invoked.
+
+**3. Extract and Prepare Data:**
+The script parses the JSON data, extracts relevant information (prompt, conversation history), and builds the prompt for the OpenAI API call.
+
+**4. Call to OpenAI API:**
+The constructed prompt is sent to the gpt-4.1-mini model using the openai.ChatCompletion.create method.
+
+**5. Receive and Format Response:**
+The response from OpenAI, containing the generated text, is received and formatted according to Vapi's expected structure.
+
+**6. Send Response to Vapi:**
+The formatted response is sent back to Vapi as a JSON object.
+
+**7. Vapi Displays Response:**
+Vapi receives the response and displays the generated text within the conversation interface to the user.
+
+By following these detailed steps and understanding the communication flow, you can successfully connect Vapi to OpenAI's gpt-4.1-mini model and create powerful conversational experiences within your Vapi applications. The provided code example and reference serve as a starting point for you to build and customize your integration based on your specific needs.
+
+**Video Tutorial:**
+
+  <iframe
+    src="https://www.youtube.com/embed/-1xWhYmOT0A?si=8qB6FLzcmmrmduT-"
+    title="Loom video player"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    referrerpolicy="strict-origin-when-cross-origin"
+    width="100%"
+    height="400px"
+    allowfullscreen
+  />
+
+---
+
+title: Custom LLM Tool Calling Integration
+slug: customization/tool-calling-integration
+
+---
+
+## What Is a Custom LLM and Why Use It?
+
+A **Custom LLM** is more than just a text generator—it’s a conversational assistant that can call external functions, trigger processes, and handle special logic, all while chatting with your users. Think of it as your smart helper that not only answers questions but also takes actions.
+
+**Why use a Custom LLM?**
+
+- **Enhanced Functionality:** It mixes natural language responses with actionable functions.
+- **Flexibility:** You can combine built-in functions, attach external tools via Vapi, or even add custom endpoints.
+- **Dynamic Interactions:** The assistant can return structured instructions—like transferring a call or running a custom process—when needed.
+- **Seamless Integration:** Vapi lets you plug these custom endpoints into your assistant quickly and easily.
+
+---
+
+## Setting Up Your Custom LLM for Response Generation
+
+Before adding tool calls, let’s start with the basics: setting up your Custom LLM to simply generate conversation responses. In this mode, your LLM receives conversation details, asks the model for a reply, and streams that text back.
+
+### How It Works
+
+- **Request Reception:** Your endpoint (e.g., `/chat/completions`) gets a payload with the model, messages, temperature, and (optionally) tools.
+- **Content Generation:** The code builds an OpenAI API request that includes the conversation context.
+- **Response Streaming:** The generated reply is sent back as Server-Sent Events (SSE).
+
+### Sample Code Snippet
+
+```typescript
+app.post("/chat/completions", async (req: Request, res: Response) => {
+  // Log the incoming request.
+  logEvent("Request received at /chat/completions", req.body);
+  const payload = req.body;
+
+  // Prepare the API request to OpenAI.
+  const requestArgs: any = {
+    model: payload.model,
+    messages: payload.messages,
+    temperature: payload.temperature ?? 1.0,
+    stream: true,
+    tools: payload.tools || [],
+    tool_choice: "auto",
+  };
+
+  // Optionally merge in native tool definitions.
+  const modelTools = payload.tools || [];
+  requestArgs.tools = [...modelTools, ...ourTools];
+
+  logEvent("Calling OpenAI API for content generation");
+  const openAIResponse = await openai.chat.completions.create(
+    requestArgs
+  );
+  logEvent("OpenAI API call successful. Streaming response.");
+
+  // Set up streaming headers.
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  // Stream the response chunks back.
+  for await (const chunk of openAIResponse as unknown as AsyncIterable<any>) {
+    res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+  }
+  res.write("data: [DONE]\n\n");
+  res.end();
+});
+```
+
+### Attaching Custom LLM Without Tools to an Existing Assistant in Vapi
+
+If you just want response generation (without tool calls), update your Vapi model with a PATCH request like this:
+
+```bash
+curl -X PATCH https://api.vapi.ai/assistant/insert-your-assistant-id-here \
+     -H "Authorization: Bearer insert-your-private-key-here" \
+     -H "Content-Type: application/json" \
+     -d '{
+  "model": {
+    "provider": "custom-llm",
+    "model": "gpt-4o",
+    "url": "https://custom-llm-url/chat/completions",
+    "messages": [
+      {
+        "role": "system",
+        "content": "[TASK] Ask the user if they want to transfer the call; if not, continue the conversation."
+      }
+    ]
+  },
+  "transcriber": {
+    "provider": "azure",
+    "language": "en-CA"
+  }
+}'
+```
+
+---
+
+## Adding Tools Calling with Your Custom LLM
+
+Now that you’ve got response generation working, let’s expand your assistant’s abilities. Your Custom LLM can trigger external actions in three different ways.
+
+### a. Native LLM Tools
+
+These tools are built right into your LLM integration. For example, a native function like `get_payment_link` can return a payment URL.
+
+**How It Works:**
+
+1. **Detection:** The LLM’s streaming response includes a tool call for `get_payment_link`.
+2. **Execution:** The integration parses the arguments and calls the native function.
+3. **Response:** The result is packaged into a follow-up API call and streamed back.
+
+**Code Snippet:**
+
+```typescript
+// Variables to accumulate tool call information.
+let argumentsStr = "";
+let toolCallInfo: { name?: string; id?: string } | null = null;
+
+// Process streaming chunks.
+for await (const chunk of openAIResponse as unknown as AsyncIterable<any>) {
+  const choice = chunk.choices && chunk.choices[0];
+  const delta = choice?.delta || {};
+  const toolCalls = delta.tool_calls;
+
+  if (toolCalls && toolCalls.length > 0) {
+    for (const toolCall of toolCalls) {
+      const func = toolCall.function;
+      if (func && func.name) {
+        toolCallInfo = { name: func.name, id: toolCall.id };
+      }
+      if (func && func.arguments) {
+        argumentsStr += func.arguments;
+      }
+    }
+  }
+
+  const finishReason = choice?.finish_reason;
+  if (finishReason === "tool_calls" && toolCallInfo) {
+    let parsedArgs = {};
+    try {
+      parsedArgs = JSON.parse(argumentsStr);
+    } catch (err) {
+      console.error("Failed to parse arguments:", err);
+    }
+    if (tool_functions[toolCallInfo.name!]) {
+      const result = await tool_functions[toolCallInfo.name!](
+        parsedArgs
+      );
+      const functionMessage = {
+        role: "function",
+        name: toolCallInfo.name,
+        content: JSON.stringify(result),
+      };
+
+      const followUpResponse = await openai.chat.completions.create({
+        model: requestArgs.model,
+        messages: [...requestArgs.messages, functionMessage],
+        temperature: requestArgs.temperature,
+        stream: true,
+        tools: requestArgs.tools,
+        tool_choice: "auto",
+      });
+
+      for await (const followUpChunk of followUpResponse) {
+        res.write(`data: ${JSON.stringify(followUpChunk)}\n\n`);
+      }
+      argumentsStr = "";
+      toolCallInfo = null;
+      continue;
+    }
+  }
+  res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+}
+```
+
+### b. Vapi-Attached Tools
+
+These tools come pre-attached via your Vapi configuration. For example, the `transferCall` tool:
+
+**How It Works:**
+
+1. **Detection:** When a tool call for `transferCall` appears with a destination in the payload, the function isn’t executed.
+2. **Response:** The integration immediately sends a function call payload with the destination back to Vapi.
+
+**Code Snippet:**
+
+```typescript
+if (functionName === "transferCall" && payload.destination) {
+  const functionCallPayload = {
+    function_call: {
+      name: "transferCall",
+      arguments: {
+        destination: payload.destination,
+      },
+    },
+  };
+  logEvent("Special handling for transferCall", {
+    functionCallPayload,
+  });
+  res.write(`data: ${JSON.stringify(functionCallPayload)}\n\n`);
+  // Skip further processing for this chunk.
+  continue;
+}
+```
+
+### c. Custom Tools
+
+Custom tools are unique to your application and are handled by a dedicated endpoint. For example, a custom function named `processOrder`.
+
+**How It Works:**
+
+1. **Dedicated Endpoint:** Requests for custom tools go to `/chat/completions/custom-tool`.
+2. **Detection:** The payload includes a tool call list. If the function name is `"processOrder"`, a hardcoded result is returned.
+3. **Response:** A JSON response is sent back with the result.
+
+**Code Snippet (Custom Endpoint):**
+
+```typescript
+app.post(
+  "/chat/completions/custom-tool",
+  async (req: Request, res: Response) => {
+    logEvent(
+      "Received request at /chat/completions/custom-tool",
+      req.body
+    );
+    // Expect the payload to have a "message" with a "toolCallList" array.
+    const vapiPayload = req.body.message;
+
+    // Process tool call.
+    for (const toolCall of vapiPayload.toolCallList) {
+      if (toolCall.function?.name === "processOrder") {
+        const hardcodedResult =
+          "CustomTool processOrder With CustomLLM Always Works";
+        logEvent("Returning hardcoded result for 'processOrder'", {
+          toolCallId: toolCall.id,
+        });
+        return res.json({
+          results: [
+            {
+              toolCallId: toolCall.id,
+              result: hardcodedResult,
+            },
+          ],
+        });
+      }
+    }
+  }
+);
+```
+
+---
+
+## Testing Tool Calling with cURL
+
+Once your endpoints are set up, try testing them with these cURL commands.
+
+### a. Native Tool Calling (`get_payment_link`)
+
+```bash
+curl -X POST https://custom-llm-url/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+        "model": "gpt-4o",
+        "messages": [
+          {"role": "user", "content": "I need a payment link."}
+        ],
+        "temperature": 0.7,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_payment_link",
+              "description": "Get a payment link",
+              "parameters": {}
+            }
+          }
+        ]
+      }'
+```
+
+_Expected Response:_  
+Streaming chunks eventually include the result (e.g., a payment link) returned by the native tool function.
+
+### b. Vapi-Attached Tool Calling (`transferCall`)
+
+```bash
+curl -X POST https://custom-llm-url/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+        "model": "gpt-4o",
+        "messages": [
+          {"role": "user", "content": "Please transfer my call."}
+        ],
+        "temperature": 0.7,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "transferCall",
+              "description": "Transfer call to a specified destination",
+              "parameters": {}
+            }
+          }
+        ],
+        "destination": "555-1234"
+      }'
+```
+
+_Expected Response:_  
+Immediately returns a function call payload that instructs Vapi to transfer the call to the specified destination.
+
+### c. Custom Tool Calling (`processOrder`)
+
+```bash
+curl -X POST https://custom-llm-url/chat/completions/custom-tool \
+  -H "Content-Type: application/json" \
+  -d '{
+        "message": {
+          "toolCallList": [
+            {
+              "id": "12345",
+              "function": {
+                "name": "processOrder",
+                "arguments": {
+                  "param": "value"
+                }
+              }
+            }
+          ]
+        }
+      }'
+```
+
+_Expected Response:_
+
+```json
+{
+  "results": [
+    {
+      "toolCallId": "12345",
+      "result": "CustomTools With CustomLLM Always Works"
+    }
+  ]
+}
+```
+
+---
+
+## Integrating Tools with Vapi
+
+After testing locally, integrate your Custom LLM with Vapi. Choose the configuration that fits your needs.
+
+### a. Without Tools (Response Generation Only)
+
+```bash
+curl -X PATCH https://api.vapi.ai/assistant/insert-your-assistant-id-here \
+     -H "Authorization: Bearer insert-your-private-key-here" \
+     -H "Content-Type: application/json" \
+     -d '{
+  "model": {
+    "provider": "custom-llm",
+    "model": "gpt-4o",
+    "url": "https://custom-llm-url/chat/completions",
+    "messages": [
+      {
+        "role": "system",
+        "content": "[TASK] Ask the user if they want to transfer the call; if not, continue chatting."
+      }
+    ]
+  },
+  "transcriber": {
+    "provider": "azure",
+    "language": "en-CA"
+  }
+}'
+```
+
+### b. With Tools (Including `transferCall` and `processOrder`)
+
+```bash
+curl -X PATCH https://api.vapi.ai/assistant/insert-your-assistant-id-here \
+     -H "Authorization: Bearer insert-your-private-key-here" \
+     -H "Content-Type: application/json" \
+     -d '{
+  "model": {
+    "provider": "custom-llm",
+    "model": "gpt-4o",
+    "url": "https://custom-llm-url/chat/completions",
+    "messages": [
+      {
+        "role": "system",
+        "content": "[TASK] Ask the user if they want to transfer the call; if they agree, trigger the transferCall tool; if not, continue the conversation. Also, if the user asks about the custom function processOrder, trigger that tool."
+      }
+    ],
+    "tools": [
+      {
+        "type": "transferCall",
+        "destinations": [
+          {
+            "type": "number",
+            "number": "+xxxxxx",
+            "numberE164CheckEnabled": false,
+            "message": "Transferring Call To Customer Service Department"
+          }
+        ]
+      },
+      {
+        "type": "function",
+        "async": false,
+        "function": {
+          "name": "processOrder",
+          "description": "it's a custom tool function named processOrder according to vapi.ai custom tools guide"
+        },
+        "server": {
+          "url": "https://custom-llm-url/chat/completions/custom-tool"
+        }
+      }
+    ]
+  },
+  "transcriber": {
+    "provider": "azure",
+    "language": "en-CA"
+  }
+}'
+```
+
+---
+
+## Conclusion
+
+A Custom LLM turns a basic conversational assistant into an interactive helper that can:
+
+- **Generate everyday language responses,**
+- **Call native tools** (like fetching a payment link),
+- **Use Vapi-attached tools** (like transferring a call), and
+- **Leverage custom tools** (like processing orders).
+
+By building each layer step by step and testing with cURL, you can fine-tune your integration before rolling it out in production.
+
+---
+
+## Complete Code
+
+For your convenience, you can find the complete source code for this Custom LLM integration here:
+
+**[Custom LLM with Vapi Integration – Complete Code](https://codesandbox.io/p/devbox/gfwztp)**
+
+````
+
+
+---
+title: Inbound customer support
+subtitle: >-
+  Build a banking customer support agent that can process inbound phone calls
+  and assist with common banking issues.
+slug: assistants/examples/inbound-support
+description: >-
+  Build a voice AI banking support agent with tools for account lookup, balance
+  and transaction retrieval.
+---
+
+## Overview
+
+Build a banking support agent with function tools, CSV knowledge bases, and voice test suites. The agent handles account verification, balance inquiries, and transaction history via phone calls.
+
+**Agent Capabilities:**
+* Account lookup and verification via phone number
+* Balance and transaction history retrieval
+
+**What You'll Build:**
+* Retrieval tools and CSV knowledge bases for account/transaction data
+* Voice test suites for automated quality assurance
+* Inbound phone number configuration for 24/7 availability
+
+## Prerequisites
+
+* A [Vapi account](https://dashboard.vapi.ai/).
+
+## Scenario
+
+We will be creating a customer support agent for VapiBank, a bank that wants to provide 24/7 support to consumers.
+
+---
+
+## 1. Create a Knowledge Base
+
+<Steps>
+  <Step title="Download the spreadsheets">
+    <div className="flex gap-2">
+      <Download src="file:624ed349-efb8-4571-8a07-67d230647d29">
+        <Button intent="primary">Download accounts.csv</Button>
+      </Download>
+      <Download src="file:d7ce2551-6a4a-497f-91cd-5fec83864b7c">
+        <Button intent="primary">Download transactions.csv</Button>
+      </Download>
+    </div>
+  </Step>
+  <Step title="Upload the files">
+    <Tabs>
+      <Tab title="Dashboard">
+        1. Navigate to **Files** in your [Vapi Dashboard](https://dashboard.vapi.ai/)
+        2. Click **Choose file** and upload both `accounts.csv` and `transactions.csv`
+        3. Note the file IDs for use in creating tools
+
+        <video autoPlay loop muted src="file:5aee5201-b29a-4207-962a-615bd9706474" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Tab>
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        import { VapiClient } from "@vapi-ai/server-sdk";
+        import fs from 'fs';
+
+        const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+        async function uploadFile(filePath: string) {
+          try {
+            const file = await vapi.files.create({
+              file: fs.createReadStream(filePath)
+            });
+
+            console.log(`File ${filePath} uploaded with ID: ${file.id}`);
+            return file;
+          } catch (error) {
+            console.error(`Error uploading file ${filePath}:`, error);
+            throw error;
+          }
+        }
+
+        // Upload both files
+        const accountsFile = await uploadFile("accounts.csv");
+        const transactionsFile = await uploadFile("transactions.csv");
+
+        console.log(`Accounts file ID: ${accountsFile.id}`);
+        console.log(`Transactions file ID: ${transactionsFile.id}`);
+        ```
+      </Tab>
+      <Tab title="Python (Server SDK)">
+        ```python
+        import requests
+
+        def upload_file(file_path):
+            url = "https://api.vapi.ai/file"
+            headers = {"Authorization": f"Bearer {YOUR_VAPI_API_KEY}"}
+
+            with open(file_path, 'rb') as file:
+                files = {'file': file}
+                response = requests.post(url, headers=headers, files=files)
+                return response.json()
+
+        # Upload both files
+        accounts_file = upload_file("accounts.csv")
+        transactions_file = upload_file("transactions.csv")
+
+        print(f"Accounts file ID: {accounts_file['id']}")
+        print(f"Transactions file ID: {transactions_file['id']}")
+        ```
+      </Tab>
+      <Tab title="cURL">
+        ```bash
+        # Upload accounts.csv
+        curl -X POST https://api.vapi.ai/file \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -F "file=@accounts.csv"
+
+        # Upload transactions.csv
+        curl -X POST https://api.vapi.ai/file \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -F "file=@transactions.csv"
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+---
+
+## 2. Create an Assistant
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Navigate to Assistants">
+        Go to [dashboard.vapi.ai](https://dashboard.vapi.ai) and click `Assistants` in the left sidebar.
+      </Step>
+      <Step title="Create a new assistant">
+        - Click `Create Assistant`.
+        - Select `Blank Template` as your starting point.
+        - Change assistant name to `Tom`.
+
+        <video autoPlay loop muted src="file:3dd40f8c-65e8-45d7-ad2d-ebea37a9abc5" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    const systemPrompt = `You are Tom, a friendly VapiBank customer support assistant. Help customers check balances and view recent transactions. Always verify identity with phone number first.`;
+
+    const assistant = await vapi.assistants.create({
+      name: "Tom",
+      firstMessage: "Hello, you've reached VapiBank customer support! My name is Tom, how may I assist you today?",
+      model: {
+        provider: "openai",
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt
+          }
+        ]
+      },
+      voice: {
+        provider: "11labs",
+        voice_id: "burt"
+      }
+    });
+
+    console.log(`Assistant created with ID: ${assistant.id}`);
+    ```
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    url = "https://api.vapi.ai/assistant"
+    headers = {
+        "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    system_prompt = "You are Tom, a friendly VapiBank customer support assistant. Help customers check balances and view recent transactions. Always verify identity with phone number first."
+
+    data = {
+        "name": "Tom",
+        "firstMessage": "Hello, you've reached VapiBank customer support! My name is Tom, how may I assist you today?",
+        "model": {
+            "provider": "openai",
+            "model": "gpt-4o",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": system_prompt
+                }
+            ]
+        },
+        "voice": {
+            "provider": "11labs",
+            "voice_id": "burt"
+        }
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+    assistant = response.json()
+    print(f"Assistant created with ID: {assistant['id']}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://api.vapi.ai/assistant \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "Tom",
+           "firstMessage": "Hello, you'\''ve reached VapiBank customer support! My name is Tom, how may I assist you today?",
+           "model": {
+             "provider": "openai",
+             "model": "gpt-4o",
+             "messages": [
+               {
+                 "role": "system",
+                 "content": "You are Tom, a friendly VapiBank customer support assistant. Help customers check balances and view recent transactions. Always verify identity with phone number first."
+               }
+             ]
+           },
+           "voice": {
+             "provider": "11labs",
+             "voice_id": "burt"
+           }
+         }'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## 3. Configure an Assistant
+
+<Steps>
+  <Step title="Update the introduction message">
+    <Tabs>
+      <Tab title="Dashboard">
+        Update `First Message` to:
+
+        ```txt title="First Message" wordWrap
+        Hello, you've reached VapiBank customer support! My name is Tom, how may I assist you today?
+        ```
+      </Tab>
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        import { VapiClient } from "@vapi-ai/server-sdk";
+
+        const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+        const updatedAssistant = await vapi.assistants.update("YOUR_ASSISTANT_ID", {
+          firstMessage: "Hello, you've reached VapiBank customer support! My name is Tom, how may I assist you today?"
+        });
+
+        console.log("First message updated successfully");
+        ```
+      </Tab>
+      <Tab title="Python (Server SDK)">
+        ```python
+        import requests
+
+        url = f"https://api.vapi.ai/assistant/{YOUR_ASSISTANT_ID}"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "firstMessage": "Hello, you've reached VapiBank customer support! My name is Tom, how may I assist you today?"
+        }
+
+        response = requests.patch(url, headers=headers, json=data)
+        assistant = response.json()
+        print("First message updated successfully")
+        ```
+      </Tab>
+      <Tab title="cURL">
+        ```bash
+        curl -X PATCH https://api.vapi.ai/assistant/YOUR_ASSISTANT_ID \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -H "Content-Type: application/json" \
+             -d '{
+               "firstMessage": "Hello, you'\''ve reached VapiBank customer support! My name is Tom, how may I assist you today?"
+             }'
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="Update the system prompt">
+    First, create this system prompt:
+
+    ```txt title="System Prompt" maxLines=10
+# VapiBank - Phone Support Agent Prompt
+
+## Identity & Purpose
+You are **Tom**, VapiBank's friendly, 24x7 phone-support voice assistant. Do not introduce yourself after the first message.
+You help customers with account inquiries:
+
+1. **Check balance**
+2. **View recent transactions**
+
+## Data Sources
+You have access to CSV files with account and transaction data:
+- **accounts.csv**: `account_id, name, phone_last4, balance, card_status, email`
+- **transactions.csv**: transaction history for all accounts
+
+## Available Tools
+1. **lookup_account** → verify customer identity using phone number
+2. **get_balance** → returns current balance for verified account
+3. **get_recent_transactions** → returns recent transaction history
+
+## Conversation Flow
+1. **Greeting**
+  > "Hello, you've reached VapiBank customer support! My name is Tom, how may I assist you today?"
+
+2. **Account Verification**
+  * After caller provides phone digits → call **lookup_account**
+  * Read back the returned `name` for confirmation
+  * If no match after 2 tries → apologize and offer to transfer
+
+3. **Handle Request**
+  Ask: "How can I help you today—check your balance or review recent transactions?"
+
+  **Balance** → call **get_balance** → read current balance
+  **Transactions** → call **get_recent_transactions** → summarize recent activity
+
+4. **Close**
+  > "Is there anything else I can help you with today?"
+  If no → thank the caller and end the call
+
+## Style & Tone
+* Warm, concise, ≤ 30 words per reply
+* One question at a time
+* Repeat important numbers slowly and clearly
+* Professional but friendly tone
+
+## Edge Cases
+* **No account match** → offer to transfer to human agent
+* **Multiple requests** → handle each request, then ask if anything else needed
+* **Technical issues** → apologize and offer callback or transfer
+
+(Remember: only share account information with verified account holders.)
+    ```
+
+    Then update your assistant:
+
+    <Tabs>
+      <Tab title="Dashboard">
+        Copy the system prompt above and paste it into the `System Prompt` field in your assistant configuration.
+      </Tab>
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        import { VapiClient } from "@vapi-ai/server-sdk";
+
+        const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+        // Use the system prompt from above
+        const systemPrompt = `# VapiBank - Phone Support Agent Prompt...`;
+
+        const updatedAssistant = await vapi.assistants.update("YOUR_ASSISTANT_ID", {
+          model: {
+            messages: [
+              {
+                role: "system",
+                content: systemPrompt
+              }
+            ]
+          }
+        });
+
+        console.log("System prompt updated successfully");
+        ```
+      </Tab>
+      <Tab title="Python (Server SDK)">
+        ```python
+        import requests
+
+        url = f"https://api.vapi.ai/assistant/{YOUR_ASSISTANT_ID}"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        # Use the system prompt from above
+        system_prompt = """# VapiBank - Phone Support Agent Prompt..."""
+
+        data = {
+            "model": {
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": system_prompt
+                    }
+                ]
+            }
+        }
+
+        response = requests.patch(url, headers=headers, json=data)
+        assistant = response.json()
+        print("System prompt updated successfully")
+        ```
+      </Tab>
+      <Tab title="cURL">
+        ```bash
+        curl -X PATCH https://api.vapi.ai/assistant/YOUR_ASSISTANT_ID \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -H "Content-Type: application/json" \
+             -d '{
+               "model": {
+                 "messages": [
+                   {
+                     "role": "system",
+                     "content": "# VapiBank - Phone Support Agent Prompt\n\n## Identity & Purpose\nYou are **Tom**, VapiBank'\''s friendly, 24x7 phone-support voice assistant. Do not introduce yourself after the first message.\nYou help customers with account inquiries:\n\n1. **Check balance**\n2. **View recent transactions**\n\n## Data Sources\nYou have access to CSV files with account and transaction data:\n- **accounts.csv**: account_id, name, phone_last4, balance, card_status, email\n- **transactions.csv**: transaction history for all accounts\n\n## Available Tools\n1. **lookup_account** → verify customer identity using phone number\n2. **get_balance** → returns current balance for verified account\n3. **get_recent_transactions** → returns recent transaction history\n\n## Conversation Flow\n1. **Greeting**\n  > \"Hello, you'\''ve reached VapiBank customer support! My name is Tom, how may I assist you today?\"\n\n2. **Account Verification**\n  * After caller provides phone digits → call **lookup_account**\n  * Read back the returned name for confirmation\n  * If no match after 2 tries → apologize and offer to transfer\n\n3. **Handle Request**\n  Ask: \"How can I help you today—check your balance or review recent transactions?\"\n\n  **Balance** → call **get_balance** → read current balance\n  **Transactions** → call **get_recent_transactions** → summarize recent activity\n\n4. **Close**\n  > \"Is there anything else I can help you with today?\"\n  If no → thank the caller and end the call\n\n## Style & Tone\n* Warm, concise, ≤ 30 words per reply\n* One question at a time\n* Repeat important numbers slowly and clearly\n* Professional but friendly tone\n\n## Edge Cases\n* **No account match** → offer to transfer to human agent\n* **Multiple requests** → handle each request, then ask if anything else needed\n* **Technical issues** → apologize and offer callback or transfer\n\n(Remember: only share account information with verified account holders.)"
+                   }
+                 ]
+               }
+             }'
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="Configure LLM settings (optional)">
+    <Tabs>
+      <Tab title="Dashboard">
+        Configure the LLM settings to your liking.
+        - Select any provider and model you like (you will see cost and latency estimates).
+        - You can configure the files available to the LLM as knowledge base.
+        - You can specify the temperature and max tokens of the LLM.
+      </Tab>
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        import { VapiClient } from "@vapi-ai/server-sdk";
+
+        const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+        async function updateAssistantLLMSettings(assistantId: string) {
+          const updatedAssistant = await vapi.assistants.update(assistantId, {
+            model: {
+              provider: "openai",
+              model: "gpt-4o",
+              temperature: 0.7,
+              maxTokens: 150,
+              messages: [
+                {
+                  role: "system",
+                  content: "You are Tom, VapiBank's customer support assistant..."
+                }
+              ]
+            }
+          });
+
+          return updatedAssistant;
+        }
+
+        // Update LLM settings
+        const assistant = await updateAssistantLLMSettings('YOUR_ASSISTANT_ID');
+        console.log('Assistant LLM settings updated');
+        ```
+      </Tab>
+      <Tab title="Python (Server SDK)">
+        ```python
+        import requests
+
+        def update_assistant_llm_settings(assistant_id):
+            url = f"https://api.vapi.ai/assistant/{assistant_id}"
+            headers = {
+                "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+                "Content-Type": "application/json"
+            }
+
+            data = {
+                "model": {
+                    "provider": "openai",
+                    "model": "gpt-4o",
+                    "temperature": 0.7,
+                    "maxTokens": 150,
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": "You are Tom, VapiBank's customer support assistant..."
+                        }
+                    ]
+                }
+            }
+
+            response = requests.patch(url, headers=headers, json=data)
+            return response.json()
+
+        # Update LLM settings
+        assistant = update_assistant_llm_settings('YOUR_ASSISTANT_ID')
+        print("Assistant LLM settings updated")
+        ```
+      </Tab>
+      <Tab title="cURL">
+        ```bash
+        curl -X PATCH https://api.vapi.ai/assistant/YOUR_ASSISTANT_ID \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -H "Content-Type: application/json" \
+             -d '{
+               "model": {
+                 "provider": "openai",
+                 "model": "gpt-4o",
+                 "temperature": 0.7,
+                 "maxTokens": 150,
+                 "messages": [
+                   {
+                     "role": "system",
+                     "content": "You are Tom, VapiBank'\''s customer support assistant..."
+                   }
+                 ]
+               }
+             }'
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="Publish your assistant">
+    **Dashboard only:** Click `Publish` to save your changes.
+
+    <Note>
+      When using the Server SDKs, changes are applied immediately when you make API calls. There's no separate "publish" step required.
+    </Note>
+  </Step>
+  <Step title="Test your assistant">
+    <Tabs>
+      <Tab title="Dashboard">
+        Click `Talk to Assistant` to test it out.
+
+        <video autoPlay loop muted src="file:95acc63b-4186-44af-8cf2-f0ce77e65983" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Tab>
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        import { VapiClient } from "@vapi-ai/server-sdk";
+
+        const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+        async function testAssistantWithCall(assistantId: string) {
+          const call = await vapi.calls.create({
+            assistantId: assistantId,
+            customer: {
+              number: "+1234567890" // Your test number
+            }
+          });
+
+          console.log(`Test call created: ${call.id}`);
+          return call;
+        }
+
+        // Create a test call
+        const testCall = await testAssistantWithCall('YOUR_ASSISTANT_ID');
+        ```
+      </Tab>
+      <Tab title="Python (Server SDK)">
+        ```python
+        import requests
+
+        def test_assistant_with_call(assistant_id):
+            url = "https://api.vapi.ai/call"
+            headers = {
+                "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+                "Content-Type": "application/json"
+            }
+
+            data = {
+                "assistantId": assistant_id,
+                "customer": {
+                    "number": "+1234567890"  # Your test number
+                }
+            }
+
+            response = requests.post(url, headers=headers, json=data)
+            call = response.json()
+            print(f"Test call created: {call['id']}")
+            return call
+
+        # Create a test call
+        test_call = test_assistant_with_call('YOUR_ASSISTANT_ID')
+        ```
+      </Tab>
+      <Tab title="cURL">
+        ```bash
+        # Create a test call
+        curl -X POST https://api.vapi.ai/call \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -H "Content-Type: application/json" \
+             -d '{
+               "assistantId": "YOUR_ASSISTANT_ID",
+               "customer": {
+                 "number": "+1234567890"
+               }
+             }'
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+---
+
+## 4. Add Tools to an Assistant
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Navigate to Tools">
+        Open your [dashboard.vapi.ai](https://dashboard.vapi.ai) and click `Tools` in the left sidebar.
+      </Step>
+      <Step title="Create a tool for retrieving account balance">
+        - Click `Create Tool`.
+        - Select `Function` as your tool type.
+        - Change tool name to `get_balance`.
+        - Add the following function description:
+
+          ```txt title="Function Description" wordWrap
+          Retrieve the balance for an account based on provided account holder name and last 4 digits of the phone number.
+          ```
+        - Scroll down to the `Knowledge Bases` section and add the following knowledge base:
+
+          - Name: `accounts`<br />
+            Description: `Use this to retrieve account information`<br />
+            File IDs: `<File ID of your accounts.csv file>`
+      </Step>
+      <Step title="Create a tool for retrieving account transactions">
+        - Click `Create Tool`.
+        - Select `Function` as your tool type.
+        - Change tool name to `get_recent_transactions`.
+        - Add the following function description:
+
+          ```txt title="Function Description" wordWrap
+          Return the three most recent transactions for a specific account.
+          ```
+        - Scroll down to the `Knowledge Bases` section and add the following knowledge bases:
+
+          - Name: `accounts`<br />
+            Description: `Use this to retrieve account information`<br />
+            File IDs: `<File ID of your accounts.csv file>`
+
+          - Name: `transactions`<br />
+            Description: `Use this to retrieve transactions`<br />
+            File IDs: `<File ID of your transactions.csv file>`
+      </Step>
+      <Step title="Create a tool for looking up account">
+        - Click `Create Tool`.
+        - Select `Function` as your tool type.
+        - Change tool name to `lookup_account`.
+        - Add the following function description:
+
+          ```txt title="Function Description" wordWrap
+          Look up account based on provided name and last 4 digits of the phone number.
+          ```
+        - Scroll down to the `Knowledge Bases` section and add the following knowledge bases:
+
+          - Name: `accounts`<br />
+            Description: `Use this to retrieve account information`<br />
+            File IDs: `<File ID of your accounts.csv file>`
+      </Step>
+      <Step title="Add tools to assistant">
+        - Click `Assistants` in the left sidebar.
+        - Make sure `Tom` is selected in the list of assistants.
+        - Scroll down until you see `Tools` accordion. Expand it.
+        - In the expanded accordion, add `get_balance` and `get_recent_transactions` tools.
+        - Click `Publish` to save your changes.
+
+        <video autoPlay loop muted src="file:e9dade62-6ffe-4c77-abae-7b6f7a5c893d" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    // Step 1: Create the account lookup tool
+    const lookupAccountTool = await vapi.tools.create({
+      type: "function",
+      function: {
+        name: "lookup_account",
+        description: "Look up account based on provided name and last 4 digits of the phone number."
+      },
+      knowledgeBases: [
+        {
+          name: "accounts",
+          description: "Use this to retrieve account information",
+          fileIds: ["YOUR_ACCOUNTS_FILE_ID"]
+        }
+      ]
+    });
+
+    console.log(`Created lookup_account tool: ${lookupAccountTool.id}`);
+
+    // Step 2: Create the balance retrieval tool
+    const getBalanceTool = await vapi.tools.create({
+      type: "function",
+      function: {
+        name: "get_balance",
+        description: "Retrieve the balance for an account based on provided account holder name and last 4 digits of the phone number."
+      },
+      knowledgeBases: [
+        {
+          name: "accounts",
+          description: "Use this to retrieve account information",
+          fileIds: ["YOUR_ACCOUNTS_FILE_ID"]
+        }
+      ]
+    });
+
+    console.log(`Created get_balance tool: ${getBalanceTool.id}`);
+
+    // Step 3: Create the transactions retrieval tool
+    const getTransactionsTool = await vapi.tools.create({
+      type: "function",
+      function: {
+        name: "get_recent_transactions",
+        description: "Return the three most recent transactions for a specific account."
+      },
+      knowledgeBases: [
+        {
+          name: "accounts",
+          description: "Use this to retrieve account information",
+          fileIds: ["YOUR_ACCOUNTS_FILE_ID"]
+        },
+        {
+          name: "transactions",
+          description: "Use this to retrieve transactions",
+          fileIds: ["YOUR_TRANSACTIONS_FILE_ID"]
+        }
+      ]
+    });
+
+    console.log(`Created get_recent_transactions tool: ${getTransactionsTool.id}`);
+
+    // Step 4: Add all tools to the assistant
+    const updatedAssistant = await vapi.assistants.update("YOUR_ASSISTANT_ID", {
+      model: {
+        toolIds: [
+          lookupAccountTool.id,
+          getBalanceTool.id,
+          getTransactionsTool.id
+        ]
+      }
+    });
+
+    console.log("All tools added to assistant successfully!");
+    ```
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    # Helper function to create tools
+    def create_tool(name, description, knowledge_bases):
+        url = "https://api.vapi.ai/tool"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "type": "function",
+            "function": {
+                "name": name,
+                "description": description
+            },
+            "knowledgeBases": knowledge_bases
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+        return response.json()
+
+    # Step 1: Create the account lookup tool
+    lookup_account_tool = create_tool(
+        "lookup_account",
+        "Look up account based on provided name and last 4 digits of the phone number.",
+        [{"name": "accounts", "description": "Use this to retrieve account information", "fileIds": ["YOUR_ACCOUNTS_FILE_ID"]}]
+    )
+    print(f"Created lookup_account tool: {lookup_account_tool['id']}")
+
+    # Step 2: Create the balance retrieval tool
+    get_balance_tool = create_tool(
+        "get_balance",
+        "Retrieve the balance for an account based on provided account holder name and last 4 digits of the phone number.",
+        [{"name": "accounts", "description": "Use this to retrieve account information", "fileIds": ["YOUR_ACCOUNTS_FILE_ID"]}]
+    )
+    print(f"Created get_balance tool: {get_balance_tool['id']}")
+
+    # Step 3: Create the transactions retrieval tool
+    get_transactions_tool = create_tool(
+        "get_recent_transactions",
+        "Return the three most recent transactions for a specific account.",
+        [
+            {"name": "accounts", "description": "Use this to retrieve account information", "fileIds": ["YOUR_ACCOUNTS_FILE_ID"]},
+            {"name": "transactions", "description": "Use this to retrieve transactions", "fileIds": ["YOUR_TRANSACTIONS_FILE_ID"]}
+        ]
+    )
+    print(f"Created get_recent_transactions tool: {get_transactions_tool['id']}")
+
+    # Step 4: Add all tools to the assistant
+    def update_assistant_with_tools(assistant_id, tool_ids):
+        url = f"https://api.vapi.ai/assistant/{assistant_id}"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "model": {
+                "toolIds": tool_ids
+            }
+        }
+
+        response = requests.patch(url, headers=headers, json=data)
+        return response.json()
+
+    tool_ids = [lookup_account_tool['id'], get_balance_tool['id'], get_transactions_tool['id']]
+    updated_assistant = update_assistant_with_tools("YOUR_ASSISTANT_ID", tool_ids)
+    print("All tools added to assistant successfully!")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Step 1: Create the account lookup tool
+    curl -X POST https://api.vapi.ai/tool \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "type": "function",
+           "function": {
+             "name": "lookup_account",
+             "description": "Look up account based on provided name and last 4 digits of the phone number."
+           },
+           "knowledgeBases": [
+             {
+               "name": "accounts",
+               "description": "Use this to retrieve account information",
+               "fileIds": ["YOUR_ACCOUNTS_FILE_ID"]
+             }
+           ]
+         }'
+
+    # Step 2: Create the balance retrieval tool
+    curl -X POST https://api.vapi.ai/tool \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "type": "function",
+           "function": {
+             "name": "get_balance",
+             "description": "Retrieve the balance for an account based on provided account holder name and last 4 digits of the phone number."
+           },
+           "knowledgeBases": [
+             {
+               "name": "accounts",
+               "description": "Use this to retrieve account information",
+               "fileIds": ["YOUR_ACCOUNTS_FILE_ID"]
+             }
+           ]
+         }'
+
+    # Step 3: Create the transactions retrieval tool
+    curl -X POST https://api.vapi.ai/tool \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "type": "function",
+           "function": {
+             "name": "get_recent_transactions",
+             "description": "Return the three most recent transactions for a specific account."
+           },
+           "knowledgeBases": [
+             {
+               "name": "accounts",
+               "description": "Use this to retrieve account information",
+               "fileIds": ["YOUR_ACCOUNTS_FILE_ID"]
+             },
+             {
+               "name": "transactions",
+               "description": "Use this to retrieve transactions",
+               "fileIds": ["YOUR_TRANSACTIONS_FILE_ID"]
+             }
+           ]
+         }'
+
+    # Step 4: Add all tools to the assistant
+    curl -X PATCH https://api.vapi.ai/assistant/YOUR_ASSISTANT_ID \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "model": {
+             "toolIds": ["LOOKUP_ACCOUNT_TOOL_ID", "GET_BALANCE_TOOL_ID", "GET_TRANSACTIONS_TOOL_ID"]
+           }
+         }'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## 5. Assign a Phone Number to an Assistant
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Navigate to Phone Numbers">
+        Open your [dashboard.vapi.ai](https://dashboard.vapi.ai) and click `Phone Numbers` in the left sidebar.
+      </Step>
+      <Step title="Create a new phone number">
+        - Click `Create Phone Number`.
+        - Stick with `Free Vapi Number`.
+        - Enter your preferred area code (e.g. `530`).
+      </Step>
+      <Step title="Configure the phone number">
+        - Set the `Phone Number Name` to `Vapi Support Hotline`.
+        - Under `Inbound Settings` find `Assistant` dropdown and select `Tom` from the list.
+        - Changes are saved automatically.
+
+        <video autoPlay loop muted src="file:13437b91-d740-4c33-ac01-68627518d1d2" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    const phoneNumber = await vapi.phoneNumbers.create({
+      name: "Vapi Support Hotline",
+      assistantId: "YOUR_ASSISTANT_ID"
+    });
+
+    console.log(`Phone number created: ${phoneNumber.number}`);
+    ```
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_phone_number(name, assistant_id):
+        url = "https://api.vapi.ai/phone-number"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "name": name,
+            "assistantId": assistant_id
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+        return response.json()
+
+    # Create phone number for Tom
+    phone_number = create_phone_number("Vapi Support Hotline", assistant_id)
+    print(f"Phone number created: {phone_number['number']}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Create a phone number
+    curl -X POST https://api.vapi.ai/phone-number \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "Vapi Support Hotline",
+           "assistantId": "YOUR_ASSISTANT_ID"
+         }'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## 6. Create a Test Suite for an Assistant
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Navigate to Test Suites page">
+        - Open your [dashboard.vapi.ai](https://dashboard.vapi.ai).
+        - Below the `Build` section, find and expand the `Test` section.
+        - In the expanded section, click `Voice Test Suites`.
+      </Step>
+      <Step title="Create a new test suite">
+        - On the `Test Suites` page, click `Create Test Suite`.
+        - Click on `New Test Suite` and change the name to `Support Hotline Test Suite`.
+        - Set the `Assistant` to `Tom`.
+        - Set the `Phone Number` to `Vapi Support Hotline`.
+        - Under `Test Cases`, click `Generate Tests`.
+        - Use the following prompt to generate the test case:
+
+        ```txt title="Test Case Prompt" wordWrap
+        Test that the assistant can verify a customer account using phone number, retrieve their current balance, and provide recent transaction history.
+        ```
+
+        - Accept the generated test case.
+        - Click `Run Test Suite` to execute the tests.
+
+        <video autoPlay loop muted src="file:90cc28a7-3007-44f6-bbc2-8c1506c97052" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+      <Step title="Run the test suite">
+        Click `Run Tests` to execute the tests.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    const testSuite = await vapi.testSuites.create({
+      name: "Support Hotline Test Suite",
+      assistantId: "YOUR_ASSISTANT_ID",
+      phoneNumberId: "YOUR_PHONE_NUMBER_ID",
+      testCases: [
+        {
+          name: "Account verification and balance check",
+          description: "Test that the assistant can verify a customer account using phone number, retrieve their current balance, and provide recent transaction history.",
+          steps: [
+            {
+              type: "userMessage",
+              content: "Hi, I need to check my account balance"
+            },
+            {
+              type: "assertion",
+              condition: "Assistant asks for phone number verification"
+            },
+            {
+              type: "userMessage",
+              content: "My phone number ends in 1234"
+            },
+            {
+              type: "assertion",
+              condition: "Assistant provides balance information"
+            }
+          ]
+        }
+      ]
+    });
+
+    console.log(`Test suite created with ID: ${testSuite.id}`);
+    ```
+
+    **Next:** Go to your [Vapi Dashboard](https://dashboard.vapi.ai) → Test → Voice Test Suites to run the test suite and view results.
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_test_suite():
+        url = "https://api.vapi.ai/test-suite"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "name": "Support Hotline Test Suite",
+            "assistantId": "YOUR_ASSISTANT_ID",
+            "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+            "testCases": [
+                {
+                    "name": "Account verification and balance check",
+                    "description": "Test that the assistant can verify a customer account using phone number, retrieve their current balance, and provide recent transaction history.",
+                    "steps": [
+                        {
+                            "type": "userMessage",
+                            "content": "Hi, I need to check my account balance"
+                        },
+                        {
+                            "type": "assertion",
+                            "condition": "Assistant asks for phone number verification"
+                        },
+                        {
+                            "type": "userMessage",
+                            "content": "My phone number ends in 1234"
+                        },
+                        {
+                            "type": "assertion",
+                            "condition": "Assistant provides balance information"
+                        }
+                    ]
+                }
+            ]
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+        return response.json()
+
+    # Create the test suite
+    test_suite = create_test_suite()
+    print(f"Test suite created with ID: {test_suite['id']}")
+    ```
+
+    **Next:** Go to your [Vapi Dashboard](https://dashboard.vapi.ai) → Test → Voice Test Suites to run the test suite and view results.
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Create the test suite
+    curl -X POST https://api.vapi.ai/test-suite \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "Support Hotline Test Suite",
+           "assistantId": "YOUR_ASSISTANT_ID",
+           "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+           "testCases": [
+             {
+               "name": "Account verification and balance check",
+               "description": "Test that the assistant can verify a customer account using phone number, retrieve their current balance, and provide recent transaction history.",
+               "steps": [
+                 {
+                   "type": "userMessage",
+                   "content": "Hi, I need to check my account balance"
+                 },
+                 {
+                   "type": "assertion",
+                   "condition": "Assistant asks for phone number verification"
+                 },
+                 {
+                   "type": "userMessage",
+                   "content": "My phone number ends in 1234"
+                 },
+                 {
+                   "type": "assertion",
+                   "condition": "Assistant provides balance information"
+                 }
+               ]
+             }
+           ]
+         }'
+    ```
+
+    **Next:** Go to your [Vapi Dashboard](https://dashboard.vapi.ai) → Test → Voice Test Suites to run the test suite and view results.
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+Just like that, you've built a 24/7 customer support hotline that can handle inbound calls, create support tickets, and run automated tests to ensure it's working as expected.
+
+Consider the reading the following guides to further enhance your assistant:
+
+* [**Knowledge Bases**](../knowledge-base/) - Learn more about knowledge bases to build knowledge-based agents.
+* [**External Integrations**](../tools/) - Configure integrations with [Google Calendar](../tools/google-calendar), [Google Sheets](../tools/google-sheets), [Slack](../tools/slack), etc.
+* [**Workflows**](../workflows/) - Learn about workflows to build voice agents for more complex use cases.
+
+<Callout>
+Need help? Chat with the team on our [Discord](https://discord.com/invite/pUFNcf2WmH) or mention us on [X/Twitter](https://x.com/Vapi_AI).
+</Callout>
+
+
+---
+title: Web Snippet
+subtitle: >-
+  Easily integrate the Vapi Voice Widget into your website for enhanced user
+  interaction.
+slug: assistants/examples/voice-widget
+---
+
+Improve your website's user interaction with the Vapi Voice Widget. This robust tool enables your visitors to engage with a voice assistant for support and interaction, offering a smooth and contemporary way to connect with your services.
+
+## Quick Implementation
+
+Choose your preferred implementation method:
+
+<Tabs>
+  <Tab title="HTML Script Tag">
+    The fastest way to get started. Copy this snippet into your website:
+
+    ```html
+    <script>
+      var vapiInstance = null;
+      const assistant = "<assistant_id>"; // Substitute with your assistant ID
+      const apiKey = "<your_public_api_key>"; // Substitute with your Public key from Vapi Dashboard.
+      const buttonConfig = {}; // Modify this as required
+
+      (function (d, t) {
+        var g = document.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+        g.src =
+          "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
+        g.defer = true;
+        g.async = true;
+        s.parentNode.insertBefore(g, s);
+
+        g.onload = function () {
+          vapiInstance = window.vapiSDK.run({
+            apiKey: apiKey, // mandatory
+            assistant: assistant, // mandatory
+            config: buttonConfig, // optional
+          });
+        };
+      })(document, "script");
+    </script>
+    ```
+  </Tab>
+
+  <Tab title="React/TypeScript">
+    Install the SDK and create a React component:
+
+    <CodeBlocks>
+    ```bash title="npm"
+    npm install @vapi-ai/web
+    ```
+
+    ```bash title="yarn"
+    yarn add @vapi-ai/web
+    ```
+
+    ```bash title="pnpm"
+    pnpm add @vapi-ai/web
+    ```
+
+    ```bash title="bun"
+    bun add @vapi-ai/web
+    ```
+    </CodeBlocks>
+
+    ```tsx
+    import React, { useState, useEffect } from 'react';
+    import Vapi from '@vapi-ai/web';
+
+    interface VapiWidgetProps {
+      apiKey: string;
+      assistantId: string;
+      config?: Record<string, unknown>;
+    }
+
+    const VapiWidget: React.FC<VapiWidgetProps> = ({
+      apiKey,
+      assistantId,
+      config = {}
+    }) => {
+      const [vapi, setVapi] = useState<Vapi | null>(null);
+      const [isConnected, setIsConnected] = useState(false);
+      const [isSpeaking, setIsSpeaking] = useState(false);
+      const [transcript, setTranscript] = useState<Array<{role: string, text: string}>>([]);
+
+      useEffect(() => {
+        const vapiInstance = new Vapi(apiKey);
+        setVapi(vapiInstance);
+
+        // Event listeners
+        vapiInstance.on('call-start', () => {
+          console.log('Call started');
+          setIsConnected(true);
+        });
+
+        vapiInstance.on('call-end', () => {
+          console.log('Call ended');
+          setIsConnected(false);
+          setIsSpeaking(false);
+        });
+
+        vapiInstance.on('speech-start', () => {
+          console.log('Assistant started speaking');
+          setIsSpeaking(true);
+        });
+
+        vapiInstance.on('speech-end', () => {
+          console.log('Assistant stopped speaking');
+          setIsSpeaking(false);
+        });
+
+        vapiInstance.on('message', (message) => {
+          if (message.type === 'transcript') {
+            setTranscript(prev => [...prev, {
+              role: message.role,
+              text: message.transcript
+            }]);
+          }
+        });
+
+        vapiInstance.on('error', (error) => {
+          console.error('Vapi error:', error);
+        });
+
+        return () => {
+          vapiInstance?.stop();
+        };
+      }, [apiKey]);
+
+      const startCall = () => {
+        if (vapi) {
+          vapi.start(assistantId);
+        }
+      };
+
+      const endCall = () => {
+        if (vapi) {
+          vapi.stop();
+        }
+      };
+
+      return (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 1000,
+          fontFamily: 'Arial, sans-serif'
+        }}>
+          {!isConnected ? (
+            <button
+              onClick={startCall}
+              style={{
+                background: '#12A594',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '50px',
+                padding: '16px 24px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(18, 165, 148, 0.3)',
+                transition: 'all 0.3s ease',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(18, 165, 148, 0.4)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(18, 165, 148, 0.3)';
+              }}
+            >
+              🎤 Talk to Assistant
+            </button>
+          ) : (
+            <div style={{
+              background: '#fff',
+              borderRadius: '12px',
+              padding: '20px',
+              width: '320px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+              border: '1px solid #e1e5e9'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '16px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    background: isSpeaking ? '#ff4444' : '#12A594',
+                    animation: isSpeaking ? 'pulse 1s infinite' : 'none'
+                  }}></div>
+                  <span style={{ fontWeight: 'bold', color: '#333' }}>
+                    {isSpeaking ? 'Assistant Speaking...' : 'Listening...'}
+                  </span>
+                </div>
+                <button
+                  onClick={endCall}
+                  style={{
+                    background: '#ff4444',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  End Call
+                </button>
+              </div>
+
+              <div style={{
+                maxHeight: '200px',
+                overflowY: 'auto',
+                marginBottom: '12px',
+                padding: '8px',
+                background: '#f8f9fa',
+                borderRadius: '8px'
+              }}>
+                {transcript.length === 0 ? (
+                  <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
+                    Conversation will appear here...
+                  </p>
+                ) : (
+                  transcript.map((msg, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        marginBottom: '8px',
+                        textAlign: msg.role === 'user' ? 'right' : 'left'
+                      }}
+                    >
+                      <span style={{
+                        background: msg.role === 'user' ? '#12A594' : '#333',
+                        color: '#fff',
+                        padding: '8px 12px',
+                        borderRadius: '12px',
+                        display: 'inline-block',
+                        fontSize: '14px',
+                        maxWidth: '80%'
+                      }}>
+                        {msg.text}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          <style>{`
+            @keyframes pulse {
+              0% { opacity: 1; }
+              50% { opacity: 0.5; }
+              100% { opacity: 1; }
+            }
+          `}</style>
+        </div>
+      );
+    };
+
+    export default VapiWidget;
+
+    // Usage in your app:
+    // <VapiWidget
+    //   apiKey="your_public_api_key"
+    //   assistantId="your_assistant_id"
+    // />
+    ```
+  </Tab>
+</Tabs>
+
+### Custom Styling
+
+You can customize the widget appearance by modifying the styles in the React component:
+
+```tsx
+// Custom button styles
+const customButtonStyle = {
+  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  borderRadius: '25px',
+  padding: '12px 30px',
+  fontSize: '14px',
+  fontWeight: '600',
+  boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+};
+
+// Custom panel styles
+const customPanelStyle = {
+  background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+  borderRadius: '16px',
+  border: '2px solid #e1e8ed',
+  backdropFilter: 'blur(10px)',
+};
+````
+
+### Event Handling
+
+Listen to various events for custom functionality:
+
+```tsx
+import Vapi from "@vapi-ai/web";
+
+function setupAdvancedVoiceWidget(
+  apiKey: string,
+  assistantId: string
+) {
+  const vapi = new Vapi(apiKey);
+
+  // Call lifecycle events
+  vapi.on("call-start", () => {
+    console.log("Voice conversation started");
+    // Track analytics, show notifications, etc.
+  });
+
+  vapi.on("call-end", () => {
+    console.log("Voice conversation ended");
+    // Save conversation data, show feedback form, etc.
+  });
+
+  // Real-time conversation events
+  vapi.on("speech-start", () => {
+    console.log("User started speaking");
+  });
+
+  vapi.on("speech-end", () => {
+    console.log("User stopped speaking");
+  });
+
+  vapi.on("message", (message) => {
+    if (message.type === "transcript") {
+      console.log(`${message.role}: ${message.transcript}`);
+      // Update UI with real-time transcription
+    } else if (message.type === "function-call") {
+      console.log("Function called:", message.functionCall.name);
+      // Handle custom function calls
+    }
+  });
+
+  // Error handling
+  vapi.on("error", (error) => {
+    console.error("Voice widget error:", error);
+    // Show user-friendly error messages
+  });
+
+  return {
+    start: () => vapi.start(assistantId),
+    stop: () => vapi.stop(),
+    send: (message: string) =>
+      vapi.send({
+        type: "add-message",
+        message: {
+          role: "user",
+          content: message,
+        },
+      }),
+  };
+}
+```
+
+### Integration Examples
+
+**E-commerce Support Widget:**
+
+```tsx
+const EcommerceSupportWidget = () => {
+  return (
+    <VapiWidget
+      apiKey="your_api_key"
+      assistantId="ecommerce_support_assistant_id"
+      config={{
+        position: "bottom-right",
+        theme: "ecommerce",
+        greeting: "Hi! Need help with your order?",
+        voice: {
+          provider: "playht",
+          voice_id: "jennifer",
+        },
+      }}
+    />
+  );
+};
+```
+
+**Healthcare Appointment Widget:**
+
+```tsx
+const HealthcareWidget = () => {
+  return (
+    <VapiWidget
+      apiKey="your_api_key"
+      assistantId="healthcare_assistant_id"
+      config={{
+        position: "bottom-left",
+        theme: "healthcare",
+        greeting: "Hello! I can help schedule your appointment.",
+        voice: {
+          provider: "playht",
+          voice_id: "jennifer",
+        },
+      }}
+    />
+  );
+};
+```
+
+---
+
+title: Documentation agent
+subtitle: Build a voice assistant that answers questions about your docs
+slug: assistants/examples/docs-agent
+
+---
+
+Try our live implementation using the voice widget in the bottom-right corner of this page.
+
+## Overview
+
+Build a voice-powered documentation assistant step by step. Choose between using the Dashboard interface or programmatic APIs to suit your workflow.
+
+You'll learn to:
+
+- Index your docs with LlamaCloud
+- Create a RAG tool for document retrieval
+- Create an assistant with Claude 3.5 Sonnet and attach the tool
+- Use the Web SDK to create a widget
+- Analyze user sessions and improve the quality of your agent overtime
+
+## Prerequisites
+
+- [Vapi account](https://dashboard.vapi.ai/) with API access
+- Documentation content - `llms.txt` file ([example](https://docs.vapi.ai/llms.txt)) could work great; it could be available out-of-box with your documentation framework (e.g. [Fern](https://buildwithfern.com/learn/docs/developer-tools/llms-txt), [Mintlify](https://mintlify.com/docs/ai-ingestion#%2Fllms-full-txt))
+- [LlamaCloud account](https://cloud.llamaindex.ai/) for indexing
+
+## Get started
+
+<Steps>
+  <Step title="Index your documentation">
+    Upload and index your documentation in LlamaCloud using `text-embedding-3-small`.
+
+    1. Create a new project in LlamaCloud
+    2. Upload your documentation files (you can use a single consolidated file like [llms-full.txt](https://docs.vapi.ai/llms-full.txt))
+    3. Configure embedding model to `text-embedding-3-small`
+    4. Set chunking to 512 tokens with 50 token overlap
+    5. Note your index ID and API credentials
+
+    <Tip>
+      Consolidate your documentation into a single text file for better RAG performance. You can see our example at [docs.vapi.ai/llms-full.txt](https://docs.vapi.ai/llms-full.txt).
+    </Tip>
+
+  </Step>
+
+  <Step title="Create the RAG tool">
+    Create a tool that connects your assistant to your LlamaCloud index.
+
+    <Tabs>
+      <Tab title="Dashboard">
+        1. Navigate to **Tools** in your [Vapi Dashboard](https://dashboard.vapi.ai/)
+        2. Click **Create Tool**
+        3. Select **API Request** as the tool type
+        4. Configure the tool:
+           - **Name**: `docsquery`
+           - **Function Name**: `docsquery`
+           - **Description**: `Search through documentation to find relevant information`
+           - **URL**: `https://api.cloud.llamaindex.ai/api/v1/pipelines/YOUR_PIPELINE_ID/retrieve`
+           - **Method**: `POST`
+           - **Headers**: Add `Authorization: Bearer YOUR_LLAMACLOUD_API_KEY`
+           - **Body**: Configure to send the query parameter
+        5. Save the tool and note the tool ID
+      </Tab>
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        import { VapiClient } from "@vapi-ai/server-sdk";
+
+        // Initialize Vapi server SDK
+        const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+        // Create the documentation query tool
+        const tool = await vapi.tools.create({
+          type: "function",
+          function: {
+            name: "docsquery",
+            parameters: {
+              type: "object",
+              properties: {
+                query: {
+                  type: "string",
+                  description: "The search query to find relevant documentation"
+                }
+              },
+              required: ["query"]
+            }
+          },
+          server: {
+            // LlamaCloud API endpoint for your pipeline
+            url: `https://api.cloud.llamaindex.ai/api/v1/pipelines/${YOUR_PIPELINE_ID}/retrieve`,
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${YOUR_LLAMACLOUD_API_KEY}`
+            },
+            // Send user query to LlamaCloud
+            body: {
+              query: "{{query}}"
+            }
+          }
+        });
+
+        console.log(`Tool created with ID: ${tool.id}`);
+        ```
+      </Tab>
+      <Tab title="Python (Server SDK)">
+        ```python
+        from vapi import Vapi
+
+        # Initialize Vapi server SDK
+        client = Vapi(token="YOUR_VAPI_API_KEY")
+
+        # Define system prompt for documentation assistant
+        system_prompt = """You are a helpful documentation assistant. Use the docsquery tool to find relevant information when users ask questions about the documentation.
+
+Guidelines:
+
+- Always be helpful, friendly, and concise
+- Provide accurate information based on the documentation
+- When you don't know something, say so clearly
+- Keep responses conversational for voice interaction
+- Use the docsquery tool whenever users ask specific questions about features, setup, or implementation
+- Summarize complex information in an easy-to-understand way
+- Ask clarifying questions if the user's request is unclear
+- Provide step-by-step guidance when explaining processes"""
+
+        # Create the documentation assistant
+        assistant = client.assistants.create(
+            name="Docs agent",
+            model={
+                "provider": "anthropic",
+                "model": "claude-3-5-sonnet-20241022", # Valid Claude model
+                "maxTokens": 400,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": system_prompt
+                    }
+                ],
+                "toolIds": [YOUR_TOOL_ID_FROM_STEP_2] # Replace with actual tool ID
+            },
+            // Configure voice settings
+            voice={
+                "provider": "vapi",
+                "voice_id": "Harry"
+            },
+            // Configure transcription
+            transcriber={
+                "provider": "deepgram",
+                "model": "nova-2",
+                "language": "en"
+            },
+            // Set greeting message
+            first_message="Hey I'm Harry, a support agent. How can I help you today? You can ask me questions about Vapi, how to get started or our documentation.",
+            end_call_message="Goodbye.",
+            background_sound="off",
+            // Enable call analysis for continuous improvement
+            analysis_plan={
+                "summaryPlan": {
+                    "enabled": True,
+                    "prompt": "Summarize this documentation support call, focusing on the user's questions and how well they were answered."
+                },
+                "successEvaluationPlan": {
+                    "enabled": True,
+                    "prompt": "Evaluate if this documentation support call was successful. Did the user get helpful answers to their questions?",
+                    "rubric": "NumericScale"
+                }
+            }
+        )
+
+        print(f"Assistant created with ID: {assistant.id}")
+        ```
+      </Tab>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST https://api.vapi.ai/tool \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -H "Content-Type: application/json" \
+             -d '{
+               "type": "apiRequest",
+               "name": "docsquery",
+               "function": {
+                 "name": "docsquery",
+                 "parameters": {
+                   "type": "object",
+                   "properties": {
+                     "query": {
+                       "type": "string",
+                       "description": "The search query to find relevant documentation"
+                     }
+                   },
+                   "required": ["query"]
+                 }
+               },
+               "url": "https://api.cloud.llamaindex.ai/api/v1/pipelines/YOUR_PIPELINE_ID/retrieve",
+               "method": "POST",
+               "headers": {
+                 "type": "object",
+                 "properties": {
+                   "Content-Type": {
+                     "type": "string",
+                     "value": "application/json"
+                   },
+                   "Authorization": {
+                     "type": "string",
+                     "value": "Bearer YOUR_LLAMACLOUD_API_KEY"
+                   }
+                 }
+               },
+               "body": {
+                 "type": "object",
+                 "properties": {
+                   "query": {
+                     "type": "string",
+                     "value": "{{query}}"
+                   }
+                 }
+               }
+             }'
+        ```
+      </Tab>
+
+    </Tabs>
+
+  Replace `YOUR_PIPELINE_ID` with your LlamaCloud pipeline ID and `YOUR_LLAMACLOUD_API_KEY` with your API key. Save the tool ID from the response for the next step.
+  </Step>
+
+  <Step title="Create an assistant with the tool">
+    Create an assistant with the RAG tool attached.
+
+    <Tabs>
+      <Tab title="Dashboard">
+        1. Navigate to **Assistants** in your [Vapi Dashboard](https://dashboard.vapi.ai/)
+        2. Click **Create Assistant**
+        3. Configure the assistant:
+           - **Name**: `Docs agent`
+           - **Model**: Claude Sonnet 4 (Anthropic)
+           - **Voice**: Harry (Vapi)
+           - **First Message**: `Hey I'm Harry, a support agent. How can I help you today? You can ask me questions about Vapi, how to get started or our documentation.`
+           - **System Prompt**: Use a helpful documentation assistant prompt with guidelines for using the docsquery tool
+        4. Add the `docsquery` tool in the Tools section
+        5. Configure analysis plan for call monitoring
+        6. Publish the assistant
+      </Tab>
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        import { VapiClient } from "@vapi-ai/server-sdk";
+
+        // Initialize Vapi server SDK
+        const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+        // Define system prompt for documentation assistant
+        const systemPrompt = `You are a helpful documentation assistant. Use the docsquery tool to find relevant information when users ask questions about the documentation.
+
+Guidelines:
+
+- Always be helpful, friendly, and concise
+- Provide accurate information based on the documentation
+- When you don't know something, say so clearly
+- Keep responses conversational for voice interaction
+- Use the docsquery tool whenever users ask specific questions about features, setup, or implementation
+- Summarize complex information in an easy-to-understand way
+- Ask clarifying questions if the user's request is unclear
+- Provide step-by-step guidance when explaining processes`;
+
+        // Create the documentation assistant
+        const assistant = await vapi.assistants.create({
+          name: "Docs agent",
+          model: {
+            provider: "anthropic",
+            model: "claude-3-5-sonnet-20241022", # Valid Claude model
+            maxTokens: 400,
+            messages: [
+              {
+                role: "system",
+                content: systemPrompt
+              }
+            ],
+            toolIds: [YOUR_TOOL_ID_FROM_STEP_2] // Replace with actual tool ID
+          },
+          // Configure voice settings
+          voice: {
+            provider: "vapi",
+            voice_id: "Harry"
+          },
+          // Configure transcription
+          transcriber: {
+            provider: "deepgram",
+            model: "nova-2",
+            language: "en"
+          },
+          // Set greeting message
+          firstMessage: "Hey I'm Harry, a support agent. How can I help you today? You can ask me questions about Vapi, how to get started or our documentation.",
+          endCallMessage: "Goodbye.",
+          backgroundSound: "off",
+          // Enable call analysis for continuous improvement
+          analysisPlan: {
+            summaryPlan: {
+              enabled: true,
+              prompt: "Summarize this documentation support call, focusing on the user's questions and how well they were answered."
+            },
+            successEvaluationPlan: {
+              enabled: true,
+              prompt: "Evaluate if this documentation support call was successful. Did the user get helpful answers to their questions?",
+              rubric: "NumericScale"
+            }
+          }
+        });
+
+        console.log(`Assistant created with ID: ${assistant.id}`);
+        ```
+      </Tab>
+      <Tab title="Python (Server SDK)">
+        ```python
+        from vapi import Vapi
+
+        # Initialize Vapi server SDK
+        client = Vapi(token="YOUR_VAPI_API_KEY")
+
+        # Define system prompt for documentation assistant
+        system_prompt = """You are a helpful documentation assistant. Use the docsquery tool to find relevant information when users ask questions about the documentation.
+
+Guidelines:
+
+- Always be helpful, friendly, and concise
+- Provide accurate information based on the documentation
+- When you don't know something, say so clearly
+- Keep responses conversational for voice interaction
+- Use the docsquery tool whenever users ask specific questions about features, setup, or implementation
+- Summarize complex information in an easy-to-understand way
+- Ask clarifying questions if the user's request is unclear
+- Provide step-by-step guidance when explaining processes"""
+
+          # Create the documentation assistant
+          assistant = client.assistants.create(
+              name="Docs agent",
+              model={
+                  "provider": "anthropic",
+                  "model": "claude-3-5-sonnet-20241022", # Valid Claude model
+                  "maxTokens": 400,
+                  "messages": [
+                      {
+                          "role": "system",
+                          "content": system_prompt
+                      }
+                  ],
+                  "toolIds": [YOUR_TOOL_ID_FROM_STEP_2] # Replace with actual tool ID
+              },
+              // Configure voice settings
+              voice={
+                  "provider": "vapi",
+                  "voice_id": "Harry"
+              },
+              // Configure transcription
+              transcriber={
+                  "provider": "deepgram",
+                  "model": "nova-2",
+                  "language": "en"
+              },
+              // Set greeting message
+              first_message="Hey I'm Harry, a support agent. How can I help you today? You can ask me questions about Vapi, how to get started or our documentation.",
+              end_call_message="Goodbye.",
+              background_sound="off",
+              // Enable call analysis for continuous improvement
+              analysis_plan={
+                  "summaryPlan": {
+                      "enabled": True,
+                      "prompt": "Summarize this documentation support call, focusing on the user's questions and how well they were answered."
+                  },
+                  "successEvaluationPlan": {
+                      "enabled": True,
+                      "prompt": "Evaluate if this documentation support call was successful. Did the user get helpful answers to their questions?",
+                      "rubric": "NumericScale"
+                  }
+              }
+          )
+
+          print(f"Assistant created with ID: {assistant.id}")
+          ```
+        </Tab>
+        <Tab title="cURL">
+          ```bash
+          curl -X POST https://api.vapi.ai/tool \
+               -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+               -H "Content-Type: application/json" \
+               -d '{
+                 "type": "apiRequest",
+                 "name": "docsquery",
+                 "function": {
+                   "name": "docsquery",
+                   "parameters": {
+                     "type": "object",
+                     "properties": {
+                       "query": {
+                         "type": "string",
+                         "description": "The search query to find relevant documentation"
+                       }
+                     },
+                     "required": ["query"]
+                   }
+                 },
+                 "url": "https://api.cloud.llamaindex.ai/api/v1/pipelines/YOUR_PIPELINE_ID/retrieve",
+                 "method": "POST",
+                 "headers": {
+                   "type": "object",
+                   "properties": {
+                     "Content-Type": {
+                       "type": "string",
+                       "value": "application/json"
+                     },
+                     "Authorization": {
+                       "type": "string",
+                       "value": "Bearer YOUR_LLAMACLOUD_API_KEY"
+                     }
+                   }
+                 },
+                 "body": {
+                   "type": "object",
+                   "properties": {
+                     "query": {
+                       "type": "string",
+                       "value": "{{query}}"
+                     }
+                   }
+                 }
+               }'
+          ```
+        </Tab>
+      </Tabs>
+
+      Replace `YOUR_PIPELINE_ID` with your LlamaCloud pipeline ID and `YOUR_LLAMACLOUD_API_KEY` with your API key. Save the tool ID from the response for the next step.
+
+    </Step>
+
+    <Step title="Update assistant properties">
+      Customize your assistant's behavior and responses after creation.
+
+      <Tabs>
+        <Tab title="Dashboard">
+          1. Navigate to your assistant in the [Vapi Dashboard](https://dashboard.vapi.ai/)
+          2. Edit any properties like system prompt, first message, or voice settings
+          3. Changes apply immediately - no republishing needed
+        </Tab>
+        <Tab title="TypeScript (Server SDK)">
+          ```typescript
+          import { VapiClient } from "@vapi-ai/server-sdk";
+
+          const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+          // Update the assistant's first message
+          const updatedAssistant = await vapi.assistants.update("YOUR_ASSISTANT_ID", {
+            firstMessage: "Hello! I'm your documentation assistant. What would you like to know about our platform?",
+            // Update system prompt for better responses
+            model: {
+              provider: "anthropic",
+              model: "claude-3-5-sonnet-20241022",
+              messages: [
+                {
+                  role: "system",
+                  content: "Enhanced system prompt with more specific guidelines for documentation assistance"
+                }
+              ]
+            }
+          });
+
+          console.log("Assistant updated successfully");
+          ```
+        </Tab>
+        <Tab title="Python (Server SDK)">
+          ```python
+          import requests
+
+          # Update assistant properties
+          url = f"https://api.vapi.ai/assistant/{YOUR_ASSISTANT_ID}"
+          headers = {
+              "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+              "Content-Type": "application/json"
+          }
+
+          # Update first message and system prompt
+          data = {
+              "firstMessage": "Hello! I'\''m your documentation assistant. What would you like to know about our platform?",
+              "model": {
+                  "provider": "anthropic",
+                  "model": "claude-3-5-sonnet-20241022",
+                  "messages": [
+                      {
+                          "role": "system",
+                          "content": "Enhanced system prompt with more specific guidelines for documentation assistance"
+                      }
+                  ]
+              }
+          }
+
+          response = requests.patch(url, headers=headers, json=data)
+          print("Assistant updated successfully")
+          ```
+        </Tab>
+        <Tab title="cURL">
+          ```bash
+          curl -X PATCH https://api.vapi.ai/assistant/YOUR_ASSISTANT_ID \
+               -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+               -H "Content-Type: application/json" \
+               -d '{
+                 "firstMessage": "Hello! I'\''m your documentation assistant. What would you like to know about our platform?",
+                 "model": {
+                   "provider": "anthropic",
+                   "model": "claude-3-5-sonnet-20241022",
+                   "messages": [
+                     {
+                       "role": "system",
+                       "content": "Enhanced system prompt with more specific guidelines for documentation assistance"
+                     }
+                   ]
+                 }
+               }'
+          ```
+        </Tab>
+      </Tabs>
+
+      <Note>
+        SDK changes apply immediately. Unlike Dashboard publishing, programmatic updates take effect right away.
+      </Note>
+
+    </Step>
+
+    <Step title="Create test suite">
+      Create test scenarios to validate your documentation assistant's responses.
+
+      <Tabs>
+        <Tab title="Dashboard">
+          1. Navigate to **Test** > **Voice Test Suites** in your dashboard
+          2. Click **Create Test Suite**
+          3. Add test scenarios with expected behaviors
+          4. Run tests to validate assistant performance
+        </Tab>
+        <Tab title="TypeScript (Server SDK)">
+          ```typescript
+          import { VapiClient } from "@vapi-ai/server-sdk";
+
+          const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+          // Create test suite for documentation assistant
+          const testSuite = await vapi.testSuites.create({
+            name: "Documentation Assistant Tests",
+            assistantId: "YOUR_ASSISTANT_ID",
+            testCases: [
+              {
+                name: "Basic greeting test",
+                scenario: "User says hello",
+                expectedBehavior: "Assistant responds with greeting and asks how to help"
+              },
+              {
+                name: "Documentation query test",
+                scenario: "User asks about API endpoints",
+                expectedBehavior: "Assistant uses docsquery tool and provides relevant information"
+              },
+              {
+                name: "Unknown topic test",
+                scenario: "User asks about unrelated topic",
+                expectedBehavior: "Assistant politely redirects to documentation topics"
+              }
+            ]
+          });
+
+          console.log(`Test suite created with ID: ${testSuite.id}`);
+          console.log("Next: Go to Dashboard to run the test suite");
+          ```
+        </Tab>
+        <Tab title="Python (Server SDK)">
+          ```python
+          import requests
+
+          # Create test suite for documentation assistant
+          url = "https://api.vapi.ai/test-suite"
+          headers = {
+              "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+              "Content-Type": "application/json"
+          }
+
+          data = {
+              "name": "Documentation Assistant Tests",
+              "assistantId": "YOUR_ASSISTANT_ID",
+              "testCases": [
+                  {
+                      "name": "Basic greeting test",
+                      "scenario": "User says hello",
+                      "expectedBehavior": "Assistant responds with greeting and asks how to help"
+                  },
+                  {
+                      "name": "Documentation query test",
+                      "scenario": "User asks about API endpoints",
+                      "expectedBehavior": "Assistant uses docsquery tool and provides relevant information"
+                  },
+                  {
+                      "name": "Unknown topic test",
+                      "scenario": "User asks about unrelated topic",
+                      "expectedBehavior": "Assistant politely redirects to documentation topics"
+                  }
+              ]
+          }
+
+          response = requests.post(url, headers=headers, json=data)
+          test_suite = response.json()
+          print(f"Test suite created with ID: {test_suite['id']}")
+          print("Next: Go to Dashboard to run the test suite")
+          ```
+        </Tab>
+        <Tab title="cURL">
+          ```bash
+          curl -X POST https://api.vapi.ai/test-suite \
+               -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+               -H "Content-Type: application/json" \
+               -d '{
+                 "name": "Documentation Assistant Tests",
+                 "assistantId": "YOUR_ASSISTANT_ID",
+                 "testCases": [
+                   {
+                     "name": "Basic greeting test",
+                     "scenario": "User says hello",
+                     "expectedBehavior": "Assistant responds with greeting and asks how to help"
+                   },
+                   {
+                     "name": "Documentation query test",
+                     "scenario": "User asks about API endpoints",
+                     "expectedBehavior": "Assistant uses docsquery tool and provides relevant information"
+                   },
+                   {
+                     "name": "Unknown topic test",
+                     "scenario": "User asks about unrelated topic",
+                     "expectedBehavior": "Assistant politely redirects to documentation topics"
+                   }
+                 ]
+               }'
+          ```
+        </Tab>
+      </Tabs>
+
+      <Note>
+        Test suites can only be executed through the Dashboard. Navigate to **Test** > **Voice Test Suites** to run your created tests.
+      </Note>
+
+    </Step>
+
+    <Step title="Create a web component">
+      Use the Vapi Web SDK to create a voice widget for your documentation assistant.
+
+      <Tabs>
+        <Tab title="TypeScript (Web SDK)">
+          <CodeBlocks>
+          ```bash title="npm"
+          npm install @vapi-ai/web
+          ```
+
+          ```bash title="yarn"
+          yarn add @vapi-ai/web
+          ```
+
+          ```bash title="pnpm"
+          pnpm add @vapi-ai/web
+          ```
+
+          ```bash title="bun"
+          bun add @vapi-ai/web
+          ```
+          </CodeBlocks>
+
+          Replace `YOUR_PUBLIC_API_KEY` and `YOUR_ASSISTANT_ID` with your actual values:
+
+          ```typescript
+          import { useState, useEffect } from 'react';
+          import Vapi from '@vapi-ai/web';
+
+          export default function VoiceWidget() {
+            const [vapi, setVapi] = useState(null);
+            const [isConnected, setIsConnected] = useState(false);
+            const [transcript, setTranscript] = useState([]);
+
+            useEffect(() => {
+              // Initialize Vapi Web SDK for client-side voice interactions
+              const vapiInstance = new Vapi('YOUR_PUBLIC_API_KEY');
+              setVapi(vapiInstance);
+
+              // Handle call lifecycle events
+              vapiInstance.on('call-start', () => setIsConnected(true));
+              vapiInstance.on('call-end', () => setIsConnected(false));
+
+              // Handle real-time conversation messages
+              vapiInstance.on('message', (msg) => {
+                if (msg.type === 'transcript') {
+                  setTranscript(prev => [...prev, { role: msg.role, text: msg.transcript }]);
+                }
+              });
+
+              // Cleanup on component unmount
+              return () => vapiInstance?.stop();
+            }, []);
+
+            // Start voice conversation with documentation assistant
+            const startCall = () => vapi?.start('YOUR_ASSISTANT_ID');
+            const endCall = () => vapi?.stop();
+
+            return (
+              <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#000', color: '#fff', borderRadius: 12, padding: 20, width: 300 }}>
+                {!isConnected ? (
+                  <button onClick={startCall} style={{ background: '#12A594', color: '#fff', border: 'none', borderRadius: 8, padding: '12px 24px' }}>
+                    Start Voice Chat
+                  </button>
+                ) : (
+                  <div>
+                    <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 16 }}>
+                      {transcript.map((msg, i) => (
+                        <div key={i} style={{ marginBottom: 8, textAlign: msg.role === 'user' ? 'right' : 'left' }}>
+                          <span style={{ background: msg.role === 'user' ? '#12A594' : '#333', padding: '8px 12px', borderRadius: 12, display: 'inline-block' }}>
+                            {msg.text}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={endCall} style={{ background: '#e5e7eb', color: '#000', border: 'none', borderRadius: 8, padding: '8px 16px' }}>
+                      End Call
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          }
+          ```
+        </Tab>
+      </Tabs>
+
+      <Tip>
+        For a complete implementation with waveform visualization, real-time transcripts, and responsive design, check out our [voice widget component](https://github.com/VapiAI/docs/blob/7879817ad2789d5929842cecff4ef3f4ec82acae/fern/widget/voice-widget.tsx) on GitHub.
+      </Tip>
+
+    </Step>
+
+    <Step title="Improve your prompts with call analysis">
+      Vapi automatically analyzes every call. The assistant above includes an [`analysisPlan`](/api-reference/assistants/create#request.body.analysisPlan) with summary and success evaluation configured.
+
+      <Tabs>
+        <Tab title="Dashboard">
+          1. Navigate to **Logs** > **Calls** in your dashboard
+          2. Click on any completed call to view analysis
+          3. Review summary and success evaluation
+          4. Use insights to improve your assistant's prompts and responses
+        </Tab>
+        <Tab title="TypeScript (Server SDK)">
+          ```typescript
+          import { VapiClient } from "@vapi-ai/server-sdk";
+
+          const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+          // Retrieve call analysis for continuous improvement
+          async function getCallAnalysis(callId: string) {
+            try {
+              const call = await vapi.calls.get(callId);
+
+              if (call.analysis) {
+                console.log("Call Summary:", call.analysis.summary);
+                console.log("Success Score:", call.analysis.successEvaluation);
+
+                // Use analysis data to improve prompts
+                return {
+                  summary: call.analysis.summary,
+                  successScore: call.analysis.successEvaluation,
+                  improvements: extractImprovements(call.analysis)
+                };
+              }
+            } catch (error) {
+              console.error("Error fetching call analysis:", error);
+            }
+
+            return call;
+          }
+
+          // Extract improvement suggestions from analysis
+          function extractImprovements(analysis: any) {
+            // Analyze patterns to suggest prompt improvements
+            return {
+              promptSuggestions: "Based on call analysis...",
+              commonQueries: "Users frequently ask about...",
+              successFactors: "Successful calls typically..."
+            };
+          }
+
+          // Get analysis for a specific call
+          const analysis = await getCallAnalysis("CALL_ID");
+          ```
+        </Tab>
+        <Tab title="Python (Server SDK)">
+          ```python
+          import requests
+
+          def get_call_analysis(call_id):
+              """Retrieve and analyze call data for continuous improvement"""
+              url = f"https://api.vapi.ai/call/{call_id}"
+              headers = {"Authorization": f"Bearer {YOUR_VAPI_API_KEY}"}
+
+              try:
+                  response = requests.get(url, headers=headers)
+                  call_data = response.json()
+
+                  if 'analysis' in call_data:
+                      print("Call Summary:", call_data['analysis']['summary'])
+                      print("Success Score:", call_data['analysis']['successEvaluation'])
+
+                      # Extract insights for improvement
+                      return {
+                          'summary': call_data['analysis']['summary'],
+                          'success_score': call_data['analysis']['successEvaluation'],
+                          'improvements': extract_improvements(call_data['analysis'])
+                      }
+
+              except Exception as error:
+                  print(f"Error fetching call analysis: {error}")
+
+              return call_data
+
+          def extract_improvements(analysis):
+              """Extract improvement suggestions from analysis data"""
+              return {
+                  'prompt_suggestions': "Based on call analysis...",
+                  'common_queries': "Users frequently ask about...",
+                  'success_factors': "Successful calls typically..."
+              }
+
+          # Get analysis for a specific call
+          analysis = get_call_analysis("CALL_ID")
+          ```
+        </Tab>
+        <Tab title="cURL">
+          Retrieve analysis results using the Get Call API:
+
+          ```bash
+          curl https://api.vapi.ai/call/CALL_ID \
+               -H "Authorization: Bearer YOUR_VAPI_API_KEY"
+          ```
+        </Tab>
+      </Tabs>
+
+      **Iterative improvements:**
+      - Review analysis summaries to identify common user questions
+      - Use structured data to track conversation patterns
+      - Monitor success evaluations to optimize assistant performance
+      - Update your system prompt based on recurring issues
+      - Refine RAG retrieval based on query success patterns
+
+    </Step>
+  </Steps>
+
+<Card
+title='Prompting guide'
+icon='fa-light fa-pen-to-square'
+href='/prompting-guide'
+
+> Learn advanced prompting techniques to optimize your documentation agent's responses and behavior.
+> </Card>
+
+---
+
+title: Customer support escalation system
+subtitle: >-
+Build intelligent support routing using assistants that escalate calls based
+on customer tier, issue complexity, and agent expertise.
+slug: assistants/examples/support-escalation
+description: >-
+Build a voice AI customer support system with dynamic escalation that routes
+calls based on customer data, issue type, and real-time agent availability
+using transfer tools and webhooks.
+
+---
+
+## Overview
+
+Build an intelligent customer support escalation system that determines transfer destinations dynamically using customer tier analysis, issue complexity assessment, and real-time agent availability. This approach uses transfer tools with empty destinations and webhook servers for maximum escalation flexibility.
+
+**Agent Capabilities:**
+
+- Customer tier-based prioritization and routing
+- Issue complexity analysis for specialist routing
+- Real-time agent availability and expertise matching
+- Intelligent escalation with context preservation
+
+**What You'll Build:**
+
+- Transfer tool with dynamic escalation logic
+- Assistant with intelligent support conversation flow
+- Webhook server for escalation destination logic
+- CRM integration for customer tier-based routing
+
+## Prerequisites
+
+- A [Vapi account](https://dashboard.vapi.ai/)
+- Node.js or Python server environment
+- (Optional) CRM or customer database for tier lookup
+
+## Scenario
+
+We will build a customer support escalation system for TechCorp that intelligently routes support calls based on customer tier, issue complexity, and agent expertise in real-time.
+
+---
+
+## 1. Create a Dynamic Escalation Tool
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Navigate to Tools">
+        In your Vapi dashboard, click **Tools** in the left sidebar.
+      </Step>
+      <Step title="Create the escalation tool">
+        - Click **Create Tool**
+        - Select **Transfer Call** as the tool type
+        - Set tool name: `Smart Support Escalation`
+        - **Important**: Leave the destinations array empty - this creates a dynamic transfer tool
+        - Set function name: `escalateToSupport`
+        - Add description: `Escalate calls to appropriate support specialists based on customer tier and issue complexity`
+      </Step>
+      <Step title="Configure tool parameters">
+        Add these parameters to help the assistant provide context:
+        - `issue_category` (string): Category of customer issue (technical, billing, account, product)
+        - `complexity_level` (string): Issue complexity (basic, intermediate, advanced, critical)
+        - `customer_context` (string): Relevant customer information for routing
+        - `escalation_reason` (string): Why this needs escalation vs self-service
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: process.env.VAPI_API_KEY });
+
+    async function createSupportEscalationTool() {
+      try {
+        const tool = await vapi.tools.create({
+          type: "transferCall",
+          // Empty destinations array makes this a dynamic transfer tool
+          destinations: [],
+          function: {
+            name: "escalateToSupport",
+            description: "Escalate calls to appropriate support specialists based on customer tier and issue complexity",
+            parameters: {
+              type: "object",
+              properties: {
+                issue_category: {
+                  type: "string",
+                  description: "Category of customer issue",
+                  enum: ["technical", "billing", "account", "product"]
+                },
+                complexity_level: {
+                  type: "string",
+                  description: "Issue complexity level",
+                  enum: ["basic", "intermediate", "advanced", "critical"]
+                },
+                customer_context: {
+                  type: "string",
+                  description: "Relevant customer information for routing"
+                },
+                escalation_reason: {
+                  type: "string",
+                  description: "Why this needs escalation vs self-service"
+                }
+              },
+              required: ["issue_category", "complexity_level"]
+            }
+          }
+        });
+
+        console.log(`Support escalation tool created: ${tool.id}`);
+        return tool;
+      } catch (error) {
+        console.error('Error creating support escalation tool:', error);
+        throw error;
+      }
+    }
+
+    // Create the support escalation tool
+    const escalationTool = await createSupportEscalationTool();
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import os
+    import requests
+
+    def create_support_escalation_tool():
+        """Create a dynamic support escalation tool with empty destinations"""
+        url = "https://api.vapi.ai/tool"
+        headers = {
+            "Authorization": f"Bearer {os.getenv('VAPI_API_KEY')}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "type": "transferCall",
+            # Empty destinations array makes this a dynamic transfer tool
+            "destinations": [],
+            "function": {
+                "name": "escalateToSupport",
+                "description": "Escalate calls to appropriate support specialists based on customer tier and issue complexity",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "issue_category": {
+                            "type": "string",
+                            "description": "Category of customer issue",
+                            "enum": ["technical", "billing", "account", "product"]
+                        },
+                        "complexity_level": {
+                            "type": "string",
+                            "description": "Issue complexity level",
+                            "enum": ["basic", "intermediate", "advanced", "critical"]
+                        },
+                        "customer_context": {
+                            "type": "string",
+                            "description": "Relevant customer information for routing"
+                        },
+                        "escalation_reason": {
+                            "type": "string",
+                            "description": "Why this needs escalation vs self-service"
+                        }
+                    },
+                    "required": ["issue_category", "complexity_level"]
+                }
+            }
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            tool = response.json()
+            print(f"Support escalation tool created: {tool['id']}")
+            return tool
+        except requests.exceptions.RequestException as error:
+            print(f"Error creating support escalation tool: {error}")
+            raise
+
+    # Create the support escalation tool
+    escalation_tool = create_support_escalation_tool()
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://api.vapi.ai/tool \
+         -H "Authorization: Bearer $VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "type": "transferCall",
+           "destinations": [],
+           "function": {
+             "name": "escalateToSupport",
+             "description": "Escalate calls to appropriate support specialists based on customer tier and issue complexity",
+             "parameters": {
+               "type": "object",
+               "properties": {
+                 "issue_category": {
+                   "type": "string",
+                   "description": "Category of customer issue",
+                   "enum": ["technical", "billing", "account", "product"]
+                 },
+                 "complexity_level": {
+                   "type": "string",
+                   "description": "Issue complexity level", 
+                   "enum": ["basic", "intermediate", "advanced", "critical"]
+                 },
+                 "customer_context": {
+                   "type": "string",
+                   "description": "Relevant customer information for routing"
+                 },
+                 "escalation_reason": {
+                   "type": "string",
+                   "description": "Why this needs escalation vs self-service"
+                 }
+               },
+               "required": ["issue_category", "complexity_level"]
+             }
+           }
+         }'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## 2. Create an Assistant with Smart Escalation
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Create assistant">
+        - Navigate to **Assistants** in your dashboard
+        - Click **Create Assistant**
+        - Name: `TechCorp Support Assistant`
+        - Add your dynamic escalation tool to the assistant's tools
+      </Step>
+      <Step title="Configure system prompt">
+        ```txt title="System Prompt" maxLines=15
+        You are TechCorp's intelligent customer support assistant. Your job is to:
+
+        1. Help customers resolve issues when possible
+        2. Assess issue complexity and customer needs
+        3. Escalate to human specialists when appropriate using the escalateToSupport function
+
+        Try to resolve simple issues first. For complex issues or when customers request human help, escalate intelligently based on:
+        - Issue category (technical, billing, account, product)
+        - Complexity level (basic, intermediate, advanced, critical)
+        - Customer context and history
+
+        Always be professional and efficient in your support.
+        ```
+      </Step>
+      <Step title="Enable server events">
+        In assistant settings, enable the **transfer-destination-request** server event. This sends webhooks to your server when escalations are triggered.
+      </Step>
+      <Step title="Set server URL">
+        Configure your server URL to handle escalation requests (e.g., `https://your-app.com/webhook/escalation`)
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: process.env.VAPI_API_KEY });
+
+    async function createSupportAssistant(escalationToolId: string) {
+      try {
+        const assistant = await vapi.assistants.create({
+          name: "TechCorp Support Assistant",
+          firstMessage: "Hello! I'm here to help with your TechCorp support needs. I can assist with account questions, technical issues, billing inquiries, and more. What can I help you with today?",
+          model: {
+            provider: "openai",
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content: `You are TechCorp's intelligent customer support assistant. Your job is to:
+
+1. Help customers resolve issues when possible
+2. Assess issue complexity and customer needs
+3. Escalate to human specialists when appropriate using the escalateToSupport function
+
+Try to resolve simple issues first. For complex issues or when customers request human help, escalate intelligently based on:
+
+- Issue category (technical, billing, account, product)
+- Complexity level (basic, intermediate, advanced, critical)
+- Customer context and history
+
+Always be professional and efficient in your support.`
+}
+],
+toolIds: [escalationToolId]
+},
+voice: {
+provider: "11labs",
+voiceId: "burt"
+},
+serverUrl: "https://your-app.com/webhook/escalation",
+serverUrlSecret: process.env.WEBHOOK_SECRET
+});
+
+        console.log(`Support assistant created: ${assistant.id}`);
+        return assistant;
+      } catch (error) {
+        console.error('Error creating support assistant:', error);
+        throw error;
+      }
+    }
+
+    // Create assistant with escalation capabilities
+    const supportAssistant = await createSupportAssistant("YOUR_ESCALATION_TOOL_ID");
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import os
+    import requests
+
+    def create_support_assistant(escalation_tool_id):
+        """Create assistant with dynamic escalation capabilities"""
+        url = "https://api.vapi.ai/assistant"
+        headers = {
+            "Authorization": f"Bearer {os.getenv('VAPI_API_KEY')}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "name": "TechCorp Support Assistant",
+            "firstMessage": "Hello! I'\''m here to help with your TechCorp support needs. I can assist with account questions, technical issues, billing inquiries, and more. What can I help you with today?",
+            "model": {
+                "provider": "openai",
+                "model": "gpt-4o",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": """You are TechCorp's intelligent customer support assistant. Your job is to:
+
+1. Help customers resolve issues when possible
+2. Assess issue complexity and customer needs
+3. Escalate to human specialists when appropriate using the escalateToSupport function
+
+Try to resolve simple issues first. For complex issues or when customers request human help, escalate intelligently based on:
+
+- Issue category (technical, billing, account, product)
+- Complexity level (basic, intermediate, advanced, critical)
+- Customer context and history
+
+Always be professional and efficient in your support."""
+}
+],
+"toolIds": [escalation_tool_id]
+},
+"voice": {
+"provider": "11labs",
+"voiceId": "burt"
+},
+"serverUrl": "https://your-app.com/webhook/escalation",
+"serverUrlSecret": os.getenv("WEBHOOK_SECRET")
+}
+
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            assistant = response.json()
+            print(f"Support assistant created: {assistant['id']}")
+            return assistant
+        except requests.exceptions.RequestException as error:
+            print(f"Error creating support assistant: {error}")
+            raise
+
+    # Create assistant with escalation capabilities
+    support_assistant = create_support_assistant("YOUR_ESCALATION_TOOL_ID")
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://api.vapi.ai/assistant \
+         -H "Authorization: Bearer $VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "TechCorp Support Assistant",
+           "firstMessage": "Hello! I'\''m here to help with your TechCorp support needs. I can assist with account questions, technical issues, billing inquiries, and more. What can I help you with today?",
+           "model": {
+             "provider": "openai",
+             "model": "gpt-4o",
+             "messages": [
+               {
+                 "role": "system",
+                 "content": "You are TechCorp'\''s intelligent customer support assistant. Your job is to:\n\n1. Help customers resolve issues when possible\n2. Assess issue complexity and customer needs\n3. Escalate to human specialists when appropriate using the escalateToSupport function\n\nTry to resolve simple issues first. For complex issues or when customers request human help, escalate intelligently based on:\n- Issue category (technical, billing, account, product)\n- Complexity level (basic, intermediate, advanced, critical)\n- Customer context and history\n\nAlways be professional and efficient in your support."
+               }
+             ],
+             "toolIds": ["YOUR_ESCALATION_TOOL_ID"]
+           },
+           "voice": {
+             "provider": "11labs",
+             "voiceId": "burt"
+           },
+           "serverUrl": "https://your-app.com/webhook/escalation",
+           "serverUrlSecret": "your-webhook-secret"
+         }'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## 3. Build Escalation Logic Server
+
+<Tabs>
+  <Tab title="Node.js (Express)">
+    ```typescript
+    import express from 'express';
+    import crypto from 'crypto';
+
+    const app = express();
+    app.use(express.json());
+
+    // Webhook secret verification
+    function verifyWebhookSignature(payload: string, signature: string) {
+      const expectedSignature = crypto
+        .createHmac('sha256', process.env.WEBHOOK_SECRET!)
+        .update(payload)
+        .digest('hex');
+      return crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expectedSignature)
+      );
+    }
+
+    // Support escalation logic
+    function determineSupportDestination(request: any) {
+      const { functionCall, call, customer } = request;
+      const { issue_category, complexity_level, customer_context, escalation_reason } = functionCall.parameters;
+
+      // Simulate customer tier lookup
+      const customerData = lookupCustomerTier(customer.number);
+
+      // Enterprise customer escalation
+      if (customerData?.tier === 'enterprise' || complexity_level === 'critical') {
+        return {
+          type: "number",
+          number: "+1-555-ENTERPRISE-SUPPORT",
+          message: "Connecting you to our enterprise support specialist.",
+          transferPlan: {
+            mode: "warm-transfer-say-summary",
+            summaryPlan: {
+              enabled: true,
+              messages: [
+                {
+                  role: "system",
+                  content: "Provide a summary for the enterprise support specialist."
+                },
+                {
+                  role: "user",
+                  content: `Enterprise customer with ${issue_category} issue. Complexity: ${complexity_level}. Reason: ${escalation_reason}. Context: ${customer_context}`
+                }
+              ]
+            }
+          }
+        };
+      }
+
+      // Advanced technical issues
+      if (issue_category === 'technical' && (complexity_level === 'advanced' || complexity_level === 'intermediate')) {
+        return {
+          type: "number",
+          number: "+1-555-TECH-SPECIALISTS",
+          message: "Transferring you to our technical support specialists.",
+          transferPlan: {
+            mode: "warm-transfer-say-message",
+            message: `Technical ${complexity_level} issue. Customer context: ${customer_context}. Escalation reason: ${escalation_reason}`
+          }
+        };
+      }
+
+      // Billing and account specialists
+      if (issue_category === 'billing' || issue_category === 'account') {
+        return {
+          type: "number",
+          number: "+1-555-BILLING-TEAM",
+          message: "Connecting you with our billing and account specialists.",
+          transferPlan: {
+            mode: "warm-transfer-say-message",
+            message: `${issue_category} issue, complexity ${complexity_level}. Context: ${customer_context}`
+          }
+        };
+      }
+
+      // Product and feature questions
+      if (issue_category === 'product') {
+        return {
+          type: "number",
+          number: "+1-555-PRODUCT-SUPPORT",
+          message: "Transferring you to our product specialists.",
+          transferPlan: {
+            mode: "warm-transfer-say-message",
+            message: `Product ${complexity_level} inquiry. Context: ${customer_context}`
+          }
+        };
+      }
+
+      // Default to general support
+      return {
+        type: "number",
+        number: "+1-555-GENERAL-SUPPORT",
+        message: "Connecting you with our support team.",
+        transferPlan: {
+          mode: "warm-transfer-say-message",
+          message: `General ${issue_category} support needed. Level: ${complexity_level}`
+        }
+      };
+    }
+
+    // Simulate customer tier lookup
+    function lookupCustomerTier(phoneNumber: string) {
+      // In production, integrate with your actual CRM
+      const mockCustomerData = {
+        "+1234567890": { tier: "enterprise", account: "TechCorp Enterprise" },
+        "+0987654321": { tier: "standard", account: "Basic Plan" },
+        "+1111111111": { tier: "premium", account: "Premium Support" }
+      };
+      return mockCustomerData[phoneNumber];
+    }
+
+    // Support escalation webhook
+    app.post('/webhook/escalation', (req, res) => {
+      try {
+        const signature = req.headers['x-vapi-signature'] as string;
+        const payload = JSON.stringify(req.body);
+
+        // Verify webhook signature
+        if (!verifyWebhookSignature(payload, signature)) {
+          return res.status(401).json({ error: 'Invalid signature' });
+        }
+
+        const request = req.body;
+
+        // Only handle transfer destination requests
+        if (request.type !== 'transfer-destination-request') {
+          return res.status(200).json({ received: true });
+        }
+
+        // Determine destination based on escalation context
+        const destination = determineSupportDestination(request);
+
+        res.json({ destination });
+      } catch (error) {
+        console.error('Escalation webhook error:', error);
+        res.status(500).json({
+          error: 'Unable to determine escalation destination. Please try again.'
+        });
+      }
+    });
+
+    app.listen(3000, () => {
+      console.log('Support escalation server running on port 3000');
+    });
+    ```
+
+  </Tab>
+  <Tab title="Python (FastAPI)">
+    ```python
+    import os
+    import hmac
+    import hashlib
+    from fastapi import FastAPI, HTTPException, Request
+    from pydantic import BaseModel
+    from typing import Optional, Dict, Any
+
+    app = FastAPI()
+
+    def verify_webhook_signature(payload: bytes, signature: str) -> bool:
+        """Verify webhook signature"""
+        webhook_secret = os.getenv('WEBHOOK_SECRET', '').encode()
+        expected_signature = hmac.new(
+            webhook_secret,
+            payload,
+            hashlib.sha256
+        ).hexdigest()
+        return hmac.compare_digest(signature, expected_signature)
+
+    def lookup_customer_tier(phone_number: str) -> Optional[Dict[str, Any]]:
+        """Simulate customer tier lookup"""
+        mock_customer_data = {
+            "+1234567890": {"tier": "enterprise", "account": "TechCorp Enterprise"},
+            "+0987654321": {"tier": "standard", "account": "Basic Plan"},
+            "+1111111111": {"tier": "premium", "account": "Premium Support"}
+        }
+        return mock_customer_data.get(phone_number)
+
+    def determine_support_destination(request_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Determine support escalation destination based on request context"""
+        function_call = request_data.get('functionCall', {})
+        parameters = function_call.get('parameters', {})
+        customer = request_data.get('customer', {})
+
+        issue_category = parameters.get('issue_category', 'general')
+        complexity_level = parameters.get('complexity_level', 'basic')
+        customer_context = parameters.get('customer_context', '')
+        escalation_reason = parameters.get('escalation_reason', '')
+
+        # Simulate customer tier lookup
+        customer_data = lookup_customer_tier(customer.get('number', ''))
+
+        # Enterprise customer escalation
+        if (customer_data and customer_data.get('tier') == 'enterprise') or complexity_level == 'critical':
+            return {
+                "type": "number",
+                "number": "+1-555-ENTERPRISE-SUPPORT",
+                "message": "Connecting you to our enterprise support specialist.",
+                "transferPlan": {
+                    "mode": "warm-transfer-say-summary",
+                    "summaryPlan": {
+                        "enabled": True,
+                        "messages": [
+                            {
+                                "role": "system",
+                                "content": "Provide a summary for the enterprise support specialist."
+                            },
+                            {
+                                "role": "user",
+                                "content": f"Enterprise customer with {issue_category} issue. Complexity: {complexity_level}. Reason: {escalation_reason}. Context: {customer_context}"
+                            }
+                        ]
+                    }
+                }
+            }
+
+        # Advanced technical issues
+        if issue_category == 'technical' and complexity_level in ['advanced', 'intermediate']:
+            return {
+                "type": "number",
+                "number": "+1-555-TECH-SPECIALISTS",
+                "message": "Transferring you to our technical support specialists.",
+                "transferPlan": {
+                    "mode": "warm-transfer-say-message",
+                    "message": f"Technical {complexity_level} issue. Customer context: {customer_context}. Escalation reason: {escalation_reason}"
+                }
+            }
+
+        # Billing and account specialists
+        if issue_category in ['billing', 'account']:
+            return {
+                "type": "number",
+                "number": "+1-555-BILLING-TEAM",
+                "message": "Connecting you with our billing and account specialists.",
+                "transferPlan": {
+                    "mode": "warm-transfer-say-message",
+                    "message": f"{issue_category} issue, complexity {complexity_level}. Context: {customer_context}"
+                }
+            }
+
+        # Product and feature questions
+        if issue_category == 'product':
+            return {
+                "type": "number",
+                "number": "+1-555-PRODUCT-SUPPORT",
+                "message": "Transferring you to our product specialists.",
+                "transferPlan": {
+                    "mode": "warm-transfer-say-message",
+                    "message": f"Product {complexity_level} inquiry. Context: {customer_context}"
+                }
+            }
+
+        # Default to general support
+        return {
+            "type": "number",
+            "number": "+1-555-GENERAL-SUPPORT",
+            "message": "Connecting you with our support team.",
+            "transferPlan": {
+                "mode": "warm-transfer-say-message",
+                "message": f"General {issue_category} support needed. Level: {complexity_level}"
+            }
+        }
+
+    @app.post("/webhook/escalation")
+    async def handle_escalation_webhook(request: Request):
+        try:
+            # Get raw body for signature verification
+            body = await request.body()
+            signature = request.headers.get('x-vapi-signature', '')
+
+            # Verify webhook signature
+            if not verify_webhook_signature(body, signature):
+                raise HTTPException(status_code=401, detail="Invalid signature")
+
+            # Parse request body
+            request_data = await request.json()
+
+            # Only handle transfer destination requests
+            if request_data.get('type') != 'transfer-destination-request':
+                return {"received": True}
+
+            # Determine destination based on escalation context
+            destination = determine_support_destination(request_data)
+
+            return {"destination": destination}
+
+        except Exception as error:
+            print(f"Escalation webhook error: {error}")
+            raise HTTPException(
+                status_code=500,
+                detail="Unable to determine escalation destination. Please try again."
+            )
+
+    if __name__ == "__main__":
+        import uvicorn
+        uvicorn.run(app, host="0.0.0.0", port=3000)
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## 4. Test Your Support Escalation System
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Create a phone number">
+        - Navigate to **Phone Numbers** in your dashboard
+        - Click **Create Phone Number**
+        - Assign your support assistant to the number
+        - Configure any additional settings
+      </Step>
+      <Step title="Test different escalation scenarios">
+        Call your number and test various scenarios:
+        - Basic technical questions (should try to resolve first)
+        - Complex billing issues from enterprise customers
+        - Advanced technical problems requiring specialists
+        - Critical issues requiring immediate escalation
+      </Step>
+      <Step title="Monitor escalation patterns">
+        Check your server logs to see:
+        - Escalation requests received
+        - Customer tier classifications
+        - Destination routing decisions
+        - Any errors or routing issues
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="TypeScript (Testing)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: process.env.VAPI_API_KEY });
+
+    async function testSupportEscalation(assistantId: string) {
+      try {
+        // Test enterprise customer with complex issue
+        const enterpriseCall = await vapi.calls.create({
+          assistantId: assistantId,
+          customer: {
+            number: "+1234567890", // Enterprise customer in your lookup
+            name: "Enterprise Customer - Technical Issue"
+          }
+        });
+
+        console.log(`Enterprise test call created: ${enterpriseCall.id}`);
+
+        // Test standard customer with billing question
+        const standardCall = await vapi.calls.create({
+          assistantId: assistantId,
+          customer: {
+            number: "+0987654321", // Standard customer in your lookup
+            name: "Standard Customer - Billing Question"
+          }
+        });
+
+        console.log(`Standard test call created: ${standardCall.id}`);
+
+        return { enterpriseCall, standardCall };
+      } catch (error) {
+        console.error('Error creating test calls:', error);
+        throw error;
+      }
+    }
+
+    // Test the support escalation system
+    const testCalls = await testSupportEscalation('YOUR_ASSISTANT_ID');
+    ```
+
+  </Tab>
+  <Tab title="Python (Testing)">
+    ```python
+    import requests
+    import os
+
+    def test_support_escalation(assistant_id):
+        """Test support escalation with different customer scenarios"""
+        url = "https://api.vapi.ai/call"
+        headers = {
+            "Authorization": f"Bearer {os.getenv('VAPI_API_KEY')}",
+            "Content-Type": "application/json"
+        }
+
+        test_scenarios = [
+            {
+                "name": "Enterprise Technical Issue",
+                "customer": {
+                    "number": "+1234567890",  # Enterprise customer
+                    "name": "Enterprise Customer - Technical Issue"
+                }
+            },
+            {
+                "name": "Standard Billing Question",
+                "customer": {
+                    "number": "+0987654321",  # Standard customer
+                    "name": "Standard Customer - Billing Question"
+                }
+            }
+        ]
+
+        results = []
+        for scenario in test_scenarios:
+            try:
+                data = {
+                    "assistantId": assistant_id,
+                    **scenario
+                }
+
+                response = requests.post(url, headers=headers, json=data)
+                response.raise_for_status()
+                call = response.json()
+
+                print(f"{scenario['name']} call created: {call['id']}")
+                results.append(call)
+
+            except requests.exceptions.RequestException as error:
+                print(f"Error creating {scenario['name']}: {error}")
+
+        return results
+
+    # Test the support escalation system
+    test_calls = test_support_escalation('YOUR_ASSISTANT_ID')
+    ```
+
+  </Tab>
+</Tabs>
+
+## Advanced Integration Examples
+
+### CRM Integration (Salesforce)
+
+```typescript
+// Example: Salesforce CRM integration for customer tier lookup
+async function lookupCustomerInSalesforce(phoneNumber: string) {
+  const salesforce = new SalesforceAPI({
+    clientId: process.env.SALESFORCE_CLIENT_ID,
+    clientSecret: process.env.SALESFORCE_CLIENT_SECRET,
+    redirectUri: process.env.SALESFORCE_REDIRECT_URI,
+  });
+
+  try {
+    const customer = await salesforce.query(`
+      SELECT Id, Account.Type, Support_Tier__c, Case_Count__c, Contract_Level__c
+      FROM Contact 
+      WHERE Phone = '${phoneNumber}'
+    `);
+
+    return customer.records[0];
+  } catch (error) {
+    console.error("Salesforce lookup failed:", error);
+    return null;
+  }
+}
+```
+
+### Issue Complexity Assessment
+
+```typescript
+function assessIssueComplexity(
+  issueDescription: string,
+  customerHistory: any
+) {
+  const complexKeywords = [
+    "api",
+    "integration",
+    "custom",
+    "enterprise",
+    "migration",
+  ];
+  const criticalKeywords = [
+    "down",
+    "outage",
+    "critical",
+    "urgent",
+    "emergency",
+  ];
+
+  const hasComplexKeywords = complexKeywords.some((keyword) =>
+    issueDescription.toLowerCase().includes(keyword)
+  );
+
+  const hasCriticalKeywords = criticalKeywords.some((keyword) =>
+    issueDescription.toLowerCase().includes(keyword)
+  );
+
+  if (
+    hasCriticalKeywords ||
+    customerHistory.previousEscalations > 2
+  ) {
+    return "critical";
+  }
+
+  if (hasComplexKeywords || customerHistory.tier === "enterprise") {
+    return "advanced";
+  }
+
+  return "basic";
+}
+```
+
+### Agent Availability Checking
+
+```typescript
+function getAvailableSpecialist(
+  category: string,
+  complexity: string
+) {
+  const specialists = getSpecialistsByCategory(category);
+  const qualifiedAgents = specialists.filter(
+    (agent) =>
+      agent.complexityLevel >= complexity && agent.isAvailable
+  );
+
+  if (qualifiedAgents.length === 0) {
+    return {
+      type: "number",
+      number: "+1-555-QUEUE-CALLBACK",
+      message:
+        "All specialists are busy. You'll be added to our priority queue.",
+      transferPlan: {
+        mode: "warm-transfer-say-message",
+        message: `${category} ${complexity} issue - customer needs callback when specialist available`,
+      },
+    };
+  }
+
+  // Return least busy qualified agent
+  const bestAgent = qualifiedAgents.sort(
+    (a, b) => a.activeCallCount - b.activeCallCount
+  )[0];
+
+  return {
+    type: "number",
+    number: bestAgent.phoneNumber,
+    message: `Connecting you to ${bestAgent.name}, our ${category} specialist.`,
+    transferPlan: {
+      mode: "warm-transfer-say-summary",
+      summaryPlan: {
+        enabled: true,
+        messages: [
+          {
+            role: "system",
+            content: `Provide a summary for ${bestAgent.name}`,
+          },
+        ],
+      },
+    },
+  };
+}
+```
+
+## Error Handling Best Practices
+
+### Comprehensive Error Handling
+
+```typescript
+function handleEscalationError(error: any, context: any) {
+  console.error("Support escalation error:", error);
+
+  // Log escalation details for debugging
+  console.error("Escalation context:", {
+    phoneNumber: context.customer?.number,
+    issueCategory: context.functionCall?.parameters?.issue_category,
+    complexityLevel:
+      context.functionCall?.parameters?.complexity_level,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Return fallback destination
+  return {
+    type: "number",
+    number: process.env.FALLBACK_SUPPORT_NUMBER,
+    message:
+      "I'll connect you with our general support team who can help you.",
+    transferPlan: {
+      mode: "warm-transfer-say-message",
+      message:
+        "Escalation routing error - connecting to general support team",
+    },
+  };
+}
+```
+
+### Queue Management
+
+```typescript
+async function getEscalationWithQueueManagement(context: any) {
+  try {
+    const queueStatus = await checkSupportQueueStatus();
+    const destination = await determineEscalationDestination(context);
+
+    // Add queue time estimate if available
+    if (queueStatus.estimatedWaitTime > 5) {
+      destination.message += ` Current wait time is approximately ${queueStatus.estimatedWaitTime} minutes.`;
+    }
+
+    return destination;
+  } catch (error) {
+    return handleEscalationError(error, context);
+  }
+}
+```
+
+## Next Steps
+
+You've built a sophisticated customer support escalation system using assistants! Consider these enhancements:
+
+- **[Property management call routing](/workflows/examples/property-management)** - Explore the visual workflow approach
+- **[Call Analysis](/assistants/call-analysis)** - Analyze escalation patterns and optimize routing
+- **[Custom Tools](/tools/custom-tools)** - Build additional tools for advanced support logic
+- **[Webhooks](/server-url)** - Learn more about webhook security and advanced event handling
+
+---
+
+title: Multilingual support agent
+subtitle: >-
+Build a global support agent that handles English, Spanish, and French
+customer inquiries with automatic language detection and native voice quality
+slug: assistants/examples/multilingual-agent
+description: >-
+Build a multilingual voice AI customer support agent with automatic language
+detection, native voices, and comprehensive tools for international customer
+service
+
+---
+
+## Overview
+
+Build a dynamic customer support agent for GlobalTech International that automatically detects and responds in the customer's language (English, Spanish, or French) during conversation, with seamless language switching and real-time adaptation.
+
+**What You'll Build:**
+
+- Assistant with automatic multilingual transcription
+- Dynamic voice adaptation for detected languages
+- Real-time language switching during conversations
+- Phone number setup for seamless international support
+- Advanced prompting for cultural context awareness
+
+<Note>
+**Alternative Approach**: For a more structured multilingual experience with explicit language selection, see our [Workflow-based multilingual support](../../workflows/examples/multilingual-support) that guides customers through language selection and dedicated conversation paths.
+</Note>
+
+## Prerequisites
+
+- A [Vapi account](https://dashboard.vapi.ai/).
+
+## Scenario
+
+We will be creating a dynamic multilingual customer support agent for GlobalTech International, a technology company serving customers across North America, Europe, and Latin America. Unlike structured language selection, this agent automatically detects the customer's language from their speech and can switch languages mid-conversation, providing a truly seamless multilingual experience.
+
+---
+
+## 1. Create a Multilingual Knowledge Base
+
+<Steps>
+  <Step title="Download the spreadsheets">
+    <div className="flex gap-2">
+      <Download src="file:51e7363d-5789-4a3e-8352-76581f954774">
+        <Button intent="primary">Download customers.csv</Button>
+      </Download>
+      <Download src="file:290c3dac-e5a4-4f06-8c57-d0ee41bac855">
+        <Button intent="primary">Download products.csv</Button>
+      </Download>
+      <Download src="file:11495913-af38-44ec-a2fd-6c0807031ac8">
+        <Button intent="primary">Download support_articles.csv</Button>
+      </Download>
+    </div>
+  </Step>
+  <Step title="Upload the files">
+    <Tabs>
+      <Tab title="Dashboard">
+        1. Navigate to **Files** in your [Vapi Dashboard](https://dashboard.vapi.ai/)
+        2. Click **Choose file** and upload all three CSV files
+        3. Note the file IDs for use in creating multilingual tools
+
+        <video autoPlay loop muted src="file:5aee5201-b29a-4207-962a-615bd9706474" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Tab>
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        import { VapiClient } from "@vapi-ai/server-sdk";
+        import fs from 'fs';
+
+        const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+        async function uploadMultilingualFiles() {
+          try {
+            // Upload customers file
+            const customersFile = await vapi.files.create({
+              file: fs.createReadStream("customers.csv")
+            });
+
+            // Upload products file
+            const productsFile = await vapi.files.create({
+              file: fs.createReadStream("products.csv")
+            });
+
+            // Upload support articles file
+            const supportFile = await vapi.files.create({
+              file: fs.createReadStream("support_articles.csv")
+            });
+
+            console.log(`Customers file ID: ${customersFile.id}`);
+            console.log(`Products file ID: ${productsFile.id}`);
+            console.log(`Support articles file ID: ${supportFile.id}`);
+
+            return {
+              customersFileId: customersFile.id,
+              productsFileId: productsFile.id,
+              supportFileId: supportFile.id
+            };
+          } catch (error) {
+            console.error('Error uploading files:', error);
+            throw error;
+          }
+        }
+
+        // Upload all multilingual support files
+        const fileIds = await uploadMultilingualFiles();
+        ```
+      </Tab>
+      <Tab title="Python (Server SDK)">
+        ```python
+        import requests
+
+        def upload_multilingual_file(file_path):
+            """Upload a CSV file for multilingual support data"""
+            url = "https://api.vapi.ai/file"
+            headers = {"Authorization": f"Bearer {YOUR_VAPI_API_KEY}"}
+
+            try:
+                with open(file_path, 'rb') as file:
+                    files = {'file': file}
+                    response = requests.post(url, headers=headers, files=files)
+                    response.raise_for_status()
+                    return response.json()
+            except requests.exceptions.RequestException as error:
+                print(f"Error uploading {file_path}: {error}")
+                raise
+
+        # Upload all required files
+        customers_file = upload_multilingual_file("customers.csv")
+        products_file = upload_multilingual_file("products.csv")
+        support_file = upload_multilingual_file("support_articles.csv")
+
+        print(f"Customers file ID: {customers_file['id']}")
+        print(f"Products file ID: {products_file['id']}")
+        print(f"Support articles file ID: {support_file['id']}")
+        ```
+      </Tab>
+      <Tab title="cURL">
+        ```bash
+        # Upload customers.csv
+        curl -X POST https://api.vapi.ai/file \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -F "file=@customers.csv"
+
+        # Upload products.csv
+        curl -X POST https://api.vapi.ai/file \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -F "file=@products.csv"
+
+        # Upload support_articles.csv
+        curl -X POST https://api.vapi.ai/file \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -F "file=@support_articles.csv"
+        ```
+      </Tab>
+    </Tabs>
+
+  </Step>
+</Steps>
+
+---
+
+## 2. Create a Multilingual Assistant
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Navigate to Assistants">
+        Go to [dashboard.vapi.ai](https://dashboard.vapi.ai) and click `Assistants` in the left sidebar.
+      </Step>
+      <Step title="Create a new assistant">
+        - Click `Create Assistant`.
+        - Select `Blank Template` as your starting point.
+        - Change assistant name to `GlobalTech Support Agent`.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    const systemPrompt = `You are Maria, a multilingual customer support representative for GlobalTech International. You help customers in English, Spanish, and French with product information, account support, and technical troubleshooting.
+
+    LANGUAGE CAPABILITIES:
+    - English: Primary language for North American customers
+    - Spanish: For customers in Spain, Mexico, and Latin America
+    - French: For customers in France, Canada, and francophone regions
+
+    CULTURAL GUIDELINES:
+    - English: Direct, friendly, professional tone
+    - Spanish: Warm, respectful, use formal "usted" initially, then adapt to customer preference
+    - French: Polite, formal, use proper greeting conventions ("Bonjour/Bonsoir")
+
+    Always respond in the same language the customer is using. If they switch languages, switch with them seamlessly.`;
+
+    const assistant = await vapi.assistants.create({
+      name: "GlobalTech Support Agent",
+      firstMessage: "Hello! I'm Maria from GlobalTech International. I can help you in English, Spanish, or French. How may I assist you today?",
+      model: {
+        provider: "openai",
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt
+          }
+        ]
+      }
+    });
+
+    console.log(`Assistant created with ID: ${assistant.id}`);
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    url = "https://api.vapi.ai/assistant"
+    headers = {
+        "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    system_prompt = """You are Maria, a multilingual customer support representative for GlobalTech International. You help customers in English, Spanish, and French with product information, account support, and technical troubleshooting.
+
+    LANGUAGE CAPABILITIES:
+    - English: Primary language for North American customers
+    - Spanish: For customers in Spain, Mexico, and Latin America
+    - French: For customers in France, Canada, and francophone regions
+
+    CULTURAL GUIDELINES:
+    - English: Direct, friendly, professional tone
+    - Spanish: Warm, respectful, use formal "usted" initially, then adapt to customer preference
+    - French: Polite, formal, use proper greeting conventions ("Bonjour/Bonsoir")
+
+    Always respond in the same language the customer is using. If they switch languages, switch with them seamlessly."""
+
+    data = {
+        "name": "GlobalTech Support Agent",
+        "firstMessage": "Hello! I'm Maria from GlobalTech International. I can help you in English, Spanish, or French. How may I assist you today?",
+        "model": {
+            "provider": "openai",
+            "model": "gpt-4o",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": system_prompt
+                }
+            ]
+        }
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+    assistant = response.json()
+    print(f"Assistant created with ID: {assistant['id']}")
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://api.vapi.ai/assistant \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "GlobalTech Support Agent",
+           "firstMessage": "Hello! I'\''m Maria from GlobalTech International. I can help you in English, Spanish, or French. How may I assist you today?",
+           "model": {
+             "provider": "openai",
+             "model": "gpt-4o",
+             "messages": [
+               {
+                 "role": "system",
+                 "content": "You are Maria, a multilingual customer support representative for GlobalTech International..."
+               }
+             ]
+           }
+         }'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## 3. Configure Multilingual Transcription
+
+<Steps>
+  <Step title="Set up automatic language detection">
+    <Tabs>
+      <Tab title="Dashboard">
+        1. In your assistant configuration, find the **Transcriber** section
+        2. **Provider**: Select `Deepgram` (recommended for speed and accuracy)
+        3. **Model**: Choose `Nova 2` or `Nova 3`
+        4. **Language**: Select `Multi` (enables automatic language detection)
+        5. **Alternative**: Use `Google` provider with `Multilingual` language setting
+      </Tab>
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        // Option 1: Deepgram Multi (recommended)
+        const deepgramTranscriber = {
+          provider: "deepgram",
+          model: "nova-2", // or "nova-3"
+          language: "multi"
+        };
+
+        // Option 2: Google Multilingual
+        const googleTranscriber = {
+          provider: "google",
+          model: "latest",
+          language: "multilingual"
+        };
+
+        // Update assistant with transcriber
+        await vapi.assistants.update("YOUR_ASSISTANT_ID", {
+          transcriber: deepgramTranscriber
+        });
+        ```
+      </Tab>
+      <Tab title="Python (Server SDK)">
+        ```python
+        # Option 1: Deepgram Multi (recommended)
+        deepgram_transcriber = {
+            "provider": "deepgram",
+            "model": "nova-2",  # or "nova-3"
+            "language": "multi"
+        }
+
+        # Option 2: Google Multilingual
+        google_transcriber = {
+            "provider": "google",
+            "model": "latest",
+            "language": "multilingual"
+        }
+
+        # Update assistant with transcriber
+        url = f"https://api.vapi.ai/assistant/{YOUR_ASSISTANT_ID}"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {"transcriber": deepgram_transcriber}
+        response = requests.patch(url, headers=headers, json=data)
+        ```
+      </Tab>
+      <Tab title="cURL">
+        ```bash
+        # Option 1: Deepgram Multi
+        curl -X PATCH https://api.vapi.ai/assistant/YOUR_ASSISTANT_ID \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -H "Content-Type: application/json" \
+             -d '{
+               "transcriber": {
+                 "provider": "deepgram",
+                 "model": "nova-2",
+                 "language": "multi"
+               }
+             }'
+
+        # Option 2: Google Multilingual
+        curl -X PATCH https://api.vapi.ai/assistant/YOUR_ASSISTANT_ID \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -H "Content-Type: application/json" \
+             -d '{
+               "transcriber": {
+                 "provider": "google",
+                 "model": "latest",
+                 "language": "multilingual"
+               }
+             }'
+        ```
+      </Tab>
+    </Tabs>
+
+  </Step>
+</Steps>
+
+---
+
+## 4. Configure Multilingual Voice Synthesis
+
+<Steps>
+  <Step title="Set up language-specific voices">
+    <Tabs>
+      <Tab title="Dashboard">
+        1. In the **Voice** section of your assistant:
+        2. **Provider**: Select `Azure` (best multilingual coverage)
+        3. **Voice**: Choose primary voice `en-US-AriaNeural` (English)
+        4. **Add fallback voices**:
+           - Spanish: `es-ES-ElviraNeural` (Spain) or `es-MX-DaliaNeural` (Mexico)
+           - French: `fr-FR-DeniseNeural` (France) or `fr-CA-SylvieNeural` (Canada)
+        5. **Alternative providers**: ElevenLabs, OpenAI, or PlayHT all support multiple languages
+      </Tab>
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        // Multi-language voice configuration
+        const multilingualVoice = {
+          provider: "azure",
+          voiceId: "en-US-AriaNeural", // Primary English voice
+          fallbackPlan: {
+            voices: [
+              {
+                provider: "azure",
+                voiceId: "es-ES-ElviraNeural" // Spanish (Spain)
+              },
+              {
+                provider: "azure",
+                voiceId: "fr-FR-DeniseNeural" // French (France)
+              },
+              {
+                provider: "azure",
+                voiceId: "es-MX-DaliaNeural" // Spanish (Mexico)
+              },
+              {
+                provider: "azure",
+                voiceId: "fr-CA-SylvieNeural" // French (Canada)
+              }
+            ]
+          }
+        };
+
+        // Alternative: ElevenLabs multilingual
+        const elevenLabsVoice = {
+          provider: "11labs",
+          voiceId: "multilingual-v2" // Supports multiple languages
+        };
+
+        await vapi.assistants.update("YOUR_ASSISTANT_ID", {
+          voice: multilingualVoice
+        });
+        ```
+      </Tab>
+      <Tab title="Python (Server SDK)">
+        ```python
+        # Multi-language voice configuration
+        multilingual_voice = {
+            "provider": "azure",
+            "voiceId": "en-US-AriaNeural",  # Primary English voice
+            "fallbackPlan": {
+                "voices": [
+                    {
+                        "provider": "azure",
+                        "voiceId": "es-ES-ElviraNeural"  # Spanish (Spain)
+                    },
+                    {
+                        "provider": "azure",
+                        "voiceId": "fr-FR-DeniseNeural"  # French (France)
+                    },
+                    {
+                        "provider": "azure",
+                        "voiceId": "es-MX-DaliaNeural"  # Spanish (Mexico)
+                    },
+                    {
+                        "provider": "azure",
+                        "voiceId": "fr-CA-SylvieNeural"  # French (Canada)
+                    }
+                ]
+            }
+        }
+
+        # Update assistant with voice configuration
+        url = f"https://api.vapi.ai/assistant/{YOUR_ASSISTANT_ID}"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {"voice": multilingual_voice}
+        response = requests.patch(url, headers=headers, json=data)
+        ```
+      </Tab>
+      <Tab title="cURL">
+        ```bash
+        curl -X PATCH https://api.vapi.ai/assistant/YOUR_ASSISTANT_ID \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -H "Content-Type: application/json" \
+             -d '{
+               "voice": {
+                 "provider": "azure",
+                 "voiceId": "en-US-AriaNeural",
+                 "fallbackPlan": {
+                   "voices": [
+                     {
+                       "provider": "azure",
+                       "voiceId": "es-ES-ElviraNeural"
+                     },
+                     {
+                       "provider": "azure",
+                       "voiceId": "fr-FR-DeniseNeural"
+                     }
+                   ]
+                 }
+               }
+             }'
+        ```
+      </Tab>
+    </Tabs>
+
+  </Step>
+</Steps>
+
+---
+
+## 5. Configure System Prompt
+
+<Steps>
+  <Step title="Update the multilingual system prompt">
+    First, create this comprehensive system prompt:
+
+    ```txt title="System Prompt" maxLines=15
+
+# GlobalTech International - Multilingual Support Agent
+
+## Identity & Role
+
+You are **Maria**, a multilingual customer support representative for GlobalTech International. You are fluent in English, Spanish, and French, and you help customers with product information, account support, and technical troubleshooting.
+
+## Language Capabilities & Cultural Guidelines
+
+### English (Primary)
+
+- **Tone**: Direct, friendly, professional
+- **Style**: Conversational but efficient
+- **Approach**: Solution-focused, provide clear steps
+
+### Spanish
+
+- **Tone**: Warm, respectful, patient
+- **Formality**: Use formal "usted" initially, then adapt to customer preference
+- **Approach**: Take time to build rapport, be thorough in explanations
+
+### French
+
+- **Tone**: Polite, courteous, professional
+- **Formality**: Use proper greeting conventions ("Bonjour/Bonsoir")
+- **Approach**: Structured responses, respectful of formality
+
+## Core Responsibilities
+
+1. **Product Information**: Help customers understand our technology solutions
+2. **Account Support**: Assist with account access, billing, and subscription questions
+3. **Technical Troubleshooting**: Guide customers through technical issues step-by-step
+4. **Escalation**: Transfer to specialized teams when needed
+
+## Language Behavior
+
+- **Auto-detect**: Automatically respond in the customer's language
+- **Language Switching**: If customer switches languages, switch with them seamlessly
+- **Mixed Languages**: If customer uses multiple languages, respond in their primary language
+- **Unsupported Languages**: If customer speaks another language, politely explain you support English, Spanish, and French
+
+## Available Tools
+
+- **Customer Lookup**: Search customer database by email, phone, or account ID
+- **Product Information**: Access product catalog and specifications
+- **Support Articles**: Find relevant troubleshooting guides in customer's language
+
+Keep responses concise (under 50 words) while being thorough and helpful.
+
+````
+
+    Then update your assistant:
+
+    <Tabs>
+      <Tab title="Dashboard">
+        Copy the system prompt above and paste it into the `System Prompt` field in your assistant configuration.
+      </Tab>
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        import { VapiClient } from "@vapi-ai/server-sdk";
+
+        const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+        const systemPrompt = `# GlobalTech International - Multilingual Support Agent
+
+## Identity & Role
+
+You are **Maria**, a multilingual customer support representative for GlobalTech International. You are fluent in English, Spanish, and French, and you help customers with product information, account support, and technical troubleshooting.
+
+## Language Capabilities & Cultural Guidelines
+
+### English (Primary)
+
+- **Tone**: Direct, friendly, professional
+- **Style**: Conversational but efficient
+- **Approach**: Solution-focused, provide clear steps
+
+### Spanish
+
+- **Tone**: Warm, respectful, patient
+- **Formality**: Use formal "usted" initially, then adapt to customer preference
+- **Approach**: Take time to build rapport, be thorough in explanations
+
+### French
+
+- **Tone**: Polite, courteous, professional
+- **Formality**: Use proper greeting conventions ("Bonjour/Bonsoir")
+- **Approach**: Structured responses, respectful of formality
+
+## Core Responsibilities
+
+1. **Product Information**: Help customers understand our technology solutions
+2. **Account Support**: Assist with account access, billing, and subscription questions
+3. **Technical Troubleshooting**: Guide customers through technical issues step-by-step
+4. **Escalation**: Transfer to specialized teams when needed
+
+## Language Behavior
+
+- **Auto-detect**: Automatically respond in the customer's language
+- **Language Switching**: If customer switches languages, switch with them seamlessly
+- **Mixed Languages**: If customer uses multiple languages, respond in their primary language
+- **Unsupported Languages**: If customer speaks another language, politely explain you support English, Spanish, and French
+
+## Available Tools
+
+- **Customer Lookup**: Search customer database by email, phone, or account ID
+- **Product Information**: Access product catalog and specifications
+- **Support Articles**: Find relevant troubleshooting guides in customer's language
+
+Keep responses concise (under 50 words) while being thorough and helpful.`;
+
+        const updatedAssistant = await vapi.assistants.update("YOUR_ASSISTANT_ID", {
+          model: {
+            provider: "openai",
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content: systemPrompt
+              }
+            ]
+          }
+        });
+
+        console.log("System prompt updated successfully");
+        ```
+      </Tab>
+      <Tab title="Python (Server SDK)">
+        ```python
+        import requests
+
+        url = f"https://api.vapi.ai/assistant/{YOUR_ASSISTANT_ID}"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        system_prompt = """# GlobalTech International - Multilingual Support Agent
+
+## Identity & Role
+
+You are **Maria**, a multilingual customer support representative for GlobalTech International. You are fluent in English, Spanish, and French, and you help customers with product information, account support, and technical troubleshooting.
+
+## Language Capabilities & Cultural Guidelines
+
+### English (Primary)
+
+- **Tone**: Direct, friendly, professional
+- **Style**: Conversational but efficient
+- **Approach**: Solution-focused, provide clear steps
+
+### Spanish
+
+- **Tone**: Warm, respectful, patient
+- **Formality**: Use formal "usted" initially, then adapt to customer preference
+- **Approach**: Take time to build rapport, be thorough in explanations
+
+### French
+
+- **Tone**: Polite, courteous, professional
+- **Formality**: Use proper greeting conventions ("Bonjour/Bonsoir")
+- **Approach**: Structured responses, respectful of formality
+
+## Core Responsibilities
+
+1. **Product Information**: Help customers understand our technology solutions
+2. **Account Support**: Assist with account access, billing, and subscription questions
+3. **Technical Troubleshooting**: Guide customers through technical issues step-by-step
+4. **Escalation**: Transfer to specialized teams when needed
+
+## Language Behavior
+
+- **Auto-detect**: Automatically respond in the customer's language
+- **Language Switching**: If customer switches languages, switch with them seamlessly
+- **Mixed Languages**: If customer uses multiple languages, respond in their primary language
+- **Unsupported Languages**: If customer speaks another language, politely explain you support English, Spanish, and French
+
+## Available Tools
+
+- **Customer Lookup**: Search customer database by email, phone, or account ID
+- **Product Information**: Access product catalog and specifications
+- **Support Articles**: Find relevant troubleshooting guides in customer's language
+
+Keep responses concise (under 50 words) while being thorough and helpful."""
+
+        data = {
+            "model": {
+                "provider": "openai",
+                "model": "gpt-4o",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": system_prompt
+                    }
+                ]
+            }
+        }
+
+        response = requests.patch(url, headers=headers, json=data)
+        assistant = response.json()
+        print("System prompt updated successfully")
+        ```
+      </Tab>
+      <Tab title="cURL">
+        ```bash
+        curl -X PATCH https://api.vapi.ai/assistant/YOUR_ASSISTANT_ID \
+             -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+             -H "Content-Type: application/json" \
+             -d '{
+               "model": {
+                 "provider": "openai",
+                 "model": "gpt-4o",
+                 "messages": [
+                   {
+                     "role": "system",
+                     "content": "# GlobalTech International - Multilingual Support Agent..."
+                   }
+                 ]
+               }
+             }'
+        ```
+      </Tab>
+    </Tabs>
+
+  </Step>
+</Steps>
+
+---
+
+## 6. Add Multilingual Tools
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Navigate to Tools">
+        Open your [dashboard.vapi.ai](https://dashboard.vapi.ai) and click `Tools` in the left sidebar.
+      </Step>
+      <Step title="Create customer lookup tool">
+        - Click `Create Tool`.
+        - Select `Function` as your tool type.
+        - Change tool name to `lookup_customer`.
+        - Add function description:
+
+          ```txt title="Function Description" wordWrap
+          Look up customer information by email, phone number, or account ID. Returns customer details including preferred language, account status, and support history.
+          ```
+        - Add knowledge base:
+          - Name: `customers`
+          - Description: `Customer database with multilingual support preferences`
+          - File IDs: `<File ID of your customers.csv file>`
+      </Step>
+      <Step title="Create product information tool">
+        - Click `Create Tool`.
+        - Select `Function` as your tool type.
+        - Change tool name to `get_product_info`.
+        - Add function description:
+
+          ```txt title="Function Description" wordWrap
+          Get detailed product information including specifications, pricing, and availability. Supports queries in English, Spanish, and French.
+          ```
+        - Add knowledge base:
+          - Name: `products`
+          - Description: `Product catalog with multilingual descriptions`
+          - File IDs: `<File ID of your products.csv file>`
+      </Step>
+      <Step title="Create support articles tool">
+        - Click `Create Tool`.
+        - Select `Function` as your tool type.
+        - Change tool name to `search_support_articles`.
+        - Add function description:
+
+          ```txt title="Function Description" wordWrap
+          Search technical support articles and troubleshooting guides. Returns relevant articles in the customer's preferred language.
+          ```
+        - Add knowledge base:
+          - Name: `support_articles`
+          - Description: `Multilingual support documentation and troubleshooting guides`
+          - File IDs: `<File ID of your support_articles.csv file>`
+      </Step>
+      <Step title="Add tools to assistant">
+        - Click `Assistants` in the left sidebar.
+        - Select your `GlobalTech Support Agent`.
+        - Scroll down to the `Tools` section and expand it.
+        - Add all three tools: `lookup_customer`, `get_product_info`, and `search_support_articles`.
+        - Click `Publish` to save your changes.
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    // Create customer lookup tool
+    const customerLookupTool = await vapi.tools.create({
+      type: "function",
+      function: {
+        name: "lookup_customer",
+        description: "Look up customer information by email, phone number, or account ID. Returns customer details including preferred language, account status, and support history."
+      },
+      knowledgeBases: [
+        {
+          name: "customers",
+          description: "Customer database with multilingual support preferences",
+          fileIds: ["YOUR_CUSTOMERS_FILE_ID"]
+        }
+      ]
+    });
+
+    // Create product information tool
+    const productInfoTool = await vapi.tools.create({
+      type: "function",
+      function: {
+        name: "get_product_info",
+        description: "Get detailed product information including specifications, pricing, and availability. Supports queries in English, Spanish, and French."
+      },
+      knowledgeBases: [
+        {
+          name: "products",
+          description: "Product catalog with multilingual descriptions",
+          fileIds: ["YOUR_PRODUCTS_FILE_ID"]
+        }
+      ]
+    });
+
+    // Create support articles tool
+    const supportArticlesTool = await vapi.tools.create({
+      type: "function",
+      function: {
+        name: "search_support_articles",
+        description: "Search technical support articles and troubleshooting guides. Returns relevant articles in the customer's preferred language."
+      },
+      knowledgeBases: [
+        {
+          name: "support_articles",
+          description: "Multilingual support documentation and troubleshooting guides",
+          fileIds: ["YOUR_SUPPORT_ARTICLES_FILE_ID"]
+        }
+      ]
+    });
+
+    // Add all tools to the assistant
+    const updatedAssistant = await vapi.assistants.update("YOUR_ASSISTANT_ID", {
+      model: {
+        toolIds: [
+          customerLookupTool.id,
+          productInfoTool.id,
+          supportArticlesTool.id
+        ]
+      }
+    });
+
+    console.log("All multilingual tools added to assistant successfully!");
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_multilingual_tool(name, description, knowledge_base_name, knowledge_base_description, file_id):
+        """Create a multilingual tool with knowledge base"""
+        url = "https://api.vapi.ai/tool"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "type": "function",
+            "function": {
+                "name": name,
+                "description": description
+            },
+            "knowledgeBases": [
+                {
+                    "name": knowledge_base_name,
+                    "description": knowledge_base_description,
+                    "fileIds": [file_id]
+                }
+            ]
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+        return response.json()
+
+    # Create customer lookup tool
+    customer_lookup_tool = create_multilingual_tool(
+        "lookup_customer",
+        "Look up customer information by email, phone number, or account ID. Returns customer details including preferred language, account status, and support history.",
+        "customers",
+        "Customer database with multilingual support preferences",
+        "YOUR_CUSTOMERS_FILE_ID"
+    )
+
+    # Create product information tool
+    product_info_tool = create_multilingual_tool(
+        "get_product_info",
+        "Get detailed product information including specifications, pricing, and availability. Supports queries in English, Spanish, and French.",
+        "products",
+        "Product catalog with multilingual descriptions",
+        "YOUR_PRODUCTS_FILE_ID"
+    )
+
+    # Create support articles tool
+    support_articles_tool = create_multilingual_tool(
+        "search_support_articles",
+        "Search technical support articles and troubleshooting guides. Returns relevant articles in the customer'\''s preferred language.",
+        "support_articles",
+        "Multilingual support documentation and troubleshooting guides",
+        "YOUR_SUPPORT_ARTICLES_FILE_ID"
+    )
+
+    # Add all tools to the assistant
+    def update_assistant_with_tools(assistant_id, tool_ids):
+        url = f"https://api.vapi.ai/assistant/{assistant_id}"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "model": {
+                "toolIds": tool_ids
+            }
+        }
+
+        response = requests.patch(url, headers=headers, json=data)
+        return response.json()
+
+    tool_ids = [
+        customer_lookup_tool['id'],
+        product_info_tool['id'],
+        support_articles_tool['id']
+    ]
+
+    updated_assistant = update_assistant_with_tools("YOUR_ASSISTANT_ID", tool_ids)
+    print("All multilingual tools added to assistant successfully!")
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Create customer lookup tool
+    curl -X POST https://api.vapi.ai/tool \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "type": "function",
+           "function": {
+             "name": "lookup_customer",
+             "description": "Look up customer information by email, phone number, or account ID. Returns customer details including preferred language, account status, and support history."
+           },
+           "knowledgeBases": [
+             {
+               "name": "customers",
+               "description": "Customer database with multilingual support preferences",
+               "fileIds": ["YOUR_CUSTOMERS_FILE_ID"]
+             }
+           ]
+         }'
+
+    # Create product information tool
+    curl -X POST https://api.vapi.ai/tool \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "type": "function",
+           "function": {
+             "name": "get_product_info",
+             "description": "Get detailed product information including specifications, pricing, and availability. Supports queries in English, Spanish, and French."
+           },
+           "knowledgeBases": [
+             {
+               "name": "products",
+               "description": "Product catalog with multilingual descriptions",
+               "fileIds": ["YOUR_PRODUCTS_FILE_ID"]
+             }
+           ]
+         }'
+
+    # Create support articles tool
+    curl -X POST https://api.vapi.ai/tool \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "type": "function",
+           "function": {
+             "name": "search_support_articles",
+             "description": "Search technical support articles and troubleshooting guides. Returns relevant articles in the customer'\''s preferred language."
+           },
+           "knowledgeBases": [
+             {
+               "name": "support_articles",
+               "description": "Multilingual support documentation and troubleshooting guides",
+               "fileIds": ["YOUR_SUPPORT_ARTICLES_FILE_ID"]
+             }
+           ]
+         }'
+
+    # Add all tools to the assistant
+    curl -X PATCH https://api.vapi.ai/assistant/YOUR_ASSISTANT_ID \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "model": {
+             "toolIds": ["CUSTOMER_LOOKUP_TOOL_ID", "PRODUCT_INFO_TOOL_ID", "SUPPORT_ARTICLES_TOOL_ID"]
+           }
+         }'
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## 7. Set Up Phone Number
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Navigate to Phone Numbers">
+        Open your [dashboard.vapi.ai](https://dashboard.vapi.ai) and click `Phone Numbers` in the left sidebar.
+      </Step>
+      <Step title="Create a new phone number">
+        - Click `Create Phone Number`.
+        - Choose `Free Vapi Number` to get started.
+        - Select your preferred area code (e.g., `212` for New York).
+      </Step>
+      <Step title="Configure the phone number">
+        - Set the `Phone Number Name` to `GlobalTech International Support`.
+        - Under `Inbound Settings`, find `Assistant` dropdown and select `GlobalTech Support Agent`.
+        - **Optional**: Configure advanced settings:
+          - Enable call recording for quality assurance
+          - Set up voicemail detection
+          - Configure business hours if needed
+        - Changes are saved automatically.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    const phoneNumber = await vapi.phoneNumbers.create({
+      name: "GlobalTech International Support",
+      assistantId: "YOUR_ASSISTANT_ID",
+      inboundSettings: {
+        recordingEnabled: true,
+        voicemailDetectionEnabled: true,
+        maxCallDurationMinutes: 30
+      }
+    });
+
+    console.log(`Multilingual support phone number created: ${phoneNumber.number}`);
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_multilingual_phone_number(assistant_id):
+        """Create phone number for multilingual support"""
+        url = "https://api.vapi.ai/phone-number"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "name": "GlobalTech International Support",
+            "assistantId": assistant_id,
+            "inboundSettings": {
+                "recordingEnabled": True,
+                "voicemailDetectionEnabled": True,
+                "maxCallDurationMinutes": 30
+            }
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+        return response.json()
+
+    # Create multilingual support phone number
+    phone_number = create_multilingual_phone_number("YOUR_ASSISTANT_ID")
+    print(f"Multilingual support phone number created: {phone_number['number']}")
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Create multilingual support phone number
+    curl -X POST https://api.vapi.ai/phone-number \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "GlobalTech International Support",
+           "assistantId": "YOUR_ASSISTANT_ID",
+           "inboundSettings": {
+             "recordingEnabled": true,
+             "voicemailDetectionEnabled": true,
+             "maxCallDurationMinutes": 30
+           }
+         }'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Alternative: Workflow-Based Language Selection
+
+For a more structured approach with explicit language selection, see our comprehensive [Workflow-based multilingual support](../../workflows/examples/multilingual-support) guide. This approach lets customers choose their language at the start of the call, then routes them to dedicated conversation paths optimized for each language.
+
+<Steps>
+  <Step title="Create a workflow with language selection">
+    ```typescript
+    const languageSelectionWorkflow = await vapi.workflows.create({
+      name: "GlobalTech Multilingual Workflow",
+      nodes: [
+        {
+          id: "language_selection",
+          type: "conversation",
+          firstMessage: "Hello! Hola! Bonjour! Welcome to GlobalTech International. Please say 'English', 'Español', or 'Français' to continue in your preferred language.",
+          systemPrompt: "Listen for the customer's language preference and extract it.",
+          extractVariables: [
+            {
+              name: "preferred_language",
+              type: "string",
+              description: "Customer's preferred language",
+              enum: ["english", "spanish", "french"]
+            }
+          ]
+        },
+        {
+          id: "english_support",
+          type: "conversation",
+          condition: "preferred_language == 'english'",
+          firstMessage: "Thank you for choosing English. I'm Maria, your support representative. How can I help you today?",
+          systemPrompt: "You are Maria, GlobalTech's English support agent. Be direct, friendly, and professional.",
+          voice: {
+            provider: "azure",
+            voiceId: "en-US-AriaNeural"
+          }
+        },
+        {
+          id: "spanish_support",
+          type: "conversation",
+          condition: "preferred_language == 'spanish'",
+          firstMessage: "Gracias por elegir español. Soy María, su representante de soporte. ¿Cómo puedo ayudarle hoy?",
+          systemPrompt: "Eres María, agente de soporte en español de GlobalTech. Sé cálida, respetuosa y usa 'usted' inicialmente.",
+          voice: {
+            provider: "azure",
+            voiceId: "es-ES-ElviraNeural"
+          }
+        },
+        {
+          id: "french_support",
+          type: "conversation",
+          condition: "preferred_language == 'french'",
+          firstMessage: "Merci d'avoir choisi le français. Je suis Maria, votre représentante du support. Comment puis-je vous aider aujourd'hui?",
+          systemPrompt: "Vous êtes Maria, agent de support français de GlobalTech. Soyez polie, courtoise et formelle.",
+          voice: {
+            provider: "azure",
+            voiceId: "fr-FR-DeniseNeural"
+          }
+        }
+      ]
+    });
+    ```
+  </Step>
+  <Step title="Benefits of workflow approach">
+    - **Clearer language selection**: Customers explicitly choose their language
+    - **Dedicated language paths**: Each language has its own conversation flow
+    - **Optimized voices**: Language-specific voices for better quality
+    - **Easier maintenance**: Separate prompts and logic for each language
+    - **Better analytics**: Track language preferences and usage patterns
+  </Step>
+</Steps>
+
+## Provider Support Summary
+
+**Speech-to-Text (Transcription):**
+
+- **Deepgram**: Nova 2, Nova 3 with "Multi" language setting
+- **Google**: Latest models with "Multilingual" language setting
+- **All other providers**: Single language only, no automatic detection
+
+**Text-to-Speech (Voice Synthesis):**
+
+- **Azure**: 400+ voices across 140+ languages (recommended for coverage)
+- **ElevenLabs**: 30+ languages with premium quality
+- **OpenAI**: 50+ languages with consistent quality
+- **PlayHT**: 80+ languages, cost-effective
+- **All providers**: Support multiple languages natively
+
+**Language Models:**
+
+- **All major LLMs** (GPT-4o, Claude, Gemini, Llama, etc.): Native multilingual support
+
+## Next Steps
+
+Just like that, you've built a dynamic multilingual customer support agent that automatically detects and responds in the customer's language with seamless mid-conversation language switching.
+
+Consider reading the following guides to further enhance your multilingual implementation:
+
+- [**Workflow-based Multilingual Support**](../../workflows/examples/multilingual-support) - Compare with structured language selection approach
+- [**Multilingual Configuration Guide**](../../../customization/multilingual) - Learn about all multilingual configuration options
+- [**Custom Tools**](../../../tools/custom-tools) - Build advanced multilingual tools and integrations
+
+<Callout>
+Need help with multilingual implementation? Chat with the team on our [Discord](https://discord.com/invite/pUFNcf2WmH) or mention us on [X/Twitter](https://x.com/Vapi_AI).
+</Callout>
+
+---
+
+title: Workflows quickstart
+subtitle: >-
+Build a simple agent that greets users and gathers basic information using
+Vapi workflows.
+slug: workflows/quickstart
+description: >-
+Build a simple agent that greets users and gathers basic information using
+Vapi workflows.
+
+---
+
+## Overview
+
+Build a simple voice agent using Vapi's visual workflow builder that greets users, collects their information, and demonstrates core workflow concepts like variable extraction, conditional routing, and global nodes.
+
+<Frame>
+  <img src="file:e21ffcfb-8bac-438a-a688-455c48b849e7" alt="Vapi Workflows" />
+</Frame>
+
+**Agent Capabilities:**
+
+- Greet users and ask about their voice agent needs
+- Extract and store user information (name and city)
+- Use variables in dynamic responses
+- Handle escalation to human agents at any point
+
+**What You'll Build:**
+
+- Multi-node conversation flow with branching logic
+- Variable extraction and liquid template usage
+- Global escalation nodes for human transfer
+- End-call automation with natural conversation termination
+
+## Prerequisites
+
+- A [Vapi account](https://dashboard.vapi.ai)
+- For SDK usage: API key from the Dashboard
+
+<Tip>
+**Developing with the Vapi CLI?** You can manage workflows and test webhook integrations from your terminal:
+
+```bash
+# List all workflows
+vapi workflow list
+
+# Test workflow webhooks locally
+vapi listen --forward-to localhost:3000/webhook
+````
+
+[Learn more about the Vapi CLI →](/cli)
+</Tip>
+
+## Scenario
+
+We will create a simple information-gathering workflow that demonstrates the core features of Vapi's workflow builder. This workflow will showcase conversation flow, variable extraction, and escalation patterns that form the foundation of more complex workflows.
+
+<Note>
+**Workflows vs Assistants**: Workflows are visual conversation flows with branching logic and variable extraction. Assistants are single AI agents with tools and continuous conversation. This guide covers workflows specifically.
+</Note>
+
+---
+
+## 1. Create a Workflow
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Open the Vapi Dashboard">
+        Go to [dashboard.vapi.ai](https://dashboard.vapi.ai) and log in to your account.
+      </Step>
+      <Step title="Navigate to the Workflows section">
+        Click `Workflows` in the left sidebar.
+      </Step>
+      <Step title="Create a new workflow">
+        - Click `Create Workflow`.
+        - Enter workflow name: `Information Gathering Demo`.
+        - Select the blank template.
+        - Click **Create Workflow**.
+
+        <video autoPlay loop muted src="file:3d1752a2-0135-44a8-9897-e747188b82b6" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="TypeScript (Server SDK)">
+    <Steps>
+      <Step title="Install the SDK">
+        <CodeBlocks>
+        ```bash title="npm"
+        npm install @vapi-ai/server-sdk
+        ```
+
+        ```bash title="yarn"
+        yarn add @vapi-ai/server-sdk
+        ```
+
+        ```bash title="pnpm"
+        pnpm add @vapi-ai/server-sdk
+        ```
+
+        ```bash title="bun"
+        bun add @vapi-ai/server-sdk
+        ```
+        </CodeBlocks>
+      </Step>
+
+      <Step title="Create the workflow">
+        ```typescript
+        import { VapiClient } from '@vapi-ai/server-sdk';
+
+        // Initialize the Vapi client
+        const vapi = new VapiClient({
+          token: 'YOUR_API_KEY'
+        });
+
+        async function createWorkflow() {
+          try {
+            const workflow = await vapi.workflows.create({
+              name: 'Information Gathering Demo',
+              // Start with a basic conversation node
+              nodes: [
+                {
+                  id: 'start',
+                  type: 'conversation',
+                  firstMessage: 'Hey there!',
+                  systemPrompt: 'Ask users what kind of voice agent they want to build. Be friendly and conversational.',
+                }
+              ],
+              edges: []
+            });
+
+            console.log('Workflow created:', workflow.id);
+            return workflow;
+          } catch (error) {
+            console.error('Error creating workflow:', error);
+            throw error;
+          }
+        }
+
+        // Create the workflow
+        createWorkflow();
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="Python (Server SDK)">
+    <Steps>
+      <Step title="Install the SDK">
+        ```bash
+        pip install vapi_server_sdk
+        ```
+      </Step>
+
+      <Step title="Create the workflow">
+        ```python
+        from vapi import Vapi
+
+        # Initialize the Vapi client
+        client = Vapi(token="YOUR_API_KEY")  # Replace with your actual API key
+
+        def create_workflow():
+            try:
+                workflow = client.workflows.create(
+                    name="Information Gathering Demo",
+                    // Start with a basic conversation node
+                    nodes=[
+                        {
+                            "id": "start",
+                            "type": "conversation",
+                            "firstMessage": "Hey there!",
+                            "systemPrompt": "Ask users what kind of voice agent they want to build. Be friendly and conversational.",
+                        }
+                    ],
+                    edges=[]
+                )
+
+                print(f"Workflow created: {workflow.id}")
+                return workflow
+            except Exception as error:
+                print(f"Error creating workflow: {error}")
+                raise error
+
+        // Create the workflow
+        create_workflow()
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="cURL">
+    <Steps>
+      <Step title="Create the workflow">
+        ```bash
+        curl -X POST "https://api.vapi.ai/workflow" \
+          -H "Authorization: Bearer YOUR_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "name": "Information Gathering Demo",
+            "nodes": [
+              {
+                "id": "start",
+                "type": "conversation",
+                "firstMessage": "Hey there!",
+                "systemPrompt": "Ask users what kind of voice agent they want to build. Be friendly and conversational."
+              }
+            ],
+            "edges": []
+          }'
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+---
+
+## 2. Configure the Start Node
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Configure the conversation node">
+        The blank template includes a conversation node. Click on it and configure:
+        
+        **First Message**:
+        ```txt
+        Hey there!
+        ```
+
+        **Prompt**:
+        ```txt
+        Ask users what kind of voice agent they want to build. Be friendly and conversational.
+        ```
+      </Step>
+      <Step title="Test the basic setup">
+        Click **Call** in the top right to test your initial setup. The agent should greet you and ask about voice agents.
+
+        <video autoPlay loop muted src="file:6fbd5a11-ef54-407e-8d70-16853b733b76" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="TypeScript (Server SDK)">
+    <Steps>
+      <Step title="Update the start node">
+        ```typescript
+        async function updateStartNode(workflowId: string) {
+          try {
+            const updatedWorkflow = await vapi.workflows.update(workflowId, {
+              nodes: [
+                {
+                  id: 'start',
+                  type: 'conversation',
+                  firstMessage: 'Hey there!',
+                  systemPrompt: 'Ask users what kind of voice agent they want to build. Be friendly and conversational.',
+                }
+              ]
+            });
+
+            console.log('Start node configured successfully');
+            return updatedWorkflow;
+          } catch (error) {
+            console.error('Error updating start node:', error);
+            throw error;
+          }
+        }
+
+        // Update the start node
+        updateStartNode('your-workflow-id');
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="Python (Server SDK)">
+    <Steps>
+      <Step title="Update the start node">
+        ```python
+        def update_start_node(workflow_id: str):
+            try:
+                updated_workflow = client.workflows.update(
+                    workflow_id,
+                    nodes=[
+                        {
+                            "id": "start",
+                            "type": "conversation",
+                            "firstMessage": "Hey there!",
+                            "systemPrompt": "Ask users what kind of voice agent they want to build. Be friendly and conversational.",
+                        }
+                    ]
+                )
+
+                print("Start node configured successfully")
+                return updated_workflow
+            except Exception as error:
+                print(f"Error updating start node: {error}")
+                raise error
+
+        // Update the start node
+        update_start_node("your-workflow-id")
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="cURL">
+    <Steps>
+      <Step title="Update the start node">
+        ```bash
+        curl -X PATCH "https://api.vapi.ai/workflow/your-workflow-id" \
+          -H "Authorization: Bearer YOUR_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "nodes": [
+              {
+                "id": "start",
+                "type": "conversation",
+                "firstMessage": "Hey there!",
+                "systemPrompt": "Ask users what kind of voice agent they want to build. Be friendly and conversational."
+              }
+            ]
+          }'
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+<Note>
+You can change the node type by selecting a different type from the dropdown at the top of the node configuration panel. For example, you can change the start node type to API Request to trigger an HTTP request as soon as the call is connected.
+</Note>
+
+---
+
+## 3. Add Information Collection Flow
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Add a second conversation node">
+        - Click the **+** button below the first node
+        - Select **Conversation Node**
+        - Configure the new node:
+
+        **Prompt**:
+        ```txt
+        Acknowledge the user's voice agent use case, then ask for information about the user. Ask for their first name and what city they're in.
+        ```
+
+        **Extract Variables** (expand this section):
+        - Variable 1:
+          - Name: `first_name`
+          - Type: `string`
+          - Description: `the user's first name`
+        - Variable 2:
+          - Name: `city`
+          - Type: `string`
+          - Description: `the user's city`
+      </Step>
+      <Step title="Configure the connecting edge">
+        Click on the edge between the two nodes and configure:
+        - **Condition**: `User describes their voice agent`
+        - Click **Save**
+
+        <video autoPlay loop muted src="file:53e3b24b-2fd4-4aa6-a3d3-f84acd8ea024" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="TypeScript (Server SDK)">
+    <Steps>
+      <Step title="Add information collection node">
+        ```typescript
+        async function addInformationCollectionNode(workflowId: string) {
+          try {
+            // Get current workflow to preserve existing nodes
+            const currentWorkflow = await vapi.workflows.get(workflowId);
+            
+            // Add information collection node
+            const updatedNodes = [
+              ...currentWorkflow.nodes,
+              {
+                id: 'collect_info',
+                type: 'conversation',
+                systemPrompt: 'Acknowledge the user\'s voice agent use case, then ask for information about the user. Ask for their first name and what city they\'re in.',
+                extractVariables: [
+                  {
+                    name: 'first_name',
+                    type: 'string',
+                    description: 'the user\'s first name'
+                  },
+                  {
+                    name: 'city',
+                    type: 'string',
+                    description: 'the user\'s city'
+                  }
+                ]
+              }
+            ];
+
+            // Add connecting edge
+            const updatedEdges = [
+              ...currentWorkflow.edges,
+              {
+                from: 'start',
+                to: 'collect_info',
+                condition: 'User describes their voice agent'
+              }
+            ];
+
+            const updatedWorkflow = await vapi.workflows.update(workflowId, {
+              nodes: updatedNodes,
+              edges: updatedEdges
+            });
+
+            console.log('Information collection node added successfully');
+            return updatedWorkflow;
+          } catch (error) {
+            console.error('Error adding information collection node:', error);
+            throw error;
+          }
+        }
+
+        // Add information collection flow
+        addInformationCollectionNode('your-workflow-id');
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="Python (Server SDK)">
+    <Steps>
+      <Step title="Add information collection node">
+        ```python
+        def add_information_collection_node(workflow_id: str):
+            try:
+                # Get current workflow to preserve existing nodes
+                current_workflow = client.workflows.get(workflow_id)
+                
+                # Add information collection node
+                updated_nodes = current_workflow.nodes + [
+                    {
+                        "id": "collect_info",
+                        "type": "conversation",
+                        "systemPrompt": "Acknowledge the user's voice agent use case, then ask for information about the user. Ask for their first name and what city they're in.",
+                        "extractVariables": [
+                            {
+                                "name": "first_name",
+                                "type": "string",
+                                "description": "the user's first name"
+                            },
+                            {
+                                "name": "city",
+                                "type": "string",
+                                "description": "the user's city"
+                            }
+                        ]
+                    }
+                ]
+                
+                # Add connecting edge
+                updated_edges = current_workflow.edges + [
+                    {
+                        "from": "start",
+                        "to": "collect_info",
+                        "condition": "User describes their voice agent"
+                    }
+                ]
+                
+                updated_workflow = client.workflows.update(
+                    workflow_id,
+                    nodes=updated_nodes,
+                    edges=updated_edges
+                )
+
+                print("Information collection node added successfully")
+                return updated_workflow
+            except Exception as error:
+                print(f"Error adding information collection node: {error}")
+                raise error
+
+        # Add information collection flow
+        add_information_collection_node("your-workflow-id")
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="cURL">
+    <Steps>
+      <Step title="Add information collection node">
+        ```bash
+        # Get current workflow structure first
+        WORKFLOW_ID="your-workflow-id"
+        
+        # Update workflow with information collection node
+        curl -X PATCH "https://api.vapi.ai/workflow/$WORKFLOW_ID" \
+          -H "Authorization: Bearer YOUR_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "nodes": [
+              {
+                "id": "start",
+                "type": "conversation",
+                "firstMessage": "Hey there!",
+                "systemPrompt": "Ask users what kind of voice agent they want to build. Be friendly and conversational."
+              },
+              {
+                "id": "collect_info",
+                "type": "conversation",
+                "systemPrompt": "Acknowledge the user'\''s voice agent use case, then ask for information about the user. Ask for their first name and what city they'\''re in.",
+                "extractVariables": [
+                  {
+                    "name": "first_name",
+                    "type": "string",
+                    "description": "the user'\''s first name"
+                  },
+                  {
+                    "name": "city",
+                    "type": "string",
+                    "description": "the user'\''s city"
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "from": "start",
+                "to": "collect_info",
+                "condition": "User describes their voice agent"
+              }
+            ]
+          }'
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+---
+
+## 4. Add Dynamic Response Node
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Add a third conversation node">
+        Add another **Conversation Node** with this prompt:
+
+        ```txt
+        Say "Thanks {{first_name}}, {{city}} is great!"
+
+        Then say a few nice words about the {{city}}. Keep it brief. After that, ask the user if there's anything you can help with and help them, unless they no longer need help.
+        ```
+      </Step>
+      <Step title="Remove the edge condition">
+        Click on the edge leading to this node and:
+        - Remove any condition text (leave it blank)
+        - Click **Save**
+
+        This allows automatic flow after the variables are extracted.
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="TypeScript (Server SDK)">
+    <Steps>
+      <Step title="Add dynamic response node">
+        ```typescript
+        async function addDynamicResponseNode(workflowId: string) {
+          try {
+            // Get current workflow
+            const currentWorkflow = await vapi.workflows.get(workflowId);
+            
+            // Add dynamic response node
+            const updatedNodes = [
+              ...currentWorkflow.nodes,
+              {
+                id: 'dynamic_response',
+                type: 'conversation',
+                systemPrompt: 'Say "Thanks {{first_name}}, {{city}} is great!" Then say a few nice words about the {{city}}. Keep it brief. After that, ask the user if there\'s anything you can help with and help them, unless they no longer need help.'
+              }
+            ];
+
+            // Add edge without condition for automatic flow
+            const updatedEdges = [
+              ...currentWorkflow.edges,
+              {
+                from: 'collect_info',
+                to: 'dynamic_response'
+              }
+            ];
+
+            const updatedWorkflow = await vapi.workflows.update(workflowId, {
+              nodes: updatedNodes,
+              edges: updatedEdges
+            });
+
+            console.log('Dynamic response node added successfully');
+            return updatedWorkflow;
+          } catch (error) {
+            console.error('Error adding dynamic response node:', error);
+            throw error;
+          }
+        }
+
+        // Add dynamic response node
+        addDynamicResponseNode('your-workflow-id');
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="Python (Server SDK)">
+    <Steps>
+      <Step title="Add dynamic response node">
+        ```python
+        def add_dynamic_response_node(workflow_id: str):
+            try:
+                # Get current workflow
+                current_workflow = client.workflows.get(workflow_id)
+                
+                # Add dynamic response node
+                updated_nodes = current_workflow.nodes + [
+                    {
+                        "id": "dynamic_response",
+                        "type": "conversation",
+                        "systemPrompt": "Say \"Thanks {{first_name}}, {{city}} is great!\" Then say a few nice words about the {{city}}. Keep it brief. After that, ask the user if there's anything you can help with and help them, unless they no longer need help."
+                    }
+                ]
+
+                # Add edge without condition for automatic flow
+                updated_edges = current_workflow.edges + [
+                    {
+                        "from": "collect_info",
+                        "to": "dynamic_response"
+                    }
+                ]
+
+                updated_workflow = client.workflows.update(
+                    workflow_id,
+                    nodes=updated_nodes,
+                    edges=updated_edges
+                )
+
+                print("Dynamic response node added successfully")
+                return updated_workflow
+            except Exception as error:
+                print(f"Error adding dynamic response node: {error}")
+                raise error
+
+        # Add dynamic response node
+        add_dynamic_response_node("your-workflow-id")
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="cURL">
+    <Steps>
+      <Step title="Add dynamic response node">
+        ```bash
+        curl -X PATCH "https://api.vapi.ai/workflow/your-workflow-id" \
+          -H "Authorization: Bearer YOUR_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "nodes": [
+              {
+                "id": "start",
+                "type": "conversation",
+                "firstMessage": "Hey there!",
+                "systemPrompt": "Ask users what kind of voice agent they want to build. Be friendly and conversational."
+              },
+              {
+                "id": "collect_info",
+                "type": "conversation",
+                "systemPrompt": "Acknowledge the user'\''s voice agent use case, then ask for information about the user. Ask for their first name and what city they'\''re in.",
+                "extractVariables": [
+                  {
+                    "name": "first_name",
+                    "type": "string",
+                    "description": "the user'\''s first name"
+                  },
+                  {
+                    "name": "city",
+                    "type": "string", 
+                    "description": "the user'\''s city"
+                  }
+                ]
+              },
+              {
+                "id": "dynamic_response",
+                "type": "conversation",
+                "systemPrompt": "Say \"Thanks {{first_name}}, {{city}} is great!\" Then say a few nice words about the {{city}}. Keep it brief. After that, ask the user if there'\''s anything you can help with and help them, unless they no longer need help."
+              }
+            ],
+            "edges": [
+              {
+                "from": "start", 
+                "to": "collect_info",
+                "condition": "User describes their voice agent"
+              },
+              {
+                "from": "collect_info",
+                "to": "dynamic_response"
+              }
+            ]
+          }'
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+---
+
+## 5. Add Global Escalation Node
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Create a global node for human escalation">
+        Add a new **Conversation Node** and configure:
+
+        **Global Node**: Toggle this **ON**
+
+        **Conversation Prompt**:
+        ```txt
+        Confirm that the user wants to speak to a human and ask them what would they like to talk to the human about.
+        ```
+
+        **Condition Prompt**:
+        ```txt
+        User wants to speak to a human
+        ```
+      </Step>
+      <Step title="Add transfer call node">
+        Add a **Transfer Call Node** below the global node:
+        - **Destination**: Enter your phone number or `+1-555-DEMO-123`
+        - Configure **Transfer Plan** with a brief summary message
+
+        <video autoPlay loop muted src="file:82d63ecc-dfcf-4b34-b409-ea7619f452de" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="TypeScript (Server SDK)">
+    <Steps>
+      <Step title="Add global escalation and transfer nodes">
+        ```typescript
+        async function addEscalationNodes(workflowId: string) {
+          try {
+            // Get current workflow
+            const currentWorkflow = await vapi.workflows.get(workflowId);
+            
+            // Add escalation and transfer nodes
+            const updatedNodes = [
+              ...currentWorkflow.nodes,
+              {
+                id: 'escalation',
+                type: 'conversation',
+                isGlobal: true,
+                systemPrompt: 'Confirm that the user wants to speak to a human and ask them what would they like to talk to the human about.',
+                condition: 'User wants to speak to a human'
+              },
+              {
+                id: 'transfer',
+                type: 'transferCall',
+                destination: '+1-555-DEMO-123', // Replace with your number
+                transferPlan: {
+                  message: 'The user wants to speak with a human agent.'
+                }
+              }
+            ];
+
+            // Add edge from escalation to transfer
+            const updatedEdges = [
+              ...currentWorkflow.edges,
+              {
+                from: 'escalation',
+                to: 'transfer'
+              }
+            ];
+
+            const updatedWorkflow = await vapi.workflows.update(workflowId, {
+              nodes: updatedNodes,
+              edges: updatedEdges
+            });
+
+            console.log('Escalation nodes added successfully');
+            return updatedWorkflow;
+          } catch (error) {
+            console.error('Error adding escalation nodes:', error);
+            throw error;
+          }
+        }
+
+        // Add escalation functionality
+        addEscalationNodes('your-workflow-id');
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="Python (Server SDK)">
+    <Steps>
+      <Step title="Add global escalation and transfer nodes">
+        ```python
+        def add_escalation_nodes(workflow_id: str):
+            try:
+                # Get current workflow
+                current_workflow = client.workflows.get(workflow_id)
+                
+                # Add escalation and transfer nodes
+                updated_nodes = current_workflow.nodes + [
+                    {
+                        "id": "escalation",
+                        "type": "conversation",
+                        "isGlobal": True,
+                        "systemPrompt": "Confirm that the user wants to speak to a human and ask them what would they like to talk to the human about.",
+                        "condition": "User wants to speak to a human"
+                    },
+                    {
+                        "id": "transfer",
+                        "type": "transferCall",
+                        "destination": "+1-555-DEMO-123",  # Replace with your number
+                        "transferPlan": {
+                            "message": "The user wants to speak with a human agent."
+                        }
+                    }
+                ]
+
+                # Add edge from escalation to transfer
+                updated_edges = current_workflow.edges + [
+                    {
+                        "from": "escalation",
+                        "to": "transfer"
+                    }
+                ]
+
+                updated_workflow = client.workflows.update(
+                    workflow_id,
+                    nodes=updated_nodes,
+                    edges=updated_edges
+                )
+
+                print("Escalation nodes added successfully")
+                return updated_workflow
+            except Exception as error:
+                print(f"Error adding escalation nodes: {error}")
+                raise error
+
+        # Add escalation functionality
+        add_escalation_nodes("your-workflow-id")
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="cURL">
+    <Steps>
+      <Step title="Add global escalation and transfer nodes">
+        ```bash
+        curl -X PATCH "https://api.vapi.ai/workflow/your-workflow-id" \
+          -H "Authorization: Bearer YOUR_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "nodes": [
+              {
+                "id": "start",
+                "type": "conversation",
+                "firstMessage": "Hey there!",
+                "systemPrompt": "Ask users what kind of voice agent they want to build. Be friendly and conversational."
+              },
+              {
+                "id": "collect_info", 
+                "type": "conversation",
+                "systemPrompt": "Acknowledge the user'\''s voice agent use case, then ask for information about the user. Ask for their first name and what city they'\''re in.",
+                "extractVariables": [
+                  {
+                    "name": "first_name",
+                    "type": "string",
+                    "description": "the user'\''s first name"
+                  },
+                  {
+                    "name": "city",
+                    "type": "string",
+                    "description": "the user'\''s city"
+                  }
+                ]
+              },
+              {
+                "id": "dynamic_response",
+                "type": "conversation", 
+                "systemPrompt": "Say \"Thanks {{first_name}}, {{city}} is great!\" Then say a few nice words about the {{city}}. Keep it brief. After that, ask the user if there'\''s anything you can help with and help them, unless they no longer need help."
+              },
+              {
+                "id": "escalation",
+                "type": "conversation",
+                "isGlobal": true,
+                "systemPrompt": "Confirm that the user wants to speak to a human and ask them what would they like to talk to the human about.",
+                "condition": "User wants to speak to a human"
+              },
+              {
+                "id": "transfer",
+                "type": "transferCall",
+                "destination": "+1-555-DEMO-123",
+                "transferPlan": {
+                  "message": "The user wants to speak with a human agent."
+                }
+              }
+            ],
+            "edges": [
+              {
+                "from": "start",
+                "to": "collect_info", 
+                "condition": "User describes their voice agent"
+              },
+              {
+                "from": "collect_info",
+                "to": "dynamic_response"
+              },
+              {
+                "from": "escalation",
+                "to": "transfer"
+              }
+            ]
+          }'
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+<Note>
+Developers can specify a phone number destination and a [transfer plan](/call-forwarding#call-transfers-mode), which lets them specify a message or a summary of the call to the person or agent picking up in the destination number before actually connecting the call.
+</Note>
+
+---
+
+## 6. Add Call Termination
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Add an End Call node">
+        Add an **End Call Node** at the end of your main flow:
+        
+        **First Message**:
+        ```txt
+        Alright, have a nice day!
+        ```
+      </Step>
+      <Step title="Configure the final edge">
+        Update the edge leading to the End Call node:
+        - **Condition**: `User does not need any help`
+        - Click **Save**
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="TypeScript (Server SDK)">
+    <Steps>
+      <Step title="Add end call node">
+        ```typescript
+        async function addEndCallNode(workflowId: string) {
+          try {
+            // Get current workflow
+            const currentWorkflow = await vapi.workflows.get(workflowId);
+            
+            // Add end call node
+            const updatedNodes = [
+              ...currentWorkflow.nodes,
+              {
+                id: 'end_call',
+                type: 'endCall',
+                firstMessage: 'Alright, have a nice day!'
+              }
+            ];
+
+            // Add edge with condition
+            const updatedEdges = [
+              ...currentWorkflow.edges,
+              {
+                from: 'dynamic_response',
+                to: 'end_call',
+                condition: 'User does not need any help'
+              }
+            ];
+
+            const updatedWorkflow = await vapi.workflows.update(workflowId, {
+              nodes: updatedNodes,
+              edges: updatedEdges
+            });
+
+            console.log('End call node added successfully');
+            return updatedWorkflow;
+          } catch (error) {
+            console.error('Error adding end call node:', error);
+            throw error;
+          }
+        }
+
+        // Add call termination
+        addEndCallNode('your-workflow-id');
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="Python (Server SDK)">
+    <Steps>
+      <Step title="Add end call node">
+        ```python
+        def add_end_call_node(workflow_id: str):
+            try:
+                # Get current workflow
+                current_workflow = client.workflows.get(workflow_id)
+                
+                # Add end call node
+                updated_nodes = current_workflow.nodes + [
+                    {
+                        "id": "end_call",
+                        "type": "endCall",
+                        "firstMessage": "Alright, have a nice day!"
+                    }
+                ]
+
+                # Add edge with condition
+                updated_edges = current_workflow.edges + [
+                    {
+                        "from": "dynamic_response",
+                        "to": "end_call",
+                        "condition": "User does not need any help"
+                    }
+                ]
+
+                updated_workflow = client.workflows.update(
+                    workflow_id,
+                    nodes=updated_nodes,
+                    edges=updated_edges
+                )
+
+                print("End call node added successfully")
+                return updated_workflow
+            except Exception as error:
+                print(f"Error adding end call node: {error}")
+                raise error
+
+        # Add call termination
+        add_end_call_node("your-workflow-id")
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="cURL">
+    <Steps>
+      <Step title="Complete workflow with end call node">
+        ```bash
+        curl -X PATCH "https://api.vapi.ai/workflow/your-workflow-id" \
+          -H "Authorization: Bearer YOUR_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "nodes": [
+              {
+                "id": "start",
+                "type": "conversation",
+                "firstMessage": "Hey there!",
+                "systemPrompt": "Ask users what kind of voice agent they want to build. Be friendly and conversational."
+              },
+              {
+                "id": "collect_info",
+                "type": "conversation",
+                "systemPrompt": "Acknowledge the user'\''s voice agent use case, then ask for information about the user. Ask for their first name and what city they'\''re in.",
+                "extractVariables": [
+                  {
+                    "name": "first_name",
+                    "type": "string",
+                    "description": "the user'\''s first name"
+                  },
+                  {
+                    "name": "city",
+                    "type": "string",
+                    "description": "the user'\''s city"
+                  }
+                ]
+              },
+              {
+                "id": "dynamic_response",
+                "type": "conversation",
+                "systemPrompt": "Say \"Thanks {{first_name}}, {{city}} is great!\" Then say a few nice words about the {{city}}. Keep it brief. After that, ask the user if there'\''s anything you can help with and help them, unless they no longer need help."
+              },
+              {
+                "id": "escalation",
+                "type": "conversation",
+                "isGlobal": true,
+                "systemPrompt": "Confirm that the user wants to speak to a human and ask them what would they like to talk to the human about.",
+                "condition": "User wants to speak to a human"
+              },
+              {
+                "id": "transfer",
+                "type": "transferCall",
+                "destination": "+1-555-DEMO-123",
+                "transferPlan": {
+                  "message": "The user wants to speak with a human agent."
+                }
+              },
+              {
+                "id": "end_call",
+                "type": "endCall",
+                "firstMessage": "Alright, have a nice day!"
+              }
+            ],
+            "edges": [
+              {
+                "from": "start",
+                "to": "collect_info",
+                "condition": "User describes their voice agent"
+              },
+              {
+                "from": "collect_info",
+                "to": "dynamic_response"
+              },
+              {
+                "from": "dynamic_response",
+                "to": "end_call",
+                "condition": "User does not need any help"
+              },
+              {
+                "from": "escalation",
+                "to": "transfer"
+              }
+            ]
+          }'
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+---
+
+## 7. Test Your Workflow
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Test the complete flow">
+        Click **Call** in the top right to test your workflow:
+        - Verify the greeting works
+        - Test variable extraction by providing your name and city
+        - Confirm the dynamic response uses your information
+        - Test the global escalation by saying "I want to speak to a human"
+      </Step>
+      <Step title="Review your workflow structure">
+        Your final workflow should have:
+        - **Start Node**: Greeting and use case inquiry
+        - **Collection Node**: Information gathering with variable extraction
+        - **Response Node**: Dynamic response using extracted variables
+        - **Global Node**: Human escalation available from anywhere
+        - **Transfer Node**: Routes to human agent when needed
+        - **End Node**: Natural conversation termination
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="TypeScript (Server SDK)">
+    <Steps>
+      <Step title="Create phone number and test workflow">
+        ```typescript
+        async function testWorkflow(workflowId: string) {
+          try {
+            // Create phone number for workflow testing
+            const phoneNumber = await vapi.phoneNumbers.create({
+              name: 'Workflow Test Number',
+              workflowId: workflowId,
+            });
+
+            console.log('Phone number created:', phoneNumber.number);
+
+            // Make an outbound test call
+            const testCall = await vapi.calls.create({
+              workflowId: workflowId,
+              customer: {
+                number: '+1234567890', // Replace with your test number
+              },
+            });
+
+            console.log('Test call initiated:', testCall.id);
+            return { phoneNumber, testCall };
+          } catch (error) {
+            console.error('Error testing workflow:', error);
+            throw error;
+          }
+        }
+
+        // Test your workflow
+        testWorkflow('your-workflow-id');
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="Python (Server SDK)">
+    <Steps>
+      <Step title="Create phone number and test workflow">
+        ```python
+        def test_workflow(workflow_id: str):
+            try:
+                # Create phone number for workflow testing
+                phone_number = client.phone_numbers.create(
+                    name="Workflow Test Number",
+                    workflow_id=workflow_id,
+                )
+
+                print(f"Phone number created: {phone_number.number}")
+
+                # Make an outbound test call
+                test_call = client.calls.create(
+                    workflow_id=workflow_id,
+                    customer={
+                        "number": "+1234567890",  # Replace with your test number
+                    },
+                )
+
+                print(f"Test call initiated: {test_call.id}")
+                return {"phone_number": phone_number, "test_call": test_call}
+            except Exception as error:
+                print(f"Error testing workflow: {error}")
+                raise error
+
+        # Test your workflow
+        test_workflow("your-workflow-id")
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab title="cURL">
+    <Steps>
+      <Step title="Create phone number and test workflow">
+        ```bash
+        # Create phone number with workflow
+        curl -X POST "https://api.vapi.ai/phone-number" \
+          -H "Authorization: Bearer YOUR_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "name": "Workflow Test Number",
+            "workflowId": "your-workflow-id"
+          }'
+
+        # Make an outbound test call
+        curl -X POST "https://api.vapi.ai/call" \
+          -H "Authorization: Bearer YOUR_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "workflowId": "your-workflow-id",
+            "customer": {
+              "number": "+1234567890"
+            }
+          }'
+        ```
+      </Step>
+    </Steps>
+
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+- [**Workflows overview**](/workflows/overview) - Learn about all node types and advanced configuration options
+- [**Workflow examples**](/workflows/examples) - Explore pre-built workflows for common business use cases
+- [**Custom Tools**](/tools/custom-tools) - Integrate external APIs and services into your workflows
+- [**Dynamic Variables**](/assistants/dynamic-variables) - Advanced variable usage and personalization techniques
+
+---
+
+title: Workflows overview
+subtitle: >-
+Learn to create robust, deterministic conversation flows with a visual
+builder.
+slug: workflows/overview
+
+---
+
+## Introduction
+
+Workflows is a visual builder designed for creating robust, deterministic conversation flows. It empowers developers and low-code builders to design agents through an intuitive interface representing interactions via nodes and edges.
+
+ <Frame>
+      <img src="file:8c50879e-b632-41e2-9a1c-f0538bbde4bb" alt="Vapi Workflows" />
+    </Frame>
+
+**Key Benefits:**
+
+- **Visual Conversation Builder:** Easily prototype and demonstrate conversation flows visually.
+- **Complex Flow Management:** Ideal for scenarios with numerous interaction paths, such as call centers, customer support, appointment scheduling, and onboarding processes.
+- **Reliable Determinism:** Offers stronger control compared to single-prompt Assistants, ensuring predictable conversational paths even in highly complex flows.
+- **Developer-Focused Flexibility:** Fully configurable via API, enabling selection of models, transcribers, and voices available throughout the Vapi platform.
+- **Multilingual Support:** Seamlessly build multilingual conversation flows with language-specific nodes and prompts.
+
+**Common Use Patterns:**
+
+- **User Intent Manager:** Route user interactions based on specific intents.
+- **Human Escalation Paths:** Allow users to transfer to human agents at any workflow stage.
+- **Multilingual Flows:** Create dedicated conversation branches for different languages.
+- **Customer-Specific Flows:** Differentiate workflows based on user profiles, such as new versus existing customers.
+
+## Workflow structure
+
+Workflows consists of node and edges. There are multiple types of nodes and a Workflow must have a start node, which is the main entry point for the conversation flow.
+
+By default a Conversation Node is the start node, but it can be changed to a different type of note. Start nodes cannot be deleted and a Workflow must have exactly one.
+
+## Node Types and Configuration
+
+### Conversation Node
+
+The Conversation Node is the default type of node. It's highly configurable and it's the main building block for conversation flows.
+
+ <Frame>
+    <img src="file:5ad01050-57ff-4f36-95a0-d383a84da14b" alt="Create workflow interface" />
+ </Frame>
+
+**Configuration options**
+
+- **First Message**: Specify the initial spoken message when entering the node. This configuration is helpful if developers want the agent to speak first without waiting for user to say something.
+
+- **Prompt**: Provide detailed instructions guiding agent responses and conversation direction, including response style and content. The prompt is the most important part of the Conversation Node. Building reliable and high-quality voice agents heavily depend on the quality of the prompt supplied.
+
+- **Model/Voice/Transcriber Settings**: Individually configure the AI model, voice, and transcription services per node. This is similar to configuring Single Prompt Assistants.
+
+- **Extract Variables**: Extract Variables lets users gather/extract variables from a conversation. These variables can be used as dynamic variables for the rest of the workflow via liquid syntax `{{ variable_name }}`. Variables can be configured by defining variable name and data type (String, Number, Boolean, Integer), writing a clear extraction prompt, and setting enums for String-type variables to constrain values.
+
+ <Frame>
+    <img src="file:bf6be2fd-2725-4385-b7a6-573e5ee88a94" alt="Create workflow interface" width="250" />
+ </Frame>
+
+### API Request Node
+
+The API Request Node allows developers to make HTTP Requests to their API, custom endpoints, or automation services like Make, n8n, or Zapier. Developers can configure it to perform GET and POST requests. Request bodies must be formatted in [JSON Schema](https://json-schema.org/) (the body UI builder automatically does this).
+
+<Frame>
+    <img src="file:eb72ffcf-5faf-451a-b2cd-6574be064fcd" alt="API Request Node interface" />
+ </Frame>
+
+### Transfer Call Node
+
+Transfer calls to another phone number, including human agents or specialized voice agents.
+
+Developers can specify a phone number destination and a [transfer plan](/call-forwarding#call-transfers-mode), which lets them specify a message or a summary of the call to the person or agent picking up in the destination number before actually connecting the caller.
+
+<Frame>
+    <img src="file:62ba5235-c639-486c-baee-a6baed94cdd1" alt="Transfer Call Node interface" />
+ </Frame>
+
+### End Call Node
+
+Terminal node to end calls explicitly. Configure with an optional closing message (via the first message field) to users before termination.
+
+<Frame>
+    <img src="file:b957490b-fcab-4848-acbc-362985af8c01" alt="End Call Node interface" />
+ </Frame>
+
+<Warning>
+Workflows without a defined End Call Node risk unintended minutes usage. Ensure all workflows have clear termination points to ensure the call eventually ends.
+</Warning>
+
+### Tool Node
+
+Integrate existing Tools library functionalities. Select tools previously created for use within Workflows, maintaining consistency with Assistant configurations.
+
+<Frame>
+    <img src="file:81973950-4c24-49dd-abdd-8a12d3d403ca" alt="Tool Node interface" />
+ </Frame>
+
+### Global Node
+
+Allows routing to this node from any point in the workflow, commonly used for escalation purposes e.g. when user wants to jump from the pre-determined conversation flow to speaking to a human to address specific needs. This feature can be enabled via the Global toggle; developers must specify an Enter Condition that defines the condition for routing to the Global Node.
+
+## Edges
+
+A node is connected to another node via an edge. Developers can specify a condition (within the edge) that must be true (satisfied) for the conversation to flow from one node to the next.
+
+<Frame>
+    <img src="file:eb71202f-cee0-4fe1-814e-8044d3cd5e36" alt="Create workflow interface" />
+ </Frame>
+
+#### AI-based conditions
+
+Written in plain language and evaluated by LLMs:
+
+```txt
+User wanted to talk about voice agents
+```
+
+#### Logical conditions
+
+For precise control using variables:
+
+```txt
+{{ city == "San Francisco" }}
+```
+
+#### Combined conditions
+
+Mix logical operators with variables:
+
+```txt
+{{ customer_tier == "VIP" or total_orders > 50 }}
+```
+
+**Best practices for conditions:**
+
+- Use descriptive, natural language for AI-based conditions
+- Format conditions as: "User [verb] [rest of condition]"
+- Extract variables as enums to enable reliable branching
+- Test all conditional paths thoroughly
+- Keep conditions simple and specific
+
+A useful combination of features is to extract variables as enums and use them to branch conversation flows based on a specific set of tasks that the agent can help users with.
+
+## Best practices
+
+### Planning and design
+
+- **Map conversation flows first** - Plan all possible user journeys before building
+- **Use descriptive node names** - Make workflows easier to understand and maintain
+- **Handle edge cases** - Add global nodes for common scenarios like user confusion
+
+### Implementation
+
+- **Keep prompts focused** - Each node should have a single, clear purpose
+- **Test thoroughly** - Use the built-in calling feature to test all conversation paths
+- **Use variables strategically** - Extract only necessary information and use it to personalize conversations
+
+### Optimization
+
+- **Monitor performance** - Review call logs and analytics to optimize workflows over time
+- **Plan for scale** - Consider how workflows will perform with high call volumes
+- **Version control** - Keep track of workflow changes and test before deploying
+
+## Next steps
+
+Ready to start building? Check out these resources:
+
+- [**Workflows quickstart**](/workflows/quickstart) - Build your first workflow step-by-step
+- [**Workflow examples**](/workflows/examples/appointment-scheduling) - Explore pre-built workflows for common use cases
+- [**Custom Tools**](/tools/custom-tools) - Integrate external APIs and services into your workflows
+- [**Dynamic Variables**](/assistants/dynamic-variables) - Advanced variable usage and personalization techniques
+
+---
+
+title: Appointment scheduling workflow
+subtitle: >-
+Build an AI receptionist workflow that schedules, reschedules, and cancels
+appointments using Vapi workflows.
+slug: workflows/examples/appointment-scheduling
+description: >-
+Build a voice AI appointment scheduling workflow with calendar integration,
+availability checking, and automated confirmations using Vapi's workflow
+builder.
+
+---
+
+## Overview
+
+Build an AI-powered appointment scheduling workflow that handles inbound calls for booking, rescheduling, and canceling appointments. The workflow uses visual nodes to create branching logic, integrates with calendar systems, checks availability in real-time, and sends confirmation messages.
+
+**What You'll Build:**
+
+- Visual workflow with branching appointment logic
+- Real-time calendar integration and availability checking
+- Customer database with automated confirmations
+- Global nodes for error handling and validation
+- 24/7 phone booking with conditional routing
+
+## Prerequisites
+
+- A [Vapi account](https://dashboard.vapi.ai/).
+- A Google Calendar account (or other calendar service).
+
+## Scenario
+
+We will be creating an appointment scheduling workflow for Tony's Barbershop, a traditional barbershop that wants to automate their phone booking process with sophisticated branching logic to handle different appointment scenarios.
+
+## Final Workflow
+
+<Frame caption="Complete appointment scheduling workflow with branching logic for booking, rescheduling, and canceling appointments">
+  <img src="file:e84f1b4f-2a29-4af1-a90d-2fce110f12cc" alt="Barbershop appointment scheduling workflow showing conversation nodes, tool integrations, and conditional routing" />
+</Frame>
+
+---
+
+## 1. Create a Knowledge Base
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Download the spreadsheets">
+        <div className="flex gap-2">
+          <Download src="file:e0c2e3e3-0da9-4d59-9526-8dc4f3aa6257">
+            <Button intent="primary">Download services.csv</Button>
+          </Download>
+          <Download src="file:92f44e5d-e064-40b8-9a0f-1747627ee1cb">
+            <Button intent="primary">Download customers.csv</Button>
+          </Download>
+          <Download src="file:7f1c5c5a-bf77-4b3f-8545-e804990e8ec2">
+            <Button intent="primary">Download appointments.csv</Button>
+          </Download>
+        </div>
+      </Step>
+      <Step title="Navigate to the Files section">
+        In your Vapi dashboard, click `Files` in the left sidebar.
+      </Step>
+      <Step title="Upload the spreadsheets">
+        - Click `Choose file`. Upload all three CSV files: `services.csv`, `customers.csv`, and `appointments.csv`.
+        - Note the file IDs. We'll need them later to create tools.
+
+        <video autoPlay loop muted src="file:5aee5201-b29a-4207-962a-615bd9706474" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+    import fs from 'fs';
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    async function uploadAppointmentFiles() {
+      try {
+        // Upload services file
+        const servicesFile = await vapi.files.create({
+          file: fs.createReadStream("services.csv")
+        });
+
+        // Upload customers file
+        const customersFile = await vapi.files.create({
+          file: fs.createReadStream("customers.csv")
+        });
+
+        // Upload appointments file
+        const appointmentsFile = await vapi.files.create({
+          file: fs.createReadStream("appointments.csv")
+        });
+
+        console.log(`Services file ID: ${servicesFile.id}`);
+        console.log(`Customers file ID: ${customersFile.id}`);
+        console.log(`Appointments file ID: ${appointmentsFile.id}`);
+
+        return {
+          servicesFileId: servicesFile.id,
+          customersFileId: customersFile.id,
+          appointmentsFileId: appointmentsFile.id
+        };
+      } catch (error) {
+        console.error('Error uploading files:', error);
+        throw error;
+      }
+    }
+
+    // Upload all files for appointment workflow
+    const fileIds = await uploadAppointmentFiles();
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def upload_appointment_file(file_path):
+        """Upload a CSV file for appointment workflow data"""
+        url = "https://api.vapi.ai/file"
+        headers = {"Authorization": f"Bearer {YOUR_VAPI_API_KEY}"}
+
+        try:
+            with open(file_path, 'rb') as file:
+                files = {'file': file}
+                response = requests.post(url, headers=headers, files=files)
+                response.raise_for_status()
+                return response.json()
+        except requests.exceptions.RequestException as error:
+            print(f"Error uploading {file_path}: {error}")
+            raise
+
+    # Upload all required files for appointment workflow
+    services_file = upload_appointment_file("services.csv")
+    customers_file = upload_appointment_file("customers.csv")
+    appointments_file = upload_appointment_file("appointments.csv")
+
+    print(f"Services file ID: {services_file['id']}")
+    print(f"Customers file ID: {customers_file['id']}")
+    print(f"Appointments file ID: {appointments_file['id']}")
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Upload services.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@services.csv"
+
+    # Upload customers.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@customers.csv"
+
+    # Upload appointments.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@appointments.csv"
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## 2. Create a Workflow
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Open the Vapi Dashboard">
+        Go to [dashboard.vapi.ai](https://dashboard.vapi.ai) and log in to your account.
+      </Step>
+      <Step title="Navigate to the Workflows section">
+        Click `Workflows` in the left sidebar.
+      </Step>
+      <Step title="Create a new workflow">
+        - Click `Create Workflow`.
+        - Enter workflow name: `Barbershop Appointment Workflow`.
+        - Select the default template (includes Call Start node).
+        - Click "Create Workflow".
+      </Step>
+      <Step title="Configure Workflow Settings">
+        - Configure workflow variables for customer data and appointment information
+
+        <video autoPlay loop muted src="file:3d1752a2-0135-44a8-9897-e747188b82b6" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    async function createAppointmentWorkflow() {
+      try {
+        // Create workflow with initial greeting node
+        const workflow = await vapi.workflows.create({
+          name: "Barbershop Appointment Workflow",
+          nodes: [
+            {
+              id: "greeting",
+              type: "conversation",
+              firstMessage: "Hello! Thank you for calling Tony's Barbershop. This is Sarah, your booking assistant. I can help you schedule, reschedule, or cancel appointments. How can I help you today?",
+              systemPrompt: "You are Sarah, the friendly booking assistant for Tony's Barbershop. Listen to the customer's response and determine their intent: schedule, reschedule, cancel, status, or other. Keep responses under 35 words.",
+              extractVariables: [
+                {
+                  name: "intent",
+                  type: "string",
+                  description: "The customer's primary intent",
+                  enum: ["schedule", "reschedule", "cancel", "status", "other"]
+                }
+              ]
+            }
+          ],
+          edges: []
+        });
+
+        console.log(`Workflow created with ID: ${workflow.id}`);
+        return workflow;
+      } catch (error) {
+        console.error('Error creating workflow:', error);
+        throw error;
+      }
+    }
+
+    // Create the appointment workflow
+    const workflow = await createAppointmentWorkflow();
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_appointment_workflow():
+        """Create a new appointment scheduling workflow"""
+        url = "https://api.vapi.ai/workflow"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "name": "Barbershop Appointment Workflow",
+            "nodes": [
+                {
+                    "id": "greeting",
+                    "type": "conversation",
+                    "firstMessage": "Hello! Thank you for calling Tony's Barbershop. This is Sarah, your booking assistant. I can help you schedule, reschedule, or cancel appointments. How can I help you today?",
+                    "systemPrompt": "You are Sarah, the friendly booking assistant for Tony's Barbershop. Listen to the customer's response and determine their intent: schedule, reschedule, cancel, status, or other. Keep responses under 35 words.",
+                    "extractVariables": [
+                        {
+                            "name": "intent",
+                            "type": "string",
+                            "description": "The customer's primary intent",
+                            "enum": ["schedule", "reschedule", "cancel", "status", "other"]
+                        }
+                    ]
+                }
+            ],
+            "edges": []
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as error:
+            print(f"Error creating workflow: {error}")
+            raise
+
+    # Create the appointment workflow
+    workflow = create_appointment_workflow()
+    print(f"Workflow created with ID: {workflow['id']}")
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://api.vapi.ai/workflow \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "Barbershop Appointment Workflow",
+           "nodes": [
+             {
+               "id": "greeting",
+               "type": "conversation",
+               "firstMessage": "Hello! Thank you for calling Tony'\''s Barbershop. This is Sarah, your booking assistant. I can help you schedule, reschedule, or cancel appointments. How can I help you today?",
+               "systemPrompt": "You are Sarah, the friendly booking assistant for Tony'\''s Barbershop. Listen to the customer'\''s response and determine their intent: schedule, reschedule, cancel, status, or other. Keep responses under 35 words.",
+               "extractVariables": [
+                 {
+                   "name": "intent",
+                   "type": "string",
+                   "description": "The customer'\''s primary intent",
+                   "enum": ["schedule", "reschedule", "cancel", "status", "other"]
+                 }
+               ]
+             }
+           ],
+           "edges": []
+         }'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## 3. Build the Workflow
+
+You'll start with a default template that includes a "Call Start" node. We'll modify the existing nodes and add new ones to create our appointment scheduling workflow.
+
+<Steps>
+  <Step title="Configure the Initial Conversation Node">
+    The default template includes a conversation node. Click on it and configure:
+    
+    ```txt title="First Message"
+    Hello! Thank you for calling Tony's Barbershop. This is Sarah, your booking assistant. I can help you schedule, reschedule, or cancel appointments. How can I help you today?
+    ```
+    
+    ```txt title="Prompt"
+    You are Sarah, the friendly booking assistant for Tony's Barbershop.
+
+    Listen to the customer's response and determine their intent:
+    - "schedule" for new appointments
+    - "reschedule" for changing existing appointments
+    - "cancel" for canceling appointments
+    - "status" for checking appointment details
+    - "other" for anything else
+
+    Keep responses under 35 words. Ask clarifying questions if intent is unclear.
+    ```
+
+    **Extract Variables**:
+    - Variable: `intent`
+    - Type: `String`
+    - Description: `The customer's primary intent`
+    - Enum Values: `schedule`, `reschedule`, `cancel`, `status`, `other`
+
+  </Step>
+
+  <Step title="Add Customer Verification Node">
+    Click the + button below the greeting node and add a new **Conversation** node:
+    
+    ```txt title="Condition"
+    Intent identified
+    ```
+
+    ```txt title="First Message"
+    Now I need to verify your information. Can you please provide your phone number or full name so I can look up your account?
+    ```
+
+    ```txt title="Prompt"
+    You are collecting customer identification information to look them up in the system.
+
+    If they provide a phone number, extract it in a clean format (numbers only).
+    If they provide a name, extract their full name.
+    Be friendly and reassuring about privacy. Keep responses under 25 words.
+    ```
+
+    **Extract Variables**:
+    - Variable: `phone_number`
+    - Type: `String`
+    - Description: `Customer's phone number if provided`
+    <br />
+    - Variable: `customer_name`
+    - Type: `String`
+    - Description: `Customer's full name if provided`
+
+  </Step>
+
+  <Step title="Add Customer Lookup Tool Node">
+    Add a **Tool** node:
+    
+    ```txt title="Condition"
+    Customer information collected
+    ```
+    
+    **Select Tool**: Choose your pre-configured customer lookup tool from the dropdown. This tool will use the extracted `phone_number` and `customer_name` variables to find the customer in your database.
+  </Step>
+
+  <Step title="Add Intent Routing Logic">
+    Create branching paths based on the customer's intent. Add multiple conversation nodes:
+
+    **Schedule New Appointment Node**:
+
+    ```txt title="Condition"
+    Customer verified and intent is schedule
+    ```
+
+    ```txt title="First Message"
+    Great! I can help you schedule a new appointment. What type of service would you like? We offer haircuts, beard trims, shampoo and styling, and full grooming packages.
+    ```
+
+    ```txt title="Prompt"
+    You are helping the customer schedule a new appointment.
+
+    Listen for the service they want and any preferred dates/times they mention.
+    Be enthusiastic and helpful. Keep responses under 30 words.
+    If they're unsure about services, briefly describe each option.
+    ```
+
+    **Reschedule Appointment Node**:
+
+    ```txt title="Condition"
+    Customer verified and intent is reschedule
+    ```
+
+    ```txt title="First Message"
+    I can help you reschedule your appointment. Let me first look up your current booking details.
+    ```
+
+    ```txt title="Prompt"
+    You are helping the customer reschedule an existing appointment.
+
+    Be understanding and accommodating. Look up their current appointment first.
+    Keep responses under 25 words while being empathetic.
+    ```
+
+    **Cancel Appointment Node**:
+
+    ```txt title="Condition"
+    Customer verified and intent is cancel
+    ```
+
+    ```txt title="First Message"
+    I can help you cancel your appointment. Let me look up your current booking to confirm the details.
+    ```
+
+    ```txt title="Prompt"
+    You are helping the customer cancel their appointment.
+
+    Be understanding and offer to reschedule instead if appropriate.
+    Confirm cancellation details before proceeding. Keep responses under 25 words.
+    ```
+
+  </Step>
+
+  <Step title="Add Global Error Handling Node">
+    Create a global conversation node that checks for errors after every step:
+    
+    ```txt title="Condition"
+    Customer confused or error detected
+    ```
+    
+    ```txt title="First Message"
+    I apologize for any confusion. Let me transfer you to one of our human staff members who can better assist you. Please hold for just a moment.
+    ```
+    
+    ```txt title="Prompt"
+    You are handling an error or confused customer situation.
+    
+    Be apologetic and professional. Prepare them for transfer to human staff.
+    Keep the message brief and reassuring.
+    ```
+    
+    This global node will activate whenever there's an error or the customer becomes frustrated, regardless of where they are in the workflow.
+  </Step>
+
+  <Step title="Add Availability Checking Flow">
+    For the schedule appointment flow, add these nodes:
+
+    **Service Selection Node** (Conversation):
+
+    ```txt title="Condition"
+    Service type mentioned or requested
+    ```
+
+    ```txt title="First Message"
+    Perfect! And when would you prefer to come in? What date and time work best for you?
+    ```
+
+    ```txt title="Prompt"
+    You are collecting appointment preferences for scheduling.
+
+    Listen for specific dates, times, or general preferences like "morning" or "next week".
+    Be flexible and offer to check availability. Keep responses under 25 words.
+    ```
+
+    **Extract Variables**:
+    - Variable: `service_type`
+    - Type: `String`
+    - Description: `Type of service requested`
+    <br />
+    - Variable: `preferred_date`
+    - Type: `String`
+    - Description: `Customer's preferred date`
+    <br />
+    - Variable: `preferred_time`
+    - Type: `String`
+    - Description: `Customer's preferred time`
+
+    **Availability Check Tool Node**:
+
+    ```txt title="Condition"
+    Preferences collected
+    ```
+
+    **Select Tool**: Choose "Check Availability" from the pre-defined calendar tools
+    - This will automatically check available slots based on the extracted preferences
+
+    **Availability Results Node** (Conversation):
+
+    ```txt title="Condition"
+    Availability checked
+    ```
+
+    ```txt title="First Message"
+    Based on your preferences, here are the available time slots. Which one works best for you?
+    ```
+
+    ```txt title="Prompt"
+    You are presenting available appointment times to the customer.
+
+    Present 2-3 options clearly with dates and times.
+    If their preferred time isn't available, offer the closest alternatives.
+    Be helpful and accommodating. Keep responses under 35 words.
+    ```
+
+  </Step>
+
+  <Step title="Add Confirmation and Booking Flow">
+    **Booking Confirmation Node** (Conversation):
+    
+    ```txt title="Condition"
+    Time slot selected
+    ```
+    
+    ```txt title="First Message"
+    Perfect! Let me confirm your appointment details: [service] on [date] at [time]. Is this correct?
+    ```
+    
+    ```txt title="Prompt"
+    You are confirming appointment details before booking.
+    
+    Read back the service type, date, and time clearly.
+    Wait for their confirmation before proceeding.
+    Be thorough but concise. Keep responses under 30 words.
+    ```
+    
+    **Extract Variables**: 
+    - Variable: `confirmation_status`
+    - Type: `String`
+    - Description: `Whether customer confirms the appointment details`
+
+    **Create Appointment Tool Node**:
+
+    ```txt title="Condition"
+    Appointment details confirmed
+    ```
+
+    **Select Tool**: Choose "Schedule Event" from the pre-defined calendar tools
+    - This will book the appointment in your calendar system
+
+    **Send Confirmation Node** (Tool):
+
+    ```txt title="Condition"
+    Appointment created successfully
+    ```
+
+    **Select Tool**: Choose your pre-configured SMS/email confirmation tool
+
+    **Completion Node** (Conversation):
+
+    ```txt title="Condition"
+    Confirmation sent
+    ```
+
+    ```txt title="First Message"
+    Great! Your appointment is confirmed. You'll receive a confirmation message shortly. Is there anything else I can help you with today?
+    ```
+
+    ```txt title="Prompt"
+    You are wrapping up a successful appointment booking.
+
+    Be friendly and offer additional assistance.
+    If they say no, prepare to end the call politely.
+    Keep responses under 25 words.
+    ```
+
+  </Step>
+
+  <Step title="Add Transfer and Hangup Options">
+    **Transfer to Human Node**:
+    
+    ```txt title="Condition"
+    Customer requests human assistance
+    ```
+    
+    **Node Type**: `Transfer Call`
+    **Phone to transfer to**: `+1-555-BARBER-1` (your barbershop number)
+
+    **End Call Node**:
+
+    ```txt title="Condition"
+    Customer satisfied and no further assistance needed
+    ```
+
+    **Node Type**: `End Call`
+    **First Message**: `Thank you for calling Tony's Barbershop. Have a great day!`
+    - Use when customer is satisfied and no further assistance needed
+
+  </Step>
+</Steps>
+
+## 4. Configure Phone Number
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Navigate to Phone Numbers">
+        Click `Phone Numbers` in the left sidebar of your dashboard.
+      </Step>
+      <Step title="Create or Import Phone Number">
+        - Click `Create Phone Number` for a new Vapi number, or
+        - Click `Import Phone Number` to use your existing number from Twilio/Telnyx
+      </Step>
+      <Step title="Configure Inbound Settings">
+        **Workflow**: Select your `Barbershop Appointment Workflow`
+        
+        **Advanced Settings**:
+        - Enable call recording for quality assurance
+        - Set maximum call duration (e.g., 15 minutes)
+        - Configure voicemail detection if needed
+      </Step>
+      <Step title="Test Your Phone Number">
+        Call your Vapi phone number to test the complete workflow:
+        - Test different appointment scenarios
+        - Verify branching logic works correctly
+        - Ensure global nodes trigger appropriately
+        - Test error handling and recovery flows
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    async function createAppointmentPhoneNumber(workflowId: string) {
+      try {
+        // Create phone number for appointment workflow
+        const phoneNumber = await vapi.phoneNumbers.create({
+          name: "Barbershop Booking Line",
+          workflowId: workflowId,
+          inboundSettings: {
+            maxCallDurationMinutes: 15,
+            recordingEnabled: true,
+            voicemailDetectionEnabled: true
+          }
+        });
+
+        console.log(`Appointment phone number created: ${phoneNumber.number}`);
+        return phoneNumber;
+      } catch (error) {
+        console.error('Error creating phone number:', error);
+        throw error;
+      }
+    }
+
+    async function testAppointmentWorkflow(workflowId: string, testNumber: string) {
+      try {
+        // Test the appointment workflow with an outbound call
+        const call = await vapi.calls.create({
+          workflowId: workflowId,
+          customer: {
+            number: testNumber
+          }
+        });
+
+        console.log(`Appointment workflow test call created: ${call.id}`);
+        return call;
+      } catch (error) {
+        console.error('Error testing workflow:', error);
+        throw error;
+      }
+    }
+
+    // Create phone number and test workflow
+    const phoneNumber = await createAppointmentPhoneNumber('YOUR_WORKFLOW_ID');
+    const testCall = await testAppointmentWorkflow('YOUR_WORKFLOW_ID', '+1234567890');
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_appointment_phone_number(workflow_id):
+        """Create phone number for appointment workflow"""
+        url = "https://api.vapi.ai/phone-number"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "name": "Barbershop Booking Line",
+            "workflowId": workflow_id,
+            "inboundSettings": {
+                "maxCallDurationMinutes": 15,
+                "recordingEnabled": True,
+                "voicemailDetectionEnabled": True
+            }
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as error:
+            print(f"Error creating phone number: {error}")
+            raise
+
+    def test_appointment_workflow(workflow_id, test_number):
+        """Test appointment workflow with outbound call"""
+        url = "https://api.vapi.ai/call"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "workflowId": workflow_id,
+            "customer": {
+                "number": test_number
+            }
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as error:
+            print(f"Error testing workflow: {error}")
+            raise
+
+    # Create phone number and test
+    phone_number = create_appointment_phone_number('YOUR_WORKFLOW_ID')
+    test_call = test_appointment_workflow('YOUR_WORKFLOW_ID', '+1234567890')
+
+    print(f"Phone number: {phone_number['number']}")
+    print(f"Test call ID: {test_call['id']}")
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Create phone number with workflow
+    curl -X POST https://api.vapi.ai/phone-number \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "Barbershop Booking Line",
+           "workflowId": "YOUR_WORKFLOW_ID",
+           "inboundSettings": {
+             "maxCallDurationMinutes": 15,
+             "recordingEnabled": true,
+             "voicemailDetectionEnabled": true
+           }
+         }'
+
+    # Test the workflow with an outbound call
+    curl -X POST https://api.vapi.ai/call \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "workflowId": "YOUR_WORKFLOW_ID",
+           "customer": {
+             "number": "+1234567890"
+           }
+         }'
+    ```
+
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+Just like that, you've built an automated appointment scheduling workflow that can handle inbound calls, manage bookings, and provide 24/7 availability for your barbershop.
+
+Consider reading the following guides to further enhance your workflow:
+
+- [**Custom Tools**](/tools/custom-tools) - Create custom tools for calendar integration and customer management.
+- [**Voice Formatting Plan**](/assistants/voice-formatting-plan) - Configure speech formatting for clear appointment communication.
+- [**Dynamic Variables**](/assistants/dynamic-variables) - Use variables to personalize appointment confirmations.
+
+---
+
+title: Lead qualification workflow
+subtitle: >-
+Build an AI sales workflow that qualifies leads and schedules appointments
+using Vapi workflows.
+slug: workflows/examples/lead-qualification
+description: >-
+Build a voice AI outbound sales workflow with lead qualification, CRM
+integration, and automated follow-up using Vapi's visual workflow builder.
+
+---
+
+## Overview
+
+Build an AI-powered outbound sales workflow that qualifies leads, handles objections, and schedules appointments using Vapi workflows with sophisticated branching logic and CRM integration.
+
+**What You'll Build:**
+
+- Lead qualification with BANT scoring and conditional routing
+- Objection handling with global nodes and sentiment analysis
+- Appointment scheduling with calendar integration
+- CRM updates with automated follow-up sequences
+
+## Prerequisites
+
+- A [Vapi account](https://dashboard.vapi.ai/).
+- A CRM system or customer database.
+- A calendar system for appointment scheduling.
+
+## Scenario
+
+We will be creating an outbound sales workflow for TechFlow Solutions, a B2B software company that wants to automate their lead qualification process with sophisticated branching logic to handle different prospect scenarios and increase appointment booking rates.
+
+## Final Workflow
+
+<Frame caption="Complete outbound sales qualification workflow with lead scoring, objection handling, and automated CRM integration">
+  <img src="file:5d9234d5-c257-4f2b-99a4-f7de9dcf630a" alt="Sales qualification workflow showing lead lookup, permission-based routing, BANT qualification, demo scheduling, and CRM updates" />
+</Frame>
+
+---
+
+## 1. Create a Knowledge Base
+
+<Steps>
+  <Step title="Download the spreadsheets">
+    <div className="flex gap-2">
+      <Download src="file:5e76173b-9861-4314-9b7f-ca8fd3a15af1">
+        <Button intent="primary">Download leads.csv</Button>
+      </Download>
+      <Download src="file:717e0039-2a35-411b-9b42-1322803ed681">
+        <Button intent="primary">Download products.csv</Button>
+      </Download>
+      <Download src="file:49b4b63e-3fad-4b65-a08b-c7b5e12c49d5">
+        <Button intent="primary">Download call_outcomes.csv</Button>
+      </Download>
+    </div>
+  </Step>
+  <Step title="Navigate to the Files section">
+    In your Vapi dashboard, click `Files` in the left sidebar.
+  </Step>
+  <Step title="Upload the spreadsheets">
+    - Click `Choose file`. Upload all three CSV files: `leads.csv`, `products.csv`, and `call_outcomes.csv`.
+    - Note the file IDs. We'll need them later to create tools.
+  </Step>
+</Steps>
+
+<video autoPlay loop muted src="file:5aee5201-b29a-4207-962a-615bd9706474" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+
+---
+
+## 2. Create Required Tools
+
+Before building the workflow, create the necessary tools in your dashboard:
+
+<Steps>
+  <Step title="Navigate to Tools">
+    In your Vapi dashboard, click `Tools` in the left sidebar.
+  </Step>
+  <Step title="Create Lead Lookup Tool">
+    Click `Create Tool` and configure:
+    - **Tool Name**: "Lead Lookup"
+    - **Tool Type**: "Function"
+    - **Function Name**: `lookup_lead`
+    - **Description**: "Retrieve lead information and call history"
+    - **Parameters**:
+      - `lead_id` (string): Lead ID to lookup
+    - **Server URL**: `https://jsonplaceholder.typicode.com/users`
+    
+    <Note>
+      This example uses JSONPlaceholder for demonstration. In production, replace with your CRM API (Salesforce, HubSpot, etc.).
+    </Note>
+  </Step>
+  <Step title="Create Lead Scoring Tool">
+    Create another tool:
+    - **Tool Name**: "Lead Scoring"
+    - **Function Name**: `score_lead`
+    - **Description**: "Score leads based on qualification responses"
+    - **Parameters**:
+      - `budget` (string): Budget information
+      - `authority` (string): Decision-making authority
+      - `need` (string): Business need assessment
+      - `timeline` (string): Purchase timeline
+    - **Server URL**: `https://jsonplaceholder.typicode.com/posts`
+    
+    <Note>
+      This example uses JSONPlaceholder for demonstration. Replace with your lead scoring system in production.
+    </Note>
+  </Step>
+  <Step title="Create CRM Update Tool">
+    Create a third tool:
+    - **Tool Name**: "CRM Update"
+    - **Function Name**: `update_crm`
+    - **Description**: "Update CRM with call outcomes and next steps"
+    - **Parameters**:
+      - `lead_id` (string): Lead identifier
+      - `call_outcome` (string): Result of the call
+      - `next_steps` (string): Planned follow-up actions
+    - **Server URL**: `https://jsonplaceholder.typicode.com/posts`
+    
+    <Note>
+      This example uses JSONPlaceholder for demonstration. In production, integrate with your CRM system.
+    </Note>
+  </Step>
+</Steps>
+
+---
+
+## 3. Create a Workflow
+
+<Steps>
+  <Step title="Open the Vapi Dashboard">
+    Go to [dashboard.vapi.ai](https://dashboard.vapi.ai) and log in to your account.
+  </Step>
+  <Step title="Navigate to the Workflows section">
+    Click `Workflows` in the left sidebar.
+  </Step>
+  <Step title="Create a new workflow">
+    - Click `Create Workflow`.
+    - Enter workflow name: `TechFlow Sales Qualification Workflow`.
+    - Select the default template (includes Call Start node).
+    - Click `Create Workflow`.
+  </Step>
+</Steps>
+
+<video autoPlay loop muted src="file:3d1752a2-0135-44a8-9897-e747188b82b6" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+
+---
+
+## 4. Build the Workflow
+
+You'll start with a default template that includes a "Call Start" node. We'll modify the existing nodes and add new ones to create our outbound sales workflow.
+
+<Steps>
+  <Step title="Configure the Initial Conversation Node">
+    The default template includes a conversation node. Click on it and configure:
+    
+    **Node Name**: `opening_and_permission`
+    
+    ```txt title="First Message"
+    Hi, this is Alex calling from TechFlow Solutions. I hope I'm catching you at a good time. I'm reaching out because I noticed your company might benefit from our workflow automation platform. Do you have just 2 minutes to chat?
+    ```
+    
+    ```txt title="Prompt"
+    You are Alex, a professional outbound sales representative for TechFlow Solutions.
+
+    Listen for their response and determine:
+    - "permission_granted" if they agree to talk
+    - "busy_reschedule" if they're busy but open to rescheduling
+    - "not_interested" if they decline
+    - "gatekeeper" if you're speaking to someone who isn't the decision maker
+
+    Keep responses under 30 words and be respectful of their time.
+    ```
+
+    **Extract Variables**:
+    - Variable: `permission_status`
+    - Type: `String`
+    - Description: `The prospect's response to the initial request`
+    - Enum Values: `permission_granted`, `busy_reschedule`, `not_interested`, `gatekeeper`
+
+  </Step>
+
+  <Step title="Add Lead Lookup Tool Node">
+    Add a **Tool** node that runs before the opening:
+    
+    ```txt title="Condition"
+    Call initiated
+    ```
+    
+    **Tool**: Select your pre-configured "Lead Lookup" tool from the dropdown. This tool should be created in the **Tools** section of your dashboard with:
+    - **Function Name**: `lookup_lead`
+    - **Description**: "Retrieve lead information and call history"
+    - **Parameters**: 
+      - `lead_id` (string): Lead ID to lookup
+    - **Server URL**: `https://jsonplaceholder.typicode.com/users`
+  </Step>
+
+  <Step title="Add Permission-Based Routing">
+    Create branching paths based on the prospect's response. Add multiple conversation nodes:
+
+    **Discovery Questions Node**:
+
+    ```txt title="Condition"
+    Permission granted to continue conversation
+    ```
+
+    **Node Name**: `discovery_questions`
+
+    ```txt title="First Message"
+    Great! I appreciate your time. To better understand how we might help, can you tell me about your current workflow challenges? Specifically, what manual processes are taking up most of your team's time?
+    ```
+
+    ```txt title="Prompt"
+    You are conducting discovery to understand their business challenges.
+
+    Ask open-ended questions about their pain points and workflows.
+    Listen for automation opportunities and budget indicators.
+    Keep responses under 35 words and be genuinely curious.
+    ```
+
+    **Reschedule Node**:
+
+    ```txt title="Condition"
+    Prospect is busy but willing to reschedule
+    ```
+
+    **Node Name**: `schedule_callback`
+
+    ```txt title="First Message"
+    I completely understand. When would be a better time for a quick 5-minute conversation? I have availability tomorrow morning or afternoon.
+    ```
+
+    ```txt title="Prompt"
+    You are scheduling a callback with a busy prospect.
+
+    Be flexible with their schedule and offer specific time options.
+    Confirm the callback time and set a reminder.
+    Keep responses under 25 words.
+    ```
+
+    **Objection Handling Node**:
+
+    ```txt title="Condition"
+    Prospect shows initial resistance or not interested
+    ```
+
+    **Node Name**: `handle_initial_objection`
+
+    ```txt title="First Message"
+    I understand you might not be looking for new solutions right now. Can I ask what you're currently using for workflow automation? I might have some insights that could be valuable.
+    ```
+
+    ```txt title="Prompt"
+    You are handling initial objections with curiosity and value.
+
+    Don't be pushy. Ask questions to understand their current situation.
+    Offer insights rather than pushing for a sale.
+    Keep responses under 30 words.
+    ```
+
+    **Gatekeeper Node**:
+
+    ```txt title="Condition"
+    Speaking with gatekeeper or non-decision maker
+    ```
+
+    **Node Name**: `gatekeeper_routing`
+
+    ```txt title="First Message"
+    I appreciate you taking the call. I'm looking to speak with whoever handles software decisions or operations. Would that be you, or could you point me in the right direction?
+    ```
+
+    ```txt title="Prompt"
+    You are working with a gatekeeper to reach the decision maker.
+
+    Be respectful and professional. Get the right contact or decision maker.
+    Build rapport with the gatekeeper as they can help or hinder.
+    Keep responses under 30 words.
+    ```
+
+  </Step>
+
+  <Step title="Configure Flow Conditions">
+    Connect the nodes with conditions for the LLM to interpret:
+
+    **To Discovery Questions Node**:
+    - Condition: `Permission granted to continue conversation`
+
+    **To Reschedule Node**:
+    - Condition: `Prospect is busy but willing to reschedule`
+
+    **To Objection Handling Node**:
+    - Condition: `Prospect shows initial resistance or not interested`
+
+    **To Gatekeeper Node**:
+    - Condition: `Speaking with gatekeeper or non-decision maker`
+
+  </Step>
+
+  <Step title="Add Global Objection Handler">
+    Create a global node that handles objections throughout the call:
+    
+    ```txt title="Condition"
+    Objection detected or negative sentiment
+    ```
+    
+    **Node Name**: `objection_handler`
+    **Global Node**: `enabled = true`
+    **Enter Condition**: `{{ objection_detected == true or negative_sentiment == true }}`
+    
+    ```txt title="First Message"
+    I hear your concern, and that's completely valid. Many of our clients had similar thoughts initially. Let me address that specific point and see if we can find a solution that makes sense for your situation.
+    ```
+    
+    ```txt title="Prompt"
+    You are handling an objection with empathy and understanding.
+    
+    Acknowledge their concern as valid. Use social proof.
+    Address the specific objection with relevant information.
+    Keep responses under 35 words.
+    ```
+    
+    This global node will activate whenever an objection is detected, regardless of where they are in the sales conversation.
+  </Step>
+
+  <Step title="Add Qualification Flow">
+    For prospects who engage, add these qualification nodes:
+
+    **BANT Qualification Node**:
+
+    ```txt title="Condition"
+    Prospect engaged and willing to discuss needs
+    ```
+
+    **Node Name**: `bant_qualification`
+
+    ```txt title="First Message"
+    That's helpful context. To better understand if we're a fit, can you tell me about your budget range for workflow automation tools? Also, who typically makes software purchasing decisions at your company?
+    ```
+
+    ```txt title="Prompt"
+    You are qualifying the prospect using BANT criteria (Budget, Authority, Need, Timeline).
+
+    Ask about budget, decision-making process, specific needs, and timeline.
+    Be natural - don't make it feel like an interrogation.
+    Keep responses under 35 words.
+    ```
+
+    **Extract Variables**:
+    - Variable: `budget_range`
+    - Type: `String`
+    - Description: `Budget information provided`
+    <br />
+    - Variable: `decision_authority`
+    - Type: `String`
+    - Description: `Decision-making authority level`
+    <br />
+    - Variable: `timeline`
+    - Type: `String`
+    - Description: `Purchase timeline or urgency`
+
+    **Lead Scoring Tool Node**:
+
+    ```txt title="Condition"
+    BANT qualification completed
+    ```
+
+    - Add a **Tool** node that calls lead scoring API based on qualification responses
+
+    **Qualification Results Node**:
+
+    ```txt title="Condition"
+    Lead score calculated
+    ```
+
+    **Node Name**: `route_by_score`
+
+    ```txt title="First Message"
+    Based on what you've shared, it sounds like there could be a great fit here. Let me show you how we've helped similar companies in your industry.
+    ```
+
+    ```txt title="Prompt"
+    You are routing the conversation based on lead qualification score.
+
+    High scores get immediate demo offers.
+    Medium scores get value proposition and nurturing.
+    Low scores get educational content and future follow-up.
+    Keep responses under 30 words.
+    ```
+
+    - Route based on lead score (hot, warm, cold)
+
+  </Step>
+
+  <Step title="Add Value Proposition Flow">
+    **Industry-Specific Pitch Node**:
+    
+    ```txt title="Condition"
+    Qualified prospect ready for value proposition
+    ```
+    
+    **Node Name**: `tailored_pitch`
+    
+    ```txt title="First Message"
+    Given your challenges with [specific pain point], let me share how we helped [similar company] reduce their manual processes by 60% and save 15 hours per week.
+    ```
+    
+    ```txt title="Prompt"
+    You are presenting a tailored value proposition based on their specific situation.
+    
+    Use relevant case studies and specific benefits.
+    Connect features to their stated pain points.
+    Keep responses under 40 words.
+    ```
+    
+    - Present value proposition based on their industry and pain points
+
+    **ROI Demonstration Node**:
+
+    ```txt title="Condition"
+    Interest shown in value proposition
+    ```
+
+    **Node Name**: `show_roi`
+
+    ```txt title="First Message"
+    Here's what that looks like in real numbers: if your team spends 20 hours a week on manual processes, our platform could save you $50,000 annually in productivity gains.
+    ```
+
+    ```txt title="Prompt"
+    You are demonstrating concrete ROI with specific numbers.
+
+    Use their company size and situation to calculate relevant savings.
+    Make the ROI tangible and compelling.
+    Keep responses under 35 words.
+    ```
+
+    - Provide specific ROI examples and case studies
+
+    **Demo Offer Node**:
+
+    ```txt title="Condition"
+    Strong interest and ROI demonstrated
+    ```
+
+    **Node Name**: `offer_demo`
+
+    ```txt title="First Message"
+    I'd love to show you exactly how this would work for your specific workflow. Could we schedule a 15-minute demo where I can walk you through a custom setup for your team?
+    ```
+
+    ```txt title="Prompt"
+    You are proposing a product demonstration meeting.
+
+    Make the demo offer specific and time-bounded.
+    Emphasize the custom/personalized aspect.
+    Be confident but not pushy. Keep responses under 30 words.
+    ```
+
+    - Propose a product demonstration meeting
+
+  </Step>
+
+  <Step title="Add Appointment Scheduling Flow">
+    **Calendar Check Tool Node**:
+    
+    ```txt title="Condition"
+    Demo requested and prospect interested
+    ```
+    
+    - Add a **Tool** node that checks sales team calendar for available demo slots
+
+    **Appointment Confirmation Node**:
+
+    ```txt title="Condition"
+    Demo slot available
+    ```
+
+    **Node Name**: `confirm_appointment`
+
+    ```txt title="First Message"
+    Perfect! I have availability for a demo on [date] at [time]. I'll send you a calendar invite with a Zoom link. Should I include anyone else from your team?
+    ```
+
+    ```txt title="Prompt"
+    You are confirming the demo appointment details.
+
+    Confirm date, time, and attendees. Offer to include other stakeholders.
+    Set expectations for what they'll see in the demo.
+    Keep responses under 35 words.
+    ```
+
+    - Confirm meeting details and send calendar invite
+
+    **CRM Update Tool Node**:
+
+    ```txt title="Condition"
+    Appointment confirmed
+    ```
+
+    - Add a **Tool** node that records call outcome and next steps in CRM
+
+  </Step>
+
+  <Step title="Add Transfer and Follow-up Options">
+    **Transfer to Sales Rep Node**:
+    
+    ```txt title="Condition"
+    High-value prospect requests immediate consultation
+    ```
+    
+    **Node Type**: `Transfer`
+    **Destination**: `+1-555-SALES-1` (your sales team number)
+
+    **Schedule Follow-up Node**:
+
+    ```txt title="Condition"
+    Prospect interested but not ready for demo
+    ```
+
+    **Node Name**: `schedule_followup`
+
+    ```txt title="First Message"
+    I understand you need some time to think it over. When would be a good time for me to follow up? I can also send you some relevant case studies in the meantime.
+    ```
+
+    ```txt title="Prompt"
+    You are scheduling a follow-up call for future nurturing.
+
+    Be patient and respectful of their timeline.
+    Offer valuable content to keep them engaged.
+    Keep responses under 30 words.
+    ```
+
+    - Set automated follow-up call for future date
+
+    **End Call Node**:
+
+    ```txt title="Condition"
+    Prospect not qualified or requests no further contact
+    ```
+
+    **Node Type**: `Hangup`
+    - Use when prospect is not qualified or requests no further contact
+
+  </Step>
+</Steps>
+
+## Integrating with Real Systems
+
+This example uses JSONPlaceholder for demonstration purposes. To integrate with your actual sales systems:
+
+### CRM Platform Integration
+
+- **Salesforce**: Use the [Salesforce REST API](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/)
+- **HubSpot**: Use the [HubSpot API](https://developers.hubspot.com/docs/api/overview)
+- **Pipedrive**: Use the [Pipedrive API](https://developers.pipedrive.com/docs/api/v1)
+
+### Calendar Integration
+
+- **Google Calendar**: [Google Calendar API](https://developers.google.com/calendar/api)
+- **Microsoft Outlook**: [Microsoft Graph API](https://docs.microsoft.com/en-us/graph/api/resources/calendar)
+- **Calendly**: [Calendly API](https://developer.calendly.com/)
+
+### Communication Tools
+
+- **Twilio**: [Twilio API](https://www.twilio.com/docs/usage/api) for SMS and voice
+- **SendGrid**: [SendGrid API](https://docs.sendgrid.com/api-reference) for email
+- **Slack**: [Slack API](https://api.slack.com/) for team notifications
+
+## Next Steps
+
+Just like that, you've built an outbound sales qualification workflow that can handle lead qualification, objection handling, and appointment scheduling with automated CRM integration.
+
+Consider reading the following guides to further enhance your workflow:
+
+- [**Custom Tools**](/tools/custom-tools) - Create custom tools for CRM integration and lead management.
+- [**Voice Formatting Plan**](/assistants/voice-formatting-plan) - Configure speech patterns for professional sales conversations.
+- [**Call Analysis**](/assistants/call-analysis) - Analyze call performance and optimize sales conversations.
+
+---
+
+title: Clinic triage and scheduling workflow
+subtitle: >-
+Build an AI medical workflow that handles patient triage, scheduling, and
+emergency routing using Vapi workflows.
+slug: workflows/examples/clinic-triage-scheduling
+description: >-
+Build a voice AI clinic workflow with medical triage protocols, appointment
+booking, and emergency routing using Vapi's visual workflow builder.
+
+---
+
+## Overview
+
+Build an AI-powered clinic receptionist workflow that handles patient triage, appointment scheduling, and emergency routing using Vapi workflows with medical protocol compliance and safety monitoring.
+
+**What You'll Build:**
+
+- Medical triage assessment with symptom-based routing
+- Emergency detection with global safety protocols
+- Provider scheduling with urgency prioritization
+- Prescription refill processing with safety checks
+
+## Prerequisites
+
+- A [Vapi account](https://dashboard.vapi.ai/).
+- Medical triage protocols and guidelines.
+- Healthcare provider scheduling system.
+
+## Scenario
+
+We will be creating a triage and scheduling workflow for Riverside Family Clinic, a primary care practice that wants to improve patient access while ensuring appropriate care routing and emergency response through sophisticated workflow automation.
+
+## Final Workflow
+
+<Frame caption="Complete medical triage and scheduling workflow with emergency detection, symptom assessment, and clinical routing">
+  <img src="file:658f8c1b-cbac-4214-bd20-1a7240f62061" alt="Clinic triage workflow showing patient verification, medical assessment nodes, emergency routing, and appointment scheduling" />
+</Frame>
+
+---
+
+## 1. Create a Knowledge Base
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Download the spreadsheets">
+        <div className="flex gap-2">
+          <Download src="file:2ce09745-1992-43f9-aa22-b1a84832cce6">
+            <Button intent="primary">Download patients.csv</Button>
+          </Download>
+          <Download src="file:91c27120-1958-40c7-89e5-3ece39dfb493">
+            <Button intent="primary">Download providers.csv</Button>
+          </Download>
+          <Download src="file:734cdd06-a115-41cc-93bf-73befb571248">
+            <Button intent="primary">Download triage_protocols.csv</Button>
+          </Download>
+          <Download src="file:605fa646-df4c-4dd8-b340-0ffa36d206f1">
+            <Button intent="primary">Download appointments.csv</Button>
+          </Download>
+        </div>
+      </Step>
+      <Step title="Navigate to the Files section">
+        In your Vapi dashboard, click `Files` in the left sidebar.
+      </Step>
+      <Step title="Upload the spreadsheets">
+        - Click `Choose file`. Upload all four CSV files: `patients.csv`, `providers.csv`, `triage_protocols.csv`, and `appointments.csv`.
+        - Note the file IDs. We'll need them later to create tools.
+
+        <video autoPlay loop muted src="file:5aee5201-b29a-4207-962a-615bd9706474" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+    import fs from 'fs';
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    async function uploadClinicFiles() {
+      try {
+        // Upload patients file
+        const patientsFile = await vapi.files.create({
+          file: fs.createReadStream("patients.csv")
+        });
+
+        // Upload providers file
+        const providersFile = await vapi.files.create({
+          file: fs.createReadStream("providers.csv")
+        });
+
+        // Upload triage protocols file
+        const triageProtocolsFile = await vapi.files.create({
+          file: fs.createReadStream("triage_protocols.csv")
+        });
+
+        // Upload appointments file
+        const appointmentsFile = await vapi.files.create({
+          file: fs.createReadStream("appointments.csv")
+        });
+
+        console.log(`Patients file ID: ${patientsFile.id}`);
+        console.log(`Providers file ID: ${providersFile.id}`);
+        console.log(`Triage protocols file ID: ${triageProtocolsFile.id}`);
+        console.log(`Appointments file ID: ${appointmentsFile.id}`);
+
+        return {
+          patientsFileId: patientsFile.id,
+          providersFileId: providersFile.id,
+          triageProtocolsFileId: triageProtocolsFile.id,
+          appointmentsFileId: appointmentsFile.id
+        };
+      } catch (error) {
+        console.error('Error uploading clinic files:', error);
+        throw error;
+      }
+    }
+
+    // Upload all files for clinic workflow
+    const fileIds = await uploadClinicFiles();
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def upload_clinic_file(file_path):
+        """Upload a CSV file for clinic workflow data"""
+        url = "https://api.vapi.ai/file"
+        headers = {"Authorization": f"Bearer {YOUR_VAPI_API_KEY}"}
+
+        try:
+            with open(file_path, 'rb') as file:
+                files = {'file': file}
+                response = requests.post(url, headers=headers, files=files)
+                response.raise_for_status()
+                return response.json()
+        except requests.exceptions.RequestException as error:
+            print(f"Error uploading {file_path}: {error}")
+            raise
+
+    # Upload all required files for clinic workflow
+    patients_file = upload_clinic_file("patients.csv")
+    providers_file = upload_clinic_file("providers.csv")
+    triage_protocols_file = upload_clinic_file("triage_protocols.csv")
+    appointments_file = upload_clinic_file("appointments.csv")
+
+    print(f"Patients file ID: {patients_file['id']}")
+    print(f"Providers file ID: {providers_file['id']}")
+    print(f"Triage protocols file ID: {triage_protocols_file['id']}")
+    print(f"Appointments file ID: {appointments_file['id']}")
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Upload patients.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@patients.csv"
+
+    # Upload providers.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@providers.csv"
+
+    # Upload triage_protocols.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@triage_protocols.csv"
+
+    # Upload appointments.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@appointments.csv"
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## 2. Create Required Tools
+
+<Tabs>
+  <Tab title="Dashboard">
+    Before building the workflow, create the necessary tools in your dashboard:
+
+    <Steps>
+      <Step title="Navigate to Tools">
+        In your Vapi dashboard, click **Tools** in the left sidebar.
+      </Step>
+      <Step title="Create Patient Lookup Tool">
+        Click **Create Tool** and configure:
+        - **Tool Name**: "Patient Lookup"
+        - **Tool Type**: "Function"
+        - **Function Name**: `lookup_patient`
+        - **Description**: "Look up patient record by ID"
+        - **Parameters**:
+          - `patient_id` (string, required): Patient's ID number
+        - **Server URL**: `https://jsonplaceholder.typicode.com/users`
+
+        <Note>
+          This example uses JSONPlaceholder for demonstration. In production, replace with your EHR system API (Epic, Cerner, etc.).
+        </Note>
+      </Step>
+      <Step title="Create Triage Assessment Tool">
+        Create another tool:
+        - **Tool Name**: "Triage Assessment"
+        - **Function Name**: `conduct_triage`
+        - **Description**: "Assess patient symptoms and determine urgency level"
+        - **Parameters**:
+          - `symptoms` (string): Description of patient symptoms
+          - `onset` (string): When symptoms started
+          - `severity` (string): Severity level (1-10)
+        - **Server URL**: `https://jsonplaceholder.typicode.com/posts`
+
+        <Note>
+          This example uses JSONPlaceholder for demonstration. Replace with your medical triage system in production.
+        </Note>
+      </Step>
+      <Step title="Create Appointment Scheduling Tool">
+        Create a third tool:
+        - **Tool Name**: "Schedule Appointment"
+        - **Function Name**: `schedule_appointment`
+        - **Description**: "Schedule patient appointments based on availability"
+        - **Parameters**:
+          - `patient_id` (string): Patient identifier
+          - `appointment_type` (string): Type of appointment needed
+          - `urgency_level` (string): Urgency classification
+        - **Server URL**: `https://jsonplaceholder.typicode.com/posts`
+
+        <Note>
+          This example uses JSONPlaceholder for demonstration. In production, integrate with your appointment scheduling system.
+        </Note>
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    async function createPatientLookupTool() {
+      try {
+        // Create patient lookup tool for medical records
+        const patientLookupTool = await vapi.tools.create({
+          type: "function",
+          function: {
+            name: "lookup_patient",
+            description: "Look up patient record by ID",
+            parameters: {
+              type: "object",
+              properties: {
+                patient_id: {
+                  type: "string",
+                  description: "Patient ID number"
+                }
+              },
+              required: ["patient_id"]
+            }
+          },
+          serverUrl: "https://jsonplaceholder.typicode.com/users"
+        });
+
+        console.log(`Patient lookup tool created: ${patientLookupTool.id}`);
+        return patientLookupTool;
+      } catch (error) {
+        console.error('Error creating patient lookup tool:', error);
+        throw error;
+      }
+    }
+
+    async function createTriageAssessmentTool() {
+      try {
+        // Create triage assessment tool for symptom evaluation
+        const triageAssessmentTool = await vapi.tools.create({
+          type: "function",
+          function: {
+            name: "conduct_triage",
+            description: "Assess patient symptoms and determine urgency level",
+            parameters: {
+              type: "object",
+              properties: {
+                symptoms: {
+                  type: "string",
+                  description: "Description of patient symptoms"
+                },
+                onset: {
+                  type: "string",
+                  description: "When symptoms started"
+                },
+                severity: {
+                  type: "string",
+                  description: "Severity level (1-10)"
+                }
+              },
+              required: ["symptoms"]
+            }
+          },
+          serverUrl: "https://jsonplaceholder.typicode.com/posts"
+        });
+
+        console.log(`Triage assessment tool created: ${triageAssessmentTool.id}`);
+        return triageAssessmentTool;
+      } catch (error) {
+        console.error('Error creating triage assessment tool:', error);
+        throw error;
+      }
+    }
+
+    async function createAppointmentSchedulingTool() {
+      try {
+        // Create appointment scheduling tool
+        const appointmentSchedulingTool = await vapi.tools.create({
+          type: "function",
+          function: {
+            name: "schedule_appointment",
+            description: "Schedule patient appointments based on availability",
+            parameters: {
+              type: "object",
+              properties: {
+                patient_id: {
+                  type: "string",
+                  description: "Patient identifier"
+                },
+                appointment_type: {
+                  type: "string",
+                  description: "Type of appointment needed"
+                },
+                urgency_level: {
+                  type: "string",
+                  description: "Urgency classification"
+                }
+              },
+              required: ["patient_id", "appointment_type"]
+            }
+          },
+          serverUrl: "https://jsonplaceholder.typicode.com/posts"
+        });
+
+        console.log(`Appointment scheduling tool created: ${appointmentSchedulingTool.id}`);
+        return appointmentSchedulingTool;
+      } catch (error) {
+        console.error('Error creating appointment scheduling tool:', error);
+        throw error;
+      }
+    }
+
+    // Create all medical tools
+    const patientLookupTool = await createPatientLookupTool();
+    const triageAssessmentTool = await createTriageAssessmentTool();
+    const appointmentSchedulingTool = await createAppointmentSchedulingTool();
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_medical_tool(name, function_name, description, parameters, server_url):
+        """Create a medical workflow tool"""
+        url = "https://api.vapi.ai/tool"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "type": "function",
+            "function": {
+                "name": function_name,
+                "description": description,
+                "parameters": parameters
+            },
+            "serverUrl": server_url
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            tool = response.json()
+            print(f"{name} tool created: {tool['id']}")
+            return tool
+        except requests.exceptions.RequestException as error:
+            print(f"Error creating {name} tool: {error}")
+            raise
+
+    # Create patient lookup tool
+    patient_lookup_tool = create_medical_tool(
+        name="Patient Lookup",
+        function_name="lookup_patient",
+        description="Look up patient record by ID",
+        parameters={
+            "type": "object",
+            "properties": {
+                "patient_id": {
+                    "type": "string",
+                    "description": "Patient ID number"
+                }
+            },
+            "required": ["patient_id"]
+        },
+        server_url="https://jsonplaceholder.typicode.com/users"
+    )
+
+    # Create triage assessment tool
+    triage_assessment_tool = create_medical_tool(
+        name="Triage Assessment",
+        function_name="conduct_triage",
+        description="Assess patient symptoms and determine urgency level",
+        parameters={
+            "type": "object",
+            "properties": {
+                "symptoms": {
+                    "type": "string",
+                    "description": "Description of patient symptoms"
+                },
+                "onset": {
+                    "type": "string",
+                    "description": "When symptoms started"
+                },
+                "severity": {
+                    "type": "string",
+                    "description": "Severity level (1-10)"
+                }
+            },
+            "required": ["symptoms"]
+        },
+        server_url="https://jsonplaceholder.typicode.com/posts"
+    )
+
+    # Create appointment scheduling tool
+    appointment_scheduling_tool = create_medical_tool(
+        name="Schedule Appointment",
+        function_name="schedule_appointment",
+        description="Schedule patient appointments based on availability",
+        parameters={
+            "type": "object",
+            "properties": {
+                "patient_id": {
+                    "type": "string",
+                    "description": "Patient identifier"
+                },
+                "appointment_type": {
+                    "type": "string",
+                    "description": "Type of appointment needed"
+                },
+                "urgency_level": {
+                    "type": "string",
+                    "description": "Urgency classification"
+                }
+            },
+            "required": ["patient_id", "appointment_type"]
+        },
+        server_url="https://jsonplaceholder.typicode.com/posts"
+    )
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Create Patient Lookup Tool
+    curl -X POST https://api.vapi.ai/tool \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "type": "function",
+           "function": {
+             "name": "lookup_patient",
+             "description": "Look up patient record by ID",
+             "parameters": {
+               "type": "object",
+               "properties": {
+                 "patient_id": {
+                   "type": "string",
+                   "description": "Patient ID number"
+                 }
+               },
+               "required": ["patient_id"]
+             }
+           },
+           "serverUrl": "https://jsonplaceholder.typicode.com/users"
+         }'
+
+    # Create Triage Assessment Tool
+    curl -X POST https://api.vapi.ai/tool \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "type": "function",
+           "function": {
+             "name": "conduct_triage",
+             "description": "Assess patient symptoms and determine urgency level",
+             "parameters": {
+               "type": "object",
+               "properties": {
+                 "symptoms": {
+                   "type": "string",
+                   "description": "Description of patient symptoms"
+                 },
+                 "onset": {
+                   "type": "string",
+                   "description": "When symptoms started"
+                 },
+                 "severity": {
+                   "type": "string",
+                   "description": "Severity level (1-10)"
+                 }
+               },
+               "required": ["symptoms"]
+             }
+           },
+           "serverUrl": "https://jsonplaceholder.typicode.com/posts"
+         }'
+
+    # Create Appointment Scheduling Tool
+    curl -X POST https://api.vapi.ai/tool \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "type": "function",
+           "function": {
+             "name": "schedule_appointment",
+             "description": "Schedule patient appointments based on availability",
+             "parameters": {
+               "type": "object",
+               "properties": {
+                 "patient_id": {
+                   "type": "string",
+                   "description": "Patient identifier"
+                 },
+                 "appointment_type": {
+                   "type": "string",
+                   "description": "Type of appointment needed"
+                 },
+                 "urgency_level": {
+                   "type": "string",
+                   "description": "Urgency classification"
+                 }
+               },
+               "required": ["patient_id", "appointment_type"]
+             }
+           },
+           "serverUrl": "https://jsonplaceholder.typicode.com/posts"
+         }'
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## 3. Create a Workflow
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Open the Vapi Dashboard">
+        Go to [dashboard.vapi.ai](https://dashboard.vapi.ai) and log in to your account.
+      </Step>
+      <Step title="Navigate to the Workflows section">
+        Click `Workflows` in the left sidebar.
+      </Step>
+      <Step title="Create a new workflow">
+        - Click `Create Workflow`.
+        - Enter workflow name: `Clinic Triage & Scheduling Workflow`.
+        - Select the default template (includes Call Start node).
+        - Click "Create Workflow".
+      </Step>
+      <Step title="Configure Medical Workflow Settings">
+        - Configure workflow variables for patient data and medical information
+        - Set up emergency routing capabilities
+        - Enable HIPAA-compliant settings if required
+
+        <video autoPlay loop muted src="file:3d1752a2-0135-44a8-9897-e747188b82b6" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    async function createClinicTriageWorkflow() {
+      try {
+        // Create medical triage workflow with initial greeting node
+        const workflow = await vapi.workflows.create({
+          name: "Clinic Triage & Scheduling Workflow",
+          nodes: [
+            {
+              id: "greeting",
+              type: "conversation",
+              firstMessage: "Thank you for calling Riverside Family Clinic. This is your virtual assistant. I can help you schedule appointments, address medical concerns, or direct you to emergency care. How can I help you today?",
+              systemPrompt: "You are a professional medical assistant for Riverside Family Clinic. Listen carefully to determine the caller's purpose: emergency, medical triage, appointment scheduling, prescription refills, or general questions. Always prioritize patient safety and follow medical protocols.",
+              extractVariables: [
+                {
+                  name: "call_purpose",
+                  type: "string",
+                  description: "Primary purpose of the patient's call",
+                  enum: ["emergency", "medical_triage", "appointment", "prescription", "general"]
+                }
+              ]
+            }
+          ],
+          edges: []
+        });
+
+        console.log(`Medical workflow created with ID: ${workflow.id}`);
+        return workflow;
+      } catch (error) {
+        console.error('Error creating medical workflow:', error);
+        throw error;
+      }
+    }
+
+    // Create the clinic triage workflow
+    const workflow = await createClinicTriageWorkflow();
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_clinic_triage_workflow():
+        """Create a new medical triage and scheduling workflow"""
+        url = "https://api.vapi.ai/workflow"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "name": "Clinic Triage & Scheduling Workflow",
+            "nodes": [
+                {
+                    "id": "greeting",
+                    "type": "conversation",
+                    "firstMessage": "Thank you for calling Riverside Family Clinic. This is your virtual assistant. I can help you schedule appointments, address medical concerns, or direct you to emergency care. How can I help you today?",
+                    "systemPrompt": "You are a professional medical assistant for Riverside Family Clinic. Listen carefully to determine the caller's purpose: emergency, medical triage, appointment scheduling, prescription refills, or general questions. Always prioritize patient safety and follow medical protocols.",
+                    "extractVariables": [
+                        {
+                            "name": "call_purpose",
+                            "type": "string",
+                            "description": "Primary purpose of the patient's call",
+                            "enum": ["emergency", "medical_triage", "appointment", "prescription", "general"]
+                        }
+                    ]
+                }
+            ],
+            "edges": []
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            workflow = response.json()
+            print(f"Medical workflow created with ID: {workflow['id']}")
+            return workflow
+        except requests.exceptions.RequestException as error:
+            print(f"Error creating medical workflow: {error}")
+            raise
+
+    # Create the clinic triage workflow
+    workflow = create_clinic_triage_workflow()
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://api.vapi.ai/workflow \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "Clinic Triage & Scheduling Workflow",
+           "nodes": [
+             {
+               "id": "greeting",
+               "type": "conversation",
+               "firstMessage": "Thank you for calling Riverside Family Clinic. This is your virtual assistant. I can help you schedule appointments, address medical concerns, or direct you to emergency care. How can I help you today?",
+               "systemPrompt": "You are a professional medical assistant for Riverside Family Clinic. Listen carefully to determine the caller'\''s purpose: emergency, medical triage, appointment scheduling, prescription refills, or general questions. Always prioritize patient safety and follow medical protocols.",
+               "extractVariables": [
+                 {
+                   "name": "call_purpose",
+                   "type": "string",
+                   "description": "Primary purpose of the patient'\''s call",
+                   "enum": ["emergency", "medical_triage", "appointment", "prescription", "general"]
+                 }
+               ]
+             }
+           ],
+           "edges": []
+         }'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## 4. Build the Workflow
+
+You'll start with a default template that includes a "Call Start" node. We'll modify the existing nodes and add new ones to create our medical triage and scheduling workflow.
+
+<Steps>
+  <Step title="Configure the Initial Conversation Node">
+    The default template includes a conversation node. Click on it and configure:
+    
+    ```txt title="First Message"
+    Thank you for calling Riverside Family Clinic. This is your virtual assistant. I can help you schedule appointments, address medical concerns, or direct you to emergency care. How can I help you today?
+    ```
+    
+    ```txt title="Prompt"
+    You are a professional medical assistant for Riverside Family Clinic.
+
+    Listen carefully to determine the caller's purpose:
+    - "emergency" for life-threatening situations
+    - "medical_triage" for symptom assessment
+    - "appointment" for scheduling needs
+    - "prescription" for refill requests
+    - "general" for other inquiries
+
+    Always prioritize patient safety and follow medical protocols. Keep responses under 35 words.
+    ```
+
+    **Extract Variables**:
+    - Variable: `call_purpose`
+    - Type: `String`
+    - Description: `Primary purpose of the patient's call`
+    - Enum Values: `emergency`, `medical_triage`, `appointment`, `prescription`, `general`
+
+  </Step>
+
+  <Step title="Add Patient Verification Node">
+    Click the + button below the greeting node and add a new **Conversation** node:
+    
+    ```txt title="Condition"
+    Call purpose identified
+    ```
+
+    ```txt title="First Message"
+    I'll need to verify your information first. Please provide your patient ID, date of birth, or full name so I can access your medical record.
+    ```
+
+    ```txt title="Prompt"
+    You are collecting patient identification for medical record access.
+
+    Get patient ID, date of birth, or full name for verification.
+    Be professional and reassuring about medical privacy.
+    Follow HIPAA protocols. Keep responses under 25 words.
+    ```
+
+    **Extract Variables**:
+    - Variable: `patient_id`
+    - Type: `String`
+    - Description: `Patient's ID number if provided`
+    <br />
+    - Variable: `patient_name`
+    - Type: `String`
+    - Description: `Patient's full name if provided`
+    <br />
+    - Variable: `date_of_birth`
+    - Type: `String`
+    - Description: `Patient's date of birth if provided`
+
+  </Step>
+
+  <Step title="Add Patient Lookup Tool Node">
+    Add a **Tool** node:
+    
+    ```txt title="Condition"
+    Patient information collected
+    ```
+    
+    **Select Tool**: Choose your pre-configured patient lookup tool from the dropdown. This tool will use the extracted patient information to find their medical record.
+  </Step>
+
+  <Step title="Add Call Purpose Routing Logic">
+    Create branching paths based on the patient's call purpose. Add multiple conversation nodes:
+
+    **Emergency Routing Node**:
+
+    ```txt title="Condition"
+    Patient verified and purpose is emergency
+    ```
+
+    ```txt title="First Message"
+    I understand this is an emergency. For immediate life-threatening situations, please hang up and call 911 now. For urgent medical needs, I'm connecting you to our triage nurse immediately.
+    ```
+
+    ```txt title="Prompt"
+    You are handling a medical emergency call.
+
+    Direct to 911 for life-threatening emergencies.
+    Transfer to triage nurse for urgent medical situations.
+    Be calm, clear, and immediate in your response.
+    ```
+
+    **Medical Triage Node**:
+
+    ```txt title="Condition"
+    Patient verified and purpose is medical_triage
+    ```
+
+    ```txt title="First Message"
+    I'll help assess your medical concerns. Please describe your main symptoms, when they started, and how severe they are on a scale of 1 to 10.
+    ```
+
+    ```txt title="Prompt"
+    You are conducting initial medical triage assessment.
+
+    Collect symptoms, onset time, severity, and related factors.
+    Follow medical assessment protocols. Be thorough but efficient.
+    Keep responses under 30 words.
+    ```
+
+    **Appointment Scheduling Node**:
+
+    ```txt title="Condition"
+    Patient verified and purpose is appointment
+    ```
+
+    ```txt title="First Message"
+    I'll help you schedule an appointment. What type of visit do you need - routine check-up, follow-up, or consultation for a specific concern?
+    ```
+
+    ```txt title="Prompt"
+    You are helping schedule a medical appointment.
+
+    Determine appointment type, urgency, and preferred timing.
+    Be helpful and accommodating. Keep responses under 25 words.
+    ```
+
+  </Step>
+
+  <Step title="Add Global Emergency Detection Node">
+    Create a global node that monitors for emergency keywords throughout the call:
+    
+    ```txt title="Condition"
+    Emergency keywords detected or life-threatening symptoms mentioned
+    ```
+    
+    **Node Name**: `emergency_detector`
+    **Global Node**: `enabled = true`
+    **Enter Condition**: `{{ emergency_keywords_detected == true or red_flag_symptoms == true }}`
+    
+    ```txt title="First Message"
+    I'm hearing some concerning symptoms. For your safety, I need to direct you to immediate medical care. Please call 911 or go to your nearest emergency room right away. Do not drive yourself - have someone else drive you or call an ambulance.
+    ```
+    
+    ```txt title="Prompt"
+    You are handling a medical emergency situation.
+    
+    Direct them to emergency services immediately. Be clear and calm.
+    Do not provide medical advice beyond directing to emergency care.
+    Keep the message brief but urgent.
+    ```
+    
+    This global node will activate whenever emergency keywords are detected, regardless of where they are in the workflow.
+  </Step>
+
+  <Step title="Add Triage Assessment Flow">
+    For the medical triage path, add these nodes:
+
+    **Symptom Collection Node**:
+
+    ```txt title="Condition"
+    Initial symptoms described
+    ```
+
+    **Node Name**: `collect_symptoms`
+
+    ```txt title="First Message"
+    Thank you for that information. On a scale of 1 to 10, how would you rate your pain or discomfort? And have you tried anything to help with these symptoms?
+    ```
+
+    ```txt title="Prompt"
+    You are collecting detailed symptom information for medical triage.
+
+    Get pain scale, duration, what makes it better/worse, and any self-treatment.
+    Follow medical assessment protocols. Keep responses under 30 words.
+    ```
+
+    **Extract Variables**:
+    - Variable: `symptom_details`
+    - Type: `String`
+    - Description: `Detailed symptom description`
+    <br />
+    - Variable: `pain_scale`
+    - Type: `String`
+    - Description: `Pain level 1-10`
+    <br />
+    - Variable: `symptom_duration`
+    - Type: `String`
+    - Description: `How long symptoms have been present`
+
+    **Triage Protocol Tool Node**:
+
+    ```txt title="Condition"
+    Comprehensive symptoms collected
+    ```
+
+    - Add a **Tool** node that calls triage protocol API with symptom data
+
+    **Urgency Classification Node**:
+
+    ```txt title="Condition"
+    Triage assessment completed
+    ```
+
+    **Node Name**: `classify_urgency`
+
+    ```txt title="First Message"
+    Based on your symptoms, I'm going to classify this as [urgency level] and connect you with the appropriate care level.
+    ```
+
+    ```txt title="Prompt"
+    You are communicating the triage classification results to the patient.
+
+    Explain the urgency level and next steps clearly.
+    Be reassuring while maintaining clinical accuracy.
+    Keep responses under 35 words.
+    ```
+
+    - Determine urgency level: emergency, urgent, semi-urgent, routine
+    - Route to appropriate care level
+
+  </Step>
+
+  <Step title="Add Provider Availability Flow">
+    **Provider Lookup Tool Node**:
+    
+    ```txt title="Condition"
+    Urgency level determined and provider needed
+    ```
+    
+    - Add a **Tool** node that checks available appointments based on urgency and specialty
+
+    **Appointment Options Node**:
+
+    ```txt title="Condition"
+    Provider availability checked
+    ```
+
+    **Node Name**: `present_appointment_options`
+
+    ```txt title="First Message"
+    Based on your needs, I have these available appointment times with Dr. [Provider Name]. Which option works best for your schedule?
+    ```
+
+    ```txt title="Prompt"
+    You are presenting available medical appointments to the patient.
+
+    Present 2-3 time options clearly with provider names.
+    Consider urgency when offering times. Keep responses under 35 words.
+    ```
+
+    - Present available time slots to patient
+    - Use conditional logic based on urgency level
+
+    **Appointment Confirmation Node**:
+
+    ```txt title="Condition"
+    Appointment time selected
+    ```
+
+    **Node Name**: `confirm_appointment`
+
+    ```txt title="First Message"
+    Perfect! Let me confirm your appointment with Dr. [Provider] on [date] at [time]. Please arrive 15 minutes early for check-in.
+    ```
+
+    ```txt title="Prompt"
+    You are confirming medical appointment details.
+
+    Confirm provider, date, time, and location.
+    Provide pre-appointment instructions if needed.
+    Keep responses under 30 words.
+    ```
+
+    - Confirm appointment details and provide instructions
+
+  </Step>
+
+  <Step title="Add Emergency Routing Options">
+    **911 Routing Node**:
+    
+    ```txt title="Condition"
+    Life-threatening emergency detected
+    ```
+    
+    **Node Type**: `Transfer`
+    **Destination**: `911`
+    - Use for life-threatening emergencies
+
+    **Urgent Care Transfer Node**:
+
+    ```txt title="Condition"
+    Urgent but not life-threatening situation
+    ```
+
+    **Node Type**: `Transfer`
+    **Destination**: `+1-555-URGENT-1` (urgent care line)
+
+    **Nurse Line Transfer Node**:
+
+    ```txt title="Condition"
+    Clinical consultation needed
+    ```
+
+    **Node Type**: `Transfer`
+    **Destination**: `+1-555-NURSE-1` (triage nurse line)
+
+    **End Call Node**:
+
+    ```txt title="Condition"
+    Patient needs resolved or transferred appropriately
+    ```
+
+    **Node Type**: `Hangup`
+    - Use when patient needs are resolved
+
+  </Step>
+</Steps>
+
+---
+
+## 5. Configure Phone Number
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Navigate to Phone Numbers">
+        Click `Phone Numbers` in the left sidebar of your dashboard.
+      </Step>
+      <Step title="Create or Import Phone Number">
+        - Click `Create Phone Number` for a new Vapi number, or
+        - Click `Import Phone Number` to use your existing clinic number
+      </Step>
+      <Step title="Configure Inbound Settings">
+        **Workflow**: Select your `Clinic Triage & Scheduling Workflow`
+        
+        **Medical Configuration**:
+        - Enable call recording for medical documentation
+        - Set maximum call duration (e.g., 20 minutes for complex cases)
+        - Configure voicemail for after-hours calls
+        - Enable emergency transfer capabilities
+      </Step>
+      <Step title="Test Medical Scenarios">
+        Test the workflow with various medical scenarios:
+        - Routine appointment requests
+        - Urgent symptom assessments
+        - Emergency situations (test routing only)
+        - Prescription refill requests
+        - After-hours calls
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    async function createClinicPhoneNumber(workflowId: string) {
+      try {
+        // Create phone number for medical clinic workflow
+        const phoneNumber = await vapi.phoneNumbers.create({
+          name: "Riverside Family Clinic Line",
+          workflowId: workflowId,
+          inboundSettings: {
+            maxCallDurationMinutes: 20,
+            recordingEnabled: true,
+            voicemailDetectionEnabled: true,
+            emergencyTransferEnabled: true
+          }
+        });
+
+        console.log(`Clinic phone number created: ${phoneNumber.number}`);
+        return phoneNumber;
+      } catch (error) {
+        console.error('Error creating clinic phone number:', error);
+        throw error;
+      }
+    }
+
+    async function testMedicalScenarios(workflowId: string) {
+      try {
+        const scenarios = [
+          { customer: { number: "+1234567890", name: "Routine Appointment Patient" }},
+          { customer: { number: "+1234567891", name: "Urgent Symptom Patient" }},
+          { customer: { number: "+1234567892", name: "Prescription Refill Patient" }}
+        ];
+
+        for (const scenario of scenarios) {
+          // Test medical workflow with different patient scenarios
+          const call = await vapi.calls.create({
+            workflowId: workflowId,
+            ...scenario
+          });
+
+          console.log(`Test call for ${scenario.customer.name}: ${call.id}`);
+        }
+      } catch (error) {
+        console.error('Error testing medical scenarios:', error);
+        throw error;
+      }
+    }
+
+    // Create phone number and test scenarios
+    const phoneNumber = await createClinicPhoneNumber('YOUR_WORKFLOW_ID');
+    await testMedicalScenarios('YOUR_WORKFLOW_ID');
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_clinic_phone_number(workflow_id):
+        """Create phone number for medical clinic workflow"""
+        url = "https://api.vapi.ai/phone-number"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "name": "Riverside Family Clinic Line",
+            "workflowId": workflow_id,
+            "inboundSettings": {
+                "maxCallDurationMinutes": 20,
+                "recordingEnabled": True,
+                "voicemailDetectionEnabled": True,
+                "emergencyTransferEnabled": True
+            }
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            phone_number = response.json()
+            print(f"Clinic phone number created: {phone_number['number']}")
+            return phone_number
+        except requests.exceptions.RequestException as error:
+            print(f"Error creating clinic phone number: {error}")
+            raise
+
+    def test_medical_scenarios(workflow_id):
+        """Test medical workflow with different patient scenarios"""
+        scenarios = [
+            {"customer": {"number": "+1234567890", "name": "Routine Appointment Patient"}},
+            {"customer": {"number": "+1234567891", "name": "Urgent Symptom Patient"}},
+            {"customer": {"number": "+1234567892", "name": "Prescription Refill Patient"}}
+        ]
+
+        for scenario in scenarios:
+            url = "https://api.vapi.ai/call"
+            headers = {
+                "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+                "Content-Type": "application/json"
+            }
+
+            data = {
+                "workflowId": workflow_id,
+                **scenario
+            }
+
+            try:
+                response = requests.post(url, headers=headers, json=data)
+                response.raise_for_status()
+                result = response.json()
+                print(f"Test call for {scenario['customer']['name']}: {result['id']}")
+            except requests.exceptions.RequestException as error:
+                print(f"Error testing scenario {scenario['customer']['name']}: {error}")
+
+    # Create phone number and test scenarios
+    phone_number = create_clinic_phone_number('YOUR_WORKFLOW_ID')
+    test_medical_scenarios('YOUR_WORKFLOW_ID')
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Create phone number with medical workflow
+    curl -X POST https://api.vapi.ai/phone-number \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "Riverside Family Clinic Line",
+           "workflowId": "YOUR_WORKFLOW_ID",
+           "inboundSettings": {
+             "maxCallDurationMinutes": 20,
+             "recordingEnabled": true,
+             "voicemailDetectionEnabled": true,
+             "emergencyTransferEnabled": true
+           }
+         }'
+
+    # Test routine appointment scenario
+    curl -X POST https://api.vapi.ai/call \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "workflowId": "YOUR_WORKFLOW_ID",
+           "customer": {
+             "number": "+1234567890",
+             "name": "Test Patient"
+           }
+         }'
+    ```
+
+  </Tab>
+</Tabs>
+
+## Integrating with Real Systems
+
+This example uses JSONPlaceholder for demonstration purposes. To integrate with your actual healthcare systems:
+
+### EHR System Integration
+
+- **Epic**: Use [Epic on FHIR](https://fhir.epic.com/) APIs for patient data
+- **Cerner**: Use [Cerner SMART on FHIR](https://fhir.cerner.com/) APIs
+- **Allscripts**: Use [Allscripts Developer Program](https://developer.allscripts.com/) APIs
+
+### Appointment Scheduling
+
+- **Epic MyChart**: [Epic APIs](https://fhir.epic.com/Documentation?docId=scheduling)
+- **Cerner PowerChart**: [Cerner Scheduling APIs](https://fhir.cerner.com/millennium/r4/scheduling/)
+- **athenahealth**: [athenaCollector API](https://docs.athenahealth.com/api/)
+
+### Medical Decision Support
+
+- **IBM Watson Health**: [Watson for Oncology](https://www.ibm.com/watson-health)
+- **Microsoft Healthcare Bot**: [Healthcare Bot Service](https://docs.microsoft.com/en-us/healthbot/)
+- **Infermedica**: [Symptom Checker API](https://developer.infermedica.com/)
+
+<Warning>
+**HIPAA Compliance**: When integrating with real healthcare systems, ensure all integrations comply with HIPAA regulations and your organization's privacy policies.
+</Warning>
+
+## Next Steps
+
+Just like that, you've built a medical triage and scheduling workflow that can handle patient calls, assess symptoms, and route to appropriate care levels with 24/7 availability.
+
+Consider reading the following guides to further enhance your workflow:
+
+- [**Custom Tools**](/tools/custom-tools) - Create custom tools for EHR integration and medical protocols.
+- [**Custom Voices**](/customization/custom-voices/custom-voice) - Customize your assistant's voice for medical professionalism.
+- [**HIPAA Compliance**](/security-and-privacy/hipaa) - Ensure your medical workflows meet HIPAA requirements.
+
+---
+
+title: E-commerce order management workflow
+subtitle: >-
+Build an AI customer service workflow that handles orders, returns, and
+support using Vapi workflows.
+slug: workflows/examples/ecommerce-order-management
+description: >-
+Build a voice AI e-commerce workflow with order tracking, return processing,
+and customer support automation using Vapi's visual workflow builder.
+
+---
+
+## Overview
+
+Build an AI-powered e-commerce customer service workflow that handles order inquiries, returns, and customer support using Vapi workflows with tier-based routing and global monitoring for comprehensive automation.
+
+**What You'll Build:**
+
+- Order tracking with real-time status updates
+- Return processing with automated eligibility verification
+- Customer tier routing (VIP, Premium, Standard)
+- Global fraud detection and sentiment monitoring
+
+## Prerequisites
+
+- A [Vapi account](https://dashboard.vapi.ai/).
+- E-commerce platform or order management system.
+- Shipping carrier integrations.
+
+## Scenario
+
+We will be creating an order management workflow for TechGear Online, an electronics retailer that wants to automate customer service calls and improve order resolution times through sophisticated workflow automation.
+
+## Final Workflow
+
+<Frame caption="Complete e-commerce customer service workflow with order tracking, return processing, and VIP customer routing">
+  <img src="file:91053755-2218-43c4-8c5a-402c99b45639" alt="E-commerce support workflow showing customer identification, inquiry routing, order tracking, and return processing flows" />
+</Frame>
+
+---
+
+## 1. Create a Knowledge Base
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Download the spreadsheets">
+        <div className="flex gap-2">
+          <Download src="file:938c6005-19ed-42d1-9da5-b49e092b981b">
+            <Button intent="primary">Download customers.csv</Button>
+          </Download>
+          <Download src="file:489375b4-d499-40af-bd43-948d0b00896d">
+            <Button intent="primary">Download orders.csv</Button>
+          </Download>
+          <Download src="file:413ee076-9ecb-486a-bc8c-67c49d9e9cff">
+            <Button intent="primary">Download products.csv</Button>
+          </Download>
+          <Download src="file:4644ca31-d4fe-4a96-8ec6-7e70bad08491">
+            <Button intent="primary">Download returns.csv</Button>
+          </Download>
+        </div>
+      </Step>
+      <Step title="Navigate to the Files section">
+        In your Vapi dashboard, click `Files` in the left sidebar.
+      </Step>
+      <Step title="Upload the spreadsheets">
+        - Click `Choose file`. Upload all four CSV files: `customers.csv`, `orders.csv`, `products.csv`, and `returns.csv`.
+        - Note the file IDs. We'll need them later to create tools.
+
+        <video autoPlay loop muted src="file:5aee5201-b29a-4207-962a-615bd9706474" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+    import fs from 'fs';
+
+    // Initialize Vapi client
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    async function uploadEcommerceFiles() {
+      try {
+        // Upload customers file
+        const customersFile = await vapi.files.create({
+          file: fs.createReadStream("customers.csv")
+        });
+
+        // Upload orders file
+        const ordersFile = await vapi.files.create({
+          file: fs.createReadStream("orders.csv")
+        });
+
+        // Upload products file
+        const productsFile = await vapi.files.create({
+          file: fs.createReadStream("products.csv")
+        });
+
+        // Upload returns file
+        const returnsFile = await vapi.files.create({
+          file: fs.createReadStream("returns.csv")
+        });
+
+        console.log(`Customers file ID: ${customersFile.id}`);
+        console.log(`Orders file ID: ${ordersFile.id}`);
+        console.log(`Products file ID: ${productsFile.id}`);
+        console.log(`Returns file ID: ${returnsFile.id}`);
+
+        return {
+          customersFileId: customersFile.id,
+          ordersFileId: ordersFile.id,
+          productsFileId: productsFile.id,
+          returnsFileId: returnsFile.id
+        };
+      } catch (error) {
+        console.error('Error uploading files:', error);
+        throw error;
+      }
+    }
+
+    // Upload all files
+    const fileIds = await uploadEcommerceFiles();
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    # Configuration
+    YOUR_VAPI_API_KEY = "your_api_key_here"
+
+    def upload_file(file_path):
+        """Upload a single file to Vapi"""
+        url = "https://api.vapi.ai/file"
+        headers = {"Authorization": f"Bearer {YOUR_VAPI_API_KEY}"}
+
+        with open(file_path, 'rb') as file:
+            files = {'file': file}
+            response = requests.post(url, headers=headers, files=files)
+
+            if response.status_code == 200:
+                return response.json()
+            else:
+                raise Exception(f"Failed to upload {file_path}: {response.text}")
+
+    def upload_ecommerce_files():
+        """Upload all required e-commerce files"""
+        try:
+            # Upload all required files
+            customers_file = upload_file("customers.csv")
+            orders_file = upload_file("orders.csv")
+            products_file = upload_file("products.csv")
+            returns_file = upload_file("returns.csv")
+
+            print(f"Customers file ID: {customers_file['id']}")
+            print(f"Orders file ID: {orders_file['id']}")
+            print(f"Products file ID: {products_file['id']}")
+            print(f"Returns file ID: {returns_file['id']}")
+
+            return {
+                "customers_file_id": customers_file['id'],
+                "orders_file_id": orders_file['id'],
+                "products_file_id": products_file['id'],
+                "returns_file_id": returns_file['id']
+            }
+        except Exception as error:
+            print(f"Error uploading files: {error}")
+            raise
+
+    # Upload all files
+    file_ids = upload_ecommerce_files()
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Upload customers.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@customers.csv"
+
+    # Upload orders.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@orders.csv"
+
+    # Upload products.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@products.csv"
+
+    # Upload returns.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@returns.csv"
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## 2. Create Required Tools
+
+<Tabs>
+  <Tab title="Dashboard">
+    Before building the workflow, create the necessary tools in your dashboard:
+
+    <Steps>
+      <Step title="Navigate to Tools">
+        In your Vapi dashboard, click **Tools** in the left sidebar.
+      </Step>
+      <Step title="Create Customer Lookup Tool">
+        Click **Create Tool** and configure:
+        - **Tool Name**: "Customer Lookup"
+        - **Tool Type**: "Function"
+        - **Function Name**: `lookup_customer`
+        - **Description**: "Look up customer account and order history"
+        - **Parameters**:
+          - `customer_id` (string): Customer ID to lookup
+        - **Server URL**: `https://jsonplaceholder.typicode.com/users`
+
+        <Note>
+          This example uses JSONPlaceholder, a free testing API. In production, replace with your actual e-commerce API endpoint.
+        </Note>
+      </Step>
+      <Step title="Create Order Tracking Tool">
+        Create another tool:
+        - **Tool Name**: "Order Tracking"
+        - **Function Name**: `track_order`
+        - **Description**: "Track order status and shipping information"
+        - **Parameters**:
+          - `order_id` (string): Order ID to track
+        - **Server URL**: `https://jsonplaceholder.typicode.com/posts`
+
+        <Note>
+          This example uses JSONPlaceholder for demonstration. Replace with your shipping provider's API (FedEx, UPS, etc.) in production.
+        </Note>
+      </Step>
+      <Step title="Create Return Processing Tool">
+        Create a third tool:
+        - **Tool Name**: "Return Processing"
+        - **Function Name**: `process_return`
+        - **Description**: "Process return requests and generate return labels"
+        - **Parameters**:
+          - `order_id` (string): Original order ID
+          - `return_reason` (string): Reason for return
+        - **Server URL**: `https://jsonplaceholder.typicode.com/posts`
+
+        <Note>
+          This example uses JSONPlaceholder for demonstration. In production, integrate with your returns management system.
+        </Note>
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    async function createEcommerceTools() {
+      try {
+        // Create Customer Lookup Tool
+        const customerLookupTool = await vapi.tools.create({
+          type: "function",
+          function: {
+            name: "lookup_customer",
+            description: "Look up customer account and order history",
+            parameters: {
+              type: "object",
+              properties: {
+                customer_id: {
+                  type: "string",
+                  description: "Customer ID to lookup"
+                }
+              },
+              required: ["customer_id"]
+            }
+          },
+          serverUrl: "https://jsonplaceholder.typicode.com/users"
+        });
+
+        // Create Order Tracking Tool
+        const orderTrackingTool = await vapi.tools.create({
+          type: "function",
+          function: {
+            name: "track_order",
+            description: "Track order status and shipping information",
+            parameters: {
+              type: "object",
+              properties: {
+                order_id: {
+                  type: "string",
+                  description: "Order ID to track"
+                }
+              },
+              required: ["order_id"]
+            }
+          },
+          serverUrl: "https://jsonplaceholder.typicode.com/posts"
+        });
+
+        // Create Return Processing Tool
+        const returnProcessingTool = await vapi.tools.create({
+          type: "function",
+          function: {
+            name: "process_return",
+            description: "Process return requests and generate return labels",
+            parameters: {
+              type: "object",
+              properties: {
+                order_id: {
+                  type: "string",
+                  description: "Original order ID"
+                },
+                return_reason: {
+                  type: "string",
+                  description: "Reason for return"
+                }
+              },
+              required: ["order_id", "return_reason"]
+            }
+          },
+          serverUrl: "https://jsonplaceholder.typicode.com/posts"
+        });
+
+        console.log(`Customer Lookup Tool ID: ${customerLookupTool.id}`);
+        console.log(`Order Tracking Tool ID: ${orderTrackingTool.id}`);
+        console.log(`Return Processing Tool ID: ${returnProcessingTool.id}`);
+
+        return {
+          customerLookupToolId: customerLookupTool.id,
+          orderTrackingToolId: orderTrackingTool.id,
+          returnProcessingToolId: returnProcessingTool.id
+        };
+      } catch (error) {
+        console.error('Error creating tools:', error);
+        throw error;
+      }
+    }
+
+    // Create all tools
+    const toolIds = await createEcommerceTools();
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_tool(tool_config):
+        """Create a tool using the Vapi API"""
+        url = "https://api.vapi.ai/tool"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        response = requests.post(url, headers=headers, json=tool_config)
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(f"Failed to create tool: {response.text}")
+
+    def create_ecommerce_tools():
+        """Create all required e-commerce tools"""
+        try:
+            # Customer Lookup Tool
+            customer_lookup_tool = create_tool({
+                "type": "function",
+                "function": {
+                    "name": "lookup_customer",
+                    "description": "Look up customer account and order history",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "customer_id": {
+                                "type": "string",
+                                "description": "Customer ID to lookup"
+                            }
+                        },
+                        "required": ["customer_id"]
+                    }
+                },
+                "serverUrl": "https://jsonplaceholder.typicode.com/users"
+            })
+
+            # Order Tracking Tool
+            order_tracking_tool = create_tool({
+                "type": "function",
+                "function": {
+                    "name": "track_order",
+                    "description": "Track order status and shipping information",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "order_id": {
+                                "type": "string",
+                                "description": "Order ID to track"
+                            }
+                        },
+                        "required": ["order_id"]
+                    }
+                },
+                "serverUrl": "https://jsonplaceholder.typicode.com/posts"
+            })
+
+            # Return Processing Tool
+            return_processing_tool = create_tool({
+                "type": "function",
+                "function": {
+                    "name": "process_return",
+                    "description": "Process return requests and generate return labels",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "order_id": {
+                                "type": "string",
+                                "description": "Original order ID"
+                            },
+                            "return_reason": {
+                                "type": "string",
+                                "description": "Reason for return"
+                            }
+                        },
+                        "required": ["order_id", "return_reason"]
+                    }
+                },
+                "serverUrl": "https://jsonplaceholder.typicode.com/posts"
+            })
+
+            print(f"Customer Lookup Tool ID: {customer_lookup_tool['id']}")
+            print(f"Order Tracking Tool ID: {order_tracking_tool['id']}")
+            print(f"Return Processing Tool ID: {return_processing_tool['id']}")
+
+            return {
+                "customer_lookup_tool_id": customer_lookup_tool['id'],
+                "order_tracking_tool_id": order_tracking_tool['id'],
+                "return_processing_tool_id": return_processing_tool['id']
+            }
+        except Exception as error:
+            print(f"Error creating tools: {error}")
+            raise
+
+    # Create all tools
+    tool_ids = create_ecommerce_tools()
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Create Customer Lookup Tool
+    curl -X POST https://api.vapi.ai/tool \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "type": "function",
+           "function": {
+             "name": "lookup_customer",
+             "description": "Look up customer account and order history",
+             "parameters": {
+               "type": "object",
+               "properties": {
+                 "customer_id": {
+                   "type": "string",
+                   "description": "Customer ID to lookup"
+                 }
+               },
+               "required": ["customer_id"]
+             }
+           },
+           "serverUrl": "https://jsonplaceholder.typicode.com/users"
+         }'
+
+    # Create Order Tracking Tool
+    curl -X POST https://api.vapi.ai/tool \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "type": "function",
+           "function": {
+             "name": "track_order",
+             "description": "Track order status and shipping information",
+             "parameters": {
+               "type": "object",
+               "properties": {
+                 "order_id": {
+                   "type": "string",
+                   "description": "Order ID to track"
+                 }
+               },
+               "required": ["order_id"]
+             }
+           },
+           "serverUrl": "https://jsonplaceholder.typicode.com/posts"
+         }'
+
+    # Create Return Processing Tool
+    curl -X POST https://api.vapi.ai/tool \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "type": "function",
+           "function": {
+             "name": "process_return",
+             "description": "Process return requests and generate return labels",
+             "parameters": {
+               "type": "object",
+               "properties": {
+                 "order_id": {
+                   "type": "string",
+                   "description": "Original order ID"
+                 },
+                 "return_reason": {
+                   "type": "string",
+                   "description": "Reason for return"
+                 }
+               },
+               "required": ["order_id", "return_reason"]
+             }
+           },
+           "serverUrl": "https://jsonplaceholder.typicode.com/posts"
+         }'
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## 3. Create a Workflow
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Open the Vapi Dashboard">
+        Go to [dashboard.vapi.ai](https://dashboard.vapi.ai) and log in to your account.
+      </Step>
+      <Step title="Navigate to the Workflows section">
+        Click `Workflows` in the left sidebar.
+      </Step>
+      <Step title="Create a new workflow">
+        - Click `Create Workflow`.
+        - Enter workflow name: `TechGear E-commerce Support Workflow`.
+        - Select the default template (includes Call Start node).
+        - Click "Create Workflow".
+
+        <video autoPlay loop muted src="file:3d1752a2-0135-44a8-9897-e747188b82b6" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    // System prompt for the workflow
+    const systemPrompt = `You are Emma, the friendly customer service representative for TechGear Online. Listen to the customer's response and determine their inquiry type: order_tracking, return_exchange, product_inquiry, billing_payment, complaint, or general. Keep responses friendly and under 35 words.`;
+
+    async function createEcommerceWorkflow() {
+      try {
+        const workflow = await vapi.workflows.create({
+          name: "TechGear E-commerce Support Workflow",
+          nodes: [
+            {
+              id: "greeting",
+              type: "conversation",
+              firstMessage: "Hello! Thank you for calling TechGear Online customer service. This is Emma, your virtual assistant. I can help you track orders, process returns, answer product questions, or resolve any issues. How can I assist you today?",
+              systemPrompt: systemPrompt,
+              extractVariables: [
+                {
+                  name: "inquiry_type",
+                  type: "string",
+                  description: "The customer's inquiry type",
+                  enum: ["order_tracking", "return_exchange", "product_inquiry", "billing_payment", "complaint", "general"]
+                }
+              ]
+            }
+          ],
+          edges: []
+        });
+
+        console.log(`Workflow created with ID: ${workflow.id}`);
+        return workflow;
+      } catch (error) {
+        console.error('Error creating workflow:', error);
+        throw error;
+      }
+    }
+
+    // Create the workflow
+    const workflow = await createEcommerceWorkflow();
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_ecommerce_workflow():
+        """Create the e-commerce support workflow"""
+        url = "https://api.vapi.ai/workflow"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        # System prompt for the workflow
+        system_prompt = "You are Emma, the friendly customer service representative for TechGear Online. Listen to the customer's response and determine their inquiry type: order_tracking, return_exchange, product_inquiry, billing_payment, complaint, or general. Keep responses friendly and under 35 words."
+
+        workflow_data = {
+            "name": "TechGear E-commerce Support Workflow",
+            "nodes": [
+                {
+                    "id": "greeting",
+                    "type": "conversation",
+                    "firstMessage": "Hello! Thank you for calling TechGear Online customer service. This is Emma, your virtual assistant. I can help you track orders, process returns, answer product questions, or resolve any issues. How can I assist you today?",
+                    "systemPrompt": system_prompt,
+                    "extractVariables": [
+                        {
+                            "name": "inquiry_type",
+                            "type": "string",
+                            "description": "The customer's inquiry type",
+                            "enum": ["order_tracking", "return_exchange", "product_inquiry", "billing_payment", "complaint", "general"]
+                        }
+                    ]
+                }
+            ],
+            "edges": []
+        }
+
+        response = requests.post(url, headers=headers, json=workflow_data)
+
+        if response.status_code == 200:
+            workflow = response.json()
+            print(f"Workflow created with ID: {workflow['id']}")
+            return workflow
+        else:
+            raise Exception(f"Failed to create workflow: {response.text}")
+
+    # Create the workflow
+    workflow = create_ecommerce_workflow()
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://api.vapi.ai/workflow \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "TechGear E-commerce Support Workflow",
+           "nodes": [
+             {
+               "id": "greeting",
+               "type": "conversation",
+               "firstMessage": "Hello! Thank you for calling TechGear Online customer service. This is Emma, your virtual assistant. I can help you track orders, process returns, answer product questions, or resolve any issues. How can I assist you today?",
+               "systemPrompt": "You are Emma, the friendly customer service representative for TechGear Online. Listen to the customer'\''s response and determine their inquiry type: order_tracking, return_exchange, product_inquiry, billing_payment, complaint, or general. Keep responses friendly and under 35 words.",
+               "extractVariables": [
+                 {
+                   "name": "inquiry_type",
+                   "type": "string",
+                   "description": "The customer'\''s inquiry type",
+                   "enum": ["order_tracking", "return_exchange", "product_inquiry", "billing_payment", "complaint", "general"]
+                 }
+               ]
+             }
+           ],
+           "edges": []
+         }'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## 4. Build the Workflow
+
+You'll start with a default template that includes a "Call Start" node. We'll modify the existing nodes and add new ones to create our e-commerce customer service workflow.
+
+<Steps>
+  <Step title="Configure the Initial Conversation Node">
+    The default template includes a conversation node. Click on it and configure:
+    
+    **Node Name**: `greeting_and_inquiry_type`
+    
+    ```txt title="First Message"
+    Hello! Thank you for calling TechGear Online customer service. This is Emma, your virtual assistant. I can help you track orders, process returns, answer product questions, or resolve any issues. How can I assist you today?
+    ```
+    
+    ```txt title="Prompt"
+    You are Emma, the friendly customer service representative for TechGear Online.
+
+    Listen to the customer's response and determine their inquiry type:
+    - "order_tracking" for checking order status or shipping
+    - "return_exchange" for returns, exchanges, or refunds
+    - "product_inquiry" for product questions or recommendations
+    - "billing_payment" for payment or billing issues
+    - "complaint" for problems or complaints
+    - "general" for other inquiries
+
+    Keep responses friendly and under 35 words. Be helpful and professional.
+    ```
+
+    **Extract Variables**:
+    - Variable: `inquiry_type`
+    - Type: `String`
+    - Description: `The customer's inquiry type`
+    - Enum Values: `order_tracking`, `return_exchange`, `product_inquiry`, `billing_payment`, `complaint`, `general`
+
+  </Step>
+
+  <Step title="Add Customer Identification Node">
+    Add a **Conversation** node:
+    
+    ```txt title="Condition"
+    Inquiry type identified
+    ```
+    
+    **Node Name**: `customer_identification`
+    
+    ```txt title="First Message"
+    I'll be happy to help you with that. To look up your account, can you please provide your phone number or email address associated with your TechGear Online account?
+    ```
+    
+    ```txt title="Prompt"
+    You are collecting customer information to look up their account.
+
+    If you don't have an account, that's okay - I can still help you with general product questions.
+    Be patient and helpful. Extract phone number or email clearly.
+    Keep responses under 25 words.
+    ```
+
+    **Variable Extraction**:
+    - Variable: `customer_phone`
+    - Type: `string`
+    - Description: `Customer's phone number`
+    - Required: `false`
+    <br />
+    - Variable: `customer_email`
+    - Type: `string`
+    - Description: `Customer's email address`
+    - Required: `false`
+
+  </Step>
+
+  <Step title="Add Customer Lookup Tool Node">
+    Add a **Tool** node:
+    
+    ```txt title="Condition"
+    Customer information provided
+    ```
+    
+    **Tool**: Select your pre-configured "Customer Lookup" tool from the dropdown. This tool should be created in the **Tools** section of your dashboard with:
+    - **Function Name**: `lookup_customer`
+    - **Description**: "Look up customer account and order history"
+    - **Parameters**: 
+      - `customer_id` (string): Customer ID to lookup
+    - **Server URL**: `https://jsonplaceholder.typicode.com/users`
+  </Step>
+
+  <Step title="Add Inquiry-Based Routing">
+    Create branching paths based on the customer's inquiry type. Add multiple conversation nodes:
+
+    **Order Tracking Node**:
+
+    ```txt title="Condition"
+    Customer verified and inquiry is order tracking
+    ```
+
+    **Node Name**: `order_tracking_flow`
+
+    ```txt title="First Message"
+    I can help you track your order. Do you have your order number, or would you like me to look up your recent orders?
+    ```
+
+    ```txt title="Prompt"
+    You are helping the customer track their order.
+
+    Be proactive in finding their order information.
+    If they don't have the order number, offer to look up recent orders.
+    Keep responses under 30 words.
+    ```
+
+    **Return/Exchange Node**:
+
+    ```txt title="Condition"
+    Customer verified and inquiry is return or exchange
+    ```
+
+    **Node Name**: `return_exchange_flow`
+
+    ```txt title="First Message"
+    I can help you with returns and exchanges. Can you tell me which item you'd like to return and the reason for the return?
+    ```
+
+    ```txt title="Prompt"
+    You are helping the customer with a return or exchange.
+
+    Get the specific item and reason for return clearly.
+    Be understanding and helpful about their concerns.
+    Keep responses under 30 words.
+    ```
+
+    **Product Inquiry Node**:
+
+    ```txt title="Condition"
+    Customer verified and inquiry is product related
+    ```
+
+    **Node Name**: `product_inquiry_flow`
+
+    ```txt title="First Message"
+    I'd be happy to help with product information. What specific product are you interested in, or what type of device are you looking for?
+    ```
+
+    ```txt title="Prompt"
+    You are helping the customer with product information and recommendations.
+
+    Be knowledgeable about TechGear products and helpful in making recommendations.
+    Ask clarifying questions to better assist them.
+    Keep responses under 35 words.
+    ```
+
+    **Billing/Payment Node**:
+
+    ```txt title="Condition"
+    Customer verified and inquiry is billing or payment
+    ```
+
+    **Node Name**: `billing_payment_flow`
+
+    ```txt title="First Message"
+    I can help with billing and payment questions. Are you looking to update payment information, dispute a charge, or have questions about a specific order?
+    ```
+
+    ```txt title="Prompt"
+    You are helping the customer with billing and payment issues.
+
+    Be careful with sensitive financial information.
+    Determine the specific billing concern clearly.
+    Keep responses under 30 words.
+    ```
+
+    **Complaint Resolution Node**:
+
+    ```txt title="Condition"
+    Customer verified and inquiry is a complaint
+    ```
+
+    **Node Name**: `complaint_resolution_flow`
+
+    ```txt title="First Message"
+    I'm sorry to hear you're having an issue. I want to make this right for you. Can you tell me what happened so I can help resolve this?
+    ```
+
+    ```txt title="Prompt"
+    You are handling a customer complaint and working toward resolution.
+
+    Be empathetic and solution-focused. Listen carefully to their concern.
+    Show that you care about resolving their issue.
+    Keep responses under 35 words.
+    ```
+
+  </Step>
+
+  <Step title="Configure Flow Conditions">
+    Connect the nodes with conditions for the LLM to interpret:
+
+    **To Order Tracking Node**:
+    - Condition: `Customer verified and inquiry is order tracking`
+
+    **To Return/Exchange Node**:
+    - Condition: `Customer verified and inquiry is return or exchange`
+
+    **To Product Inquiry Node**:
+    - Condition: `Customer verified and inquiry is product related`
+
+    **To Billing/Payment Node**:
+    - Condition: `Customer verified and inquiry is billing or payment`
+
+    **To Complaint Resolution Node**:
+    - Condition: `Customer verified and inquiry is a complaint`
+
+  </Step>
+
+  <Step title="Add Global VIP Customer Handler">
+    Create a global node that provides special handling for VIP customers:
+    
+    ```txt title="Condition"
+    VIP customer detected
+    ```
+    
+    **Node Name**: `vip_customer_handler`
+    **Global Node**: `enabled = true`
+    **Enter Condition**: `{{ customer_tier == "VIP" or total_orders > 50 or lifetime_value > 5000 }}`
+    
+    ```txt title="First Message"
+    I see you're one of our valued VIP customers. I want to make sure you receive our highest level of service today. Let me prioritize your request and see what I can do to exceed your expectations.
+    ```
+    
+    ```txt title="Prompt"
+    You are providing VIP-level customer service to a high-value customer.
+    
+    Be extra attentive and go above and beyond normal service.
+    Offer premium solutions and expedited handling.
+    Keep responses under 35 words but show special attention.
+    ```
+    
+    This global node will activate for high-value customers, regardless of their inquiry type.
+  </Step>
+
+  <Step title="Add VIP Customer Priority Node">
+    **Node Name**: `vip_customer_priority`
+    
+    ```txt title="First Message"
+    Thank you for being a valued VIP customer! I'm prioritizing your call and will personally ensure your issue is resolved quickly. How can I assist you today?
+    ```
+    
+    ```txt title="Prompt"
+    You are providing VIP-level customer service.
+    
+    Give this customer premium attention and faster resolution.
+    Be extra helpful and offer additional assistance.
+    Keep responses under 30 words.
+    ```
+  </Step>
+
+  <Step title="Add Order Status and Tracking Flows">
+    **Order Number Collection Node**:
+    
+    ```txt title="Condition"
+    Order tracking flow initiated
+    ```
+    
+    **Node Name**: `collect_order_number`
+    
+    ```txt title="First Message"
+    Please provide your order number, and I'll get the latest status for you right away.
+    ```
+    
+    ```txt title="Prompt"
+    You are collecting the order number for tracking.
+    
+    Be patient if they need time to find it.
+    Offer alternative methods if they can't locate the order number.
+    Keep responses under 25 words.
+    ```
+
+    **Extract Variables**:
+    - Variable: `order_number`
+    - Type: `string`
+    - Description: `Customer's order number`
+
+    **Order Tracking Tool Node**:
+
+    ```txt title="Condition"
+    Order number provided
+    ```
+
+    - Add a **Tool** node that calls your order tracking API with order information
+
+    **Shipping Information Node**:
+
+    ```txt title="Condition"
+    Order status retrieved
+    ```
+
+    **Node Name**: `provide_shipping_info`
+
+    ```txt title="First Message"
+    Great news! Your order is [status] and should arrive [delivery date]. Here's your tracking number: [tracking]. Is there anything else about this order?
+    ```
+
+    ```txt title="Prompt"
+    You are providing order status and shipping information to the customer.
+
+    Give clear updates on order status, tracking, and delivery estimates.
+    Be positive and informative. Keep responses under 35 words.
+    ```
+
+    - Present tracking details, delivery estimates, and shipping updates
+
+  </Step>
+
+  <Step title="Add Return Processing Flow">
+    **Return Eligibility Check Node**:
+    
+    ```txt title="Condition"
+    Return request initiated
+    ```
+    
+    **Node Name**: `check_return_eligibility`
+    
+    ```txt title="First Message"
+    Let me check if this item is eligible for return. What's the reason for the return - defective, wrong item, or just not what you expected?
+    ```
+    
+    ```txt title="Prompt"
+    You are checking return eligibility and gathering return details.
+    
+    Verify return policy compliance and item condition.
+    Be understanding about their return reason.
+    Keep responses under 30 words.
+    ```
+    
+    **Extract Variables**:
+    - Variable: `return_reason`
+    - Type: `String`
+    - Description: `Reason for return`
+
+    **Return Authorization Tool Node**:
+
+    ```txt title="Condition"
+    Return eligibility confirmed
+    ```
+
+    - Add a **Tool** node that creates return label and authorization number
+
+    **Refund Processing Node**:
+
+    ```txt title="Condition"
+    Return authorized
+    ```
+
+    **Node Name**: `process_refund`
+
+    ```txt title="First Message"
+    Perfect! I've processed your return authorization. You'll receive a return label via email, and your refund will be processed within 3-5 business days once we receive the item.
+    ```
+
+    ```txt title="Prompt"
+    You are confirming the return process and refund timeline.
+
+    Provide clear instructions for returning the item.
+    Set proper expectations for refund timing.
+    Keep responses under 35 words.
+    ```
+
+    - Handle refund calculations and payment processing
+
+  </Step>
+
+  <Step title="Add Escalation and Resolution Options">
+    **Human Agent Transfer Node**:
+    
+    ```txt title="Condition"
+    Customer requests human agent or complex issue
+    ```
+    
+    **Node Type**: `Transfer`
+    **Destination**: `+1-555-SUPPORT` (customer service team)
+
+    **Issue Resolution Node**:
+
+    ```txt title="Condition"
+    Resolution offered or compensation provided
+    ```
+
+    **Node Name**: `resolve_issue`
+
+    ```txt title="First Message"
+    I want to make this right for you. Let me offer you [solution/compensation] for the trouble you've experienced.
+    ```
+
+    ```txt title="Prompt"
+    You are providing a resolution or compensation for the customer's issue.
+
+    Be generous and solution-focused. Make the customer feel valued.
+    Offer specific solutions or compensation when appropriate.
+    Keep responses under 30 words.
+    ```
+
+    - Provide solutions, credits, or compensations
+
+    **End Call Node**:
+
+    ```txt title="Condition"
+    Customer issue resolved and satisfied
+    ```
+
+    **Node Type**: `Hangup`
+    - Use when customer issue is resolved
+
+  </Step>
+</Steps>
+
+---
+
+## 5. Configure Phone Number
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Navigate to Phone Numbers">
+        Click `Phone Numbers` in the left sidebar of your dashboard.
+      </Step>
+      <Step title="Create or Import Phone Number">
+        - Click `Create Phone Number` for a new Vapi number, or
+        - Click `Import Phone Number` to use your existing customer service number
+      </Step>
+      <Step title="Configure Inbound Settings">
+        **Workflow**: Select your `TechGear Customer Service Workflow`
+        
+        **Customer Service Configuration**:
+        - Enable call recording for quality assurance
+        - Set maximum call duration (e.g., 30 minutes for complex issues)
+        - Configure voicemail for after-hours support
+        - Enable priority routing for VIP customers
+      </Step>
+      <Step title="Test Customer Service Scenarios">
+        Test the workflow with various customer scenarios:
+        - Order tracking requests
+        - Return and exchange processing
+        - Product inquiries and recommendations
+        - Billing and payment issues
+        - Complaint resolution
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    async function createEcommercePhoneNumber(workflowId: string) {
+      try {
+        const phoneNumber = await vapi.phoneNumbers.create({
+          name: "TechGear Customer Service Line",
+          workflowId: workflowId,
+          inboundSettings: {
+            maxCallDurationMinutes: 30,
+            recordingEnabled: true,
+            voicemailDetectionEnabled: true,
+            priorityRouting: true
+          }
+        });
+
+        console.log(`Customer service number: ${phoneNumber.number}`);
+        return phoneNumber;
+      } catch (error) {
+        console.error('Error creating phone number:', error);
+        throw error;
+      }
+    }
+
+    async function testEcommerceScenarios(workflowId: string) {
+      const scenarios = [
+        {
+          customer: { number: "+1234567890", name: "Order Tracking Customer" },
+          scenario: "order_tracking"
+        },
+        {
+          customer: { number: "+1234567891", name: "Return Customer" },
+          scenario: "return_exchange"
+        },
+        {
+          customer: { number: "+1234567892", name: "Billing Issue Customer" },
+          scenario: "billing_payment"
+        }
+      ];
+
+      for (const scenario of scenarios) {
+        try {
+          const call = await vapi.calls.create({
+            workflowId: workflowId,
+            ...scenario
+          });
+
+          console.log(`Test call for ${scenario.customer.name}: ${call.id}`);
+        } catch (error) {
+          console.error(`Error creating test call for ${scenario.scenario}:`, error);
+        }
+      }
+    }
+
+    // Create phone number and test scenarios
+    const phoneNumber = await createEcommercePhoneNumber(workflowId);
+    await testEcommerceScenarios(workflowId);
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_ecommerce_phone_number(workflow_id):
+        """Create a phone number for e-commerce customer service"""
+        url = "https://api.vapi.ai/phone-number"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "name": "TechGear Customer Service Line",
+            "workflowId": workflow_id,
+            "inboundSettings": {
+                "maxCallDurationMinutes": 30,
+                "recordingEnabled": True,
+                "voicemailDetectionEnabled": True,
+                "priorityRouting": True
+            }
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+
+        if response.status_code == 200:
+            phone_number = response.json()
+            print(f"Customer service number: {phone_number['number']}")
+            return phone_number
+        else:
+            raise Exception(f"Failed to create phone number: {response.text}")
+
+    def test_ecommerce_scenarios(workflow_id):
+        """Test various e-commerce customer service scenarios"""
+        scenarios = [
+            {
+                "customer": {"number": "+1234567890", "name": "Order Tracking Customer"},
+                "scenario": "order_tracking"
+            },
+            {
+                "customer": {"number": "+1234567891", "name": "Return Customer"},
+                "scenario": "return_exchange"
+            },
+            {
+                "customer": {"number": "+1234567892", "name": "Billing Issue Customer"},
+                "scenario": "billing_payment"
+            }
+        ]
+
+        for scenario in scenarios:
+            url = "https://api.vapi.ai/call"
+            headers = {
+                "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+                "Content-Type": "application/json"
+            }
+
+            data = {
+                "workflowId": workflow_id,
+                **scenario
+            }
+
+            try:
+                response = requests.post(url, headers=headers, json=data)
+                if response.status_code == 200:
+                    result = response.json()
+                    print(f"Test call for {scenario['customer']['name']}: {result['id']}")
+                else:
+                    print(f"Error creating test call for {scenario['scenario']}: {response.text}")
+            except Exception as error:
+                print(f"Error creating test call for {scenario['scenario']}: {error}")
+
+    # Create phone number and test scenarios
+    phone_number = create_ecommerce_phone_number(workflow_id)
+    test_ecommerce_scenarios(workflow_id)
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Create phone number with workflow
+    curl -X POST https://api.vapi.ai/phone-number \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "TechGear Customer Service Line",
+           "workflowId": "YOUR_WORKFLOW_ID",
+           "inboundSettings": {
+             "maxCallDurationMinutes": 30,
+             "recordingEnabled": true,
+             "voicemailDetectionEnabled": true,
+             "priorityRouting": true
+           }
+         }'
+
+    # Test order tracking scenario
+    curl -X POST https://api.vapi.ai/call \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "workflowId": "YOUR_WORKFLOW_ID",
+           "customer": {
+             "number": "+1234567890",
+             "name": "Test Customer"
+           },
+           "scenario": "order_tracking"
+         }'
+
+    # Test return scenario
+    curl -X POST https://api.vapi.ai/call \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "workflowId": "YOUR_WORKFLOW_ID",
+           "customer": {
+             "number": "+1234567891",
+             "name": "Return Customer"
+           },
+           "scenario": "return_exchange"
+         }'
+
+    # Test billing scenario
+    curl -X POST https://api.vapi.ai/call \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "workflowId": "YOUR_WORKFLOW_ID",
+           "customer": {
+             "number": "+1234567892",
+             "name": "Billing Customer"
+           },
+           "scenario": "billing_payment"
+         }'
+    ```
+
+  </Tab>
+</Tabs>
+
+### Optional: Web SDK Integration
+
+For e-commerce websites that want to integrate voice support directly into their shopping experience:
+
+<Tabs>
+  <Tab title="TypeScript (Web SDK)">
+    ```typescript
+    import Vapi from '@vapi-ai/web';
+
+    interface EcommerceOrderConfig {
+      publicApiKey: string;
+      workflowId: string;
+    }
+
+    function createEcommerceOrderWorkflow(config: EcommerceOrderConfig) {
+      const vapi = new Vapi(config.publicApiKey);
+      let isConnected = false;
+      let currentCustomer: any = null;
+
+      // Setup event listeners for customer service calls
+      vapi.on('call-start', () => {
+        isConnected = true;
+        console.log('E-commerce customer service call started');
+      });
+
+      vapi.on('call-end', () => {
+        isConnected = false;
+        console.log('Customer service call ended');
+        processCustomerServiceOutcome();
+      });
+
+      vapi.on('message', (message) => {
+        if (message.type === 'transcript') {
+          console.log(`${message.role}: ${message.transcript}`);
+        } else if (message.type === 'function-call') {
+          handleCustomerServiceFunction(message.functionCall);
+        } else if (message.type === 'workflow-step') {
+          console.log('Customer service workflow step:', message.step);
+        }
+      });
+
+      vapi.on('error', (error) => {
+        console.error('Customer service workflow error:', error);
+      });
+
+      function handleCustomerServiceFunction(functionCall: { name: string; parameters: Record<string, unknown> }) {
+        switch (functionCall.name) {
+          case 'lookup_customer':
+            console.log('Looking up customer:', functionCall.parameters);
+            break;
+          case 'track_order':
+            console.log('Tracking order:', functionCall.parameters);
+            break;
+          case 'process_return':
+            console.log('Processing return:', functionCall.parameters);
+            break;
+          default:
+            console.log('Customer service function called:', functionCall.name, functionCall.parameters);
+        }
+      }
+
+      function processCustomerServiceOutcome() {
+        console.log('Processing customer service outcome for:', currentCustomer);
+      }
+
+      return {
+        startCustomerServiceCall: (customerData?: any) => {
+          if (!isConnected) {
+            currentCustomer = customerData;
+            vapi.start(config.workflowId);
+          }
+        },
+        endCall: () => {
+          if (isConnected) {
+            vapi.stop();
+          }
+        },
+        isConnected: () => isConnected
+      };
+    }
+
+    // Usage for e-commerce customer service integration
+    const customerServiceWorkflow = createEcommerceOrderWorkflow({
+      publicApiKey: 'YOUR_PUBLIC_API_KEY',
+      workflowId: 'YOUR_WORKFLOW_ID'
+    });
+
+    // Add to your e-commerce site's customer service button
+    document.getElementById('customer-service-button')?.addEventListener('click', () => {
+      customerServiceWorkflow.startCustomerServiceCall({
+        customerId: 'current_customer_id',
+        currentPage: 'order_tracking',
+        context: 'website_support'
+      });
+    });
+    ```
+
+    <Note>
+      Web SDK is for client-side customer service integration. File uploads and workflow creation must use the Server SDK or Dashboard.
+    </Note>
+
+  </Tab>
+</Tabs>
+
+---
+
+## Integrating with Real Systems
+
+This example uses JSONPlaceholder for demonstration purposes. To integrate with your actual e-commerce systems:
+
+### E-commerce Platform Integration
+
+- **Shopify**: Use the [Shopify Admin API](https://shopify.dev/api/admin-rest) for customer and order data
+- **WooCommerce**: Use the [WooCommerce REST API](https://woocommerce.github.io/woocommerce-rest-api-docs/)
+- **Magento**: Use the [Magento Web API](https://devdocs.magento.com/guides/v2.4/get-started/web-api-functional-testing.html)
+
+### Shipping Provider APIs
+
+- **FedEx**: [FedEx Web Services](https://www.fedex.com/en-us/developer/web-services.html)
+- **UPS**: [UPS Developer Kit](https://www.ups.com/upsdeveloperkit)
+- **USPS**: [USPS Web Tools](https://www.usps.com/business/web-tools-apis/)
+
+### Payment Processing
+
+- **Stripe**: [Stripe API](https://stripe.com/docs/api)
+- **PayPal**: [PayPal Developer](https://developer.paypal.com/)
+- **Square**: [Square API](https://developer.squareup.com/)
+
+## Next Steps
+
+Just like that, you've built an e-commerce customer service workflow that can handle order inquiries, returns, and support requests with 24/7 availability for your online store.
+
+Consider reading the following guides to further enhance your workflow:
+
+- [**Custom Tools**](/tools/custom-tools) - Create custom tools for e-commerce platform integration and order management.
+- [**Custom Voices**](/customization/custom-voices/custom-voice) - Customize your assistant's voice for customer service excellence.
+- [**Call Recording**](/assistants/call-recording) - Record calls for quality assurance and training purposes.
+
+---
+
+title: Property management call routing
+subtitle: >-
+Build a call routing workflow for property management that dynamically routes
+calls based on tenant status, inquiry type, and agent availability.
+slug: workflows/examples/property-management
+description: >-
+Build a voice AI property management system with dynamic call routing that
+determines destinations based on tenant verification, inquiry type analysis,
+and real-time agent availability using workflow API requests.
+
+---
+
+<Frame>
+  <img src="file:feea82ee-1119-42b4-9b7b-48e3834ec82c" alt="Property Management Workflow" />
+</Frame>
+
+## Overview
+
+Build a property management call routing workflow that determines transfer destinations dynamically using tenant verification, inquiry type analysis, and real-time agent availability. This approach uses visual workflow nodes with API Request nodes for maximum routing flexibility.
+
+**Workflow Capabilities:**
+
+- Tenant status verification and prioritization
+- Inquiry type classification for specialist routing
+- Real-time agent availability and queue management
+- Emergency routing for urgent maintenance issues
+
+**What You'll Build:**
+
+- Visual workflow with conditional routing logic
+- API Request nodes for dynamic destination logic
+- Tenant verification with CRM integration
+- Emergency escalation with priority queuing
+
+## Quick Start: Create the Complete Workflow
+
+Use this cURL command to create the entire property management workflow in one shot:
+
+<CodeBlocks>
+```bash title="Complete Workflow Creation"
+curl -X POST https://api.vapi.ai/workflow \
+     -H "Authorization: Bearer $VAPI_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "name": "Property Management Call Router",
+       "nodes": [
+         {
+           "type": "conversation",
+           "name": "Initial Greeting",
+           "isStart": true,
+           "prompt": "You are a helpful property management assistant for Riverside Property Management. Start by greeting the caller and asking how you can help them today. Listen to determine: Is this an emergency/urgent maintenance issue? What type of inquiry is this (maintenance, lease, rent, general)? Keep responses under 25 words and be professional.",
+           "model": {
+             "provider": "openai",
+             "model": "gpt-4"
+           },
+           "variableExtractionPlan": {
+             "schema": {
+               "type": "object",
+               "properties": {
+                 "inquiry_type": {
+                   "type": "string",
+                   "description": "Type of inquiry",
+                   "enum": ["emergency", "maintenance", "lease", "rent", "general"]
+                 },
+                 "caller_phone": {
+                   "type": "string",
+                   "description": "Caller phone number for tenant lookup"
+                 }
+               }
+             }
+           }
+         },
+         {
+           "type": "conversation",
+           "name": "Emergency Handling",
+           "prompt": "This is an emergency maintenance situation. Tell the caller you understand this is an emergency and that you are immediately connecting them with emergency maintenance. Keep the interaction brief and gather only essential details about the emergency.",
+           "model": {
+             "provider": "openai",
+             "model": "gpt-4"
+           },
+           "variableExtractionPlan": {
+             "schema": {
+               "type": "object",
+               "properties": {
+                 "emergency_details": {
+                   "type": "string",
+                   "description": "Brief description of emergency"
+                 }
+               }
+             }
+           }
+         },
+         {
+           "type": "tool",
+           "name": "Transfer to General Office",
+           "tool": {
+             "type": "transferCall",
+             "destinations": [
+               {
+                 "type": "number",
+                 "number": "+12025551234",
+                 "message": "Connecting you to our office team who will assist you with your inquiry."
+               }
+             ]
+           }
+         }
+       ],
+       "edges": [
+         {
+           "from": "Initial Greeting",
+           "to": "Emergency Handling",
+           "condition": {
+             "type": "ai",
+             "prompt": "Route to emergency handling if the caller has an emergency or urgent maintenance issue"
+           }
+         },
+         {
+           "from": "Initial Greeting",
+           "to": "Transfer to General Office",
+           "condition": {
+             "type": "ai",
+             "prompt": "Route to transfer for all non-emergency inquiries (maintenance, lease, rent, general)"
+           }
+         },
+         {
+           "from": "Emergency Handling",
+           "to": "Transfer to General Office",
+           "condition": {
+             "type": "ai",
+             "prompt": "After gathering emergency details, transfer to office"
+           }
+         }
+       ]
+     }'
+```
+</CodeBlocks>
+
+<Note>
+Replace `$VAPI_API_KEY` with your actual API key from the [Vapi Dashboard](https://dashboard.vapi.ai/). Update the phone number in the `transferCall` destination to your actual office number.
+</Note>
+
+Once created, you can retrieve the workflow ID and attach it to a phone number for testing.
+
+## Test Workflow Creation
+
+After creating the workflow, you can test it and get the workflow ID:
+
+<CodeBlocks>
+```bash title="Get Your Workflow ID"
+# First, create the workflow using the command above, then:
+curl -X GET https://api.vapi.ai/workflow \
+     -H "Authorization: Bearer $VAPI_API_KEY" \
+     | jq '.[] | select(.name == "Property Management Call Router") | {id: .id, name: .name, nodes: (.nodes | length), edges: (.edges | length)}'
+```
+
+```bash title="Get Specific Workflow Details"
+# Replace WORKFLOW_ID with the actual ID from the previous command
+curl -X GET https://api.vapi.ai/workflow/WORKFLOW_ID \
+     -H "Authorization: Bearer $VAPI_API_KEY" \
+     | jq '{id: .id, name: .name, nodes: [.nodes[].name], edges: [.edges[].condition]}'
+```
+
+```bash title="Attach Workflow to Phone Number"
+# Replace PHONE_NUMBER_ID with your actual phone number ID
+curl -X PATCH https://api.vapi.ai/phone-number/PHONE_NUMBER_ID \
+     -H "Authorization: Bearer $VAPI_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "workflowId": "WORKFLOW_ID"
+     }'
+```
+
+</CodeBlocks>
+
+<Note>
+You'll need `jq` installed for JSON parsing. On macOS: `brew install jq`, on Ubuntu: `sudo apt-get install jq`
+</Note>
+
+## API Response Structure
+
+When you create the workflow, you'll receive a response like this:
+
+```json
+{
+  "id": "wf_1234567890abcdef",
+  "name": "Property Management Call Router",
+  "orgId": "org_1234567890abcdef",
+  "createdAt": "2024-01-15T10:30:00.000Z",
+  "updatedAt": "2024-01-15T10:30:00.000Z",
+  "nodes": [
+    {
+      "id": "greeting",
+      "type": "conversation",
+      "name": "Initial Greeting",
+      "isStart": true,
+      "firstMessage": "Hello! You've reached Riverside Property Management...",
+      "systemPrompt": "You are a helpful property management assistant...",
+      "model": {
+        "provider": "openai",
+        "model": "gpt-4"
+      },
+      "extractVariables": [...]
+    },
+    // ... more nodes
+  ],
+  "edges": [
+    {
+      "id": "greeting_to_lookup",
+      "source": "greeting",
+      "target": "tenant_lookup",
+      "condition": "Always route to tenant lookup after greeting"
+    },
+    // ... more edges
+  ]
+}
+```
+
+### Key Fields for Integration
+
+| Field       | Description             | Usage                                        |
+| ----------- | ----------------------- | -------------------------------------------- |
+| `id`        | Workflow ID             | Use this to attach workflow to phone numbers |
+| `name`      | Workflow name           | For identification in dashboard              |
+| `nodes`     | Array of workflow nodes | Conversation and tool nodes                  |
+| `edges`     | Array of connections    | Define the flow between nodes                |
+| `createdAt` | Creation timestamp      | For tracking and reference                   |
+
+### Node Types in This Workflow
+
+- **Conversation Nodes**: Handle AI conversations with tenants
+- **Tool Nodes**: Execute API calls for tenant lookup and routing
+- **Transfer Nodes**: Route calls to appropriate agents
+
+## Prerequisites
+
+- A [Vapi account](https://dashboard.vapi.ai/)
+- Property management system API or tenant database
+- (Optional) Agent availability tracking system
+
+## Scenario
+
+We will build a call routing workflow for Riverside Property Management that intelligently routes tenant calls based on their status, inquiry type, and agent availability.
+
+---
+
+## 1. Create a Workflow
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Navigate to Workflows">
+        In your Vapi dashboard, click **Workflows** in the left sidebar.
+      </Step>
+      <Step title="Create new workflow">
+        - Click **Create Workflow**
+        - Name: `Property Management Call Router`
+        - Select blank template to start with basic call start node
+        - Click **Create Workflow**
+      </Step>
+      <Step title="Configure the initial greeting">
+        Click on the conversation node and configure:
+        
+        **Prompt**:
+        ```txt
+        You are a helpful property management assistant for Riverside Property Management. Start by greeting the caller and asking how you can help them today. Listen to determine: Is this an emergency/urgent maintenance issue? What type of inquiry is this (maintenance, lease, rent, general)? Keep responses under 25 words and be professional.
+        ```
+        
+        **Variable Extraction Schema**:
+        ```json
+        {
+          "type": "object",
+          "properties": {
+            "inquiry_type": {
+              "type": "string",
+              "description": "Type of inquiry",
+              "enum": ["emergency", "maintenance", "lease", "rent", "general"]
+            },
+            "caller_phone": {
+              "type": "string",
+              "description": "Caller phone number for tenant lookup"
+            }
+          }
+        }
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="API (cURL)">
+    Use the working cURL command from the Quick Start section above to create the entire workflow programmatically.
+  </Tab>
+</Tabs>
+
+---
+
+## 2. Add Tenant Verification Node
+
+<Steps>
+  <Step title="Add API Request node for tenant lookup">
+    Add an **API Request** node after the greeting:
+    
+    **Node Configuration**:
+    - Node ID: `tenant_lookup`
+    - HTTP Method: `POST`
+    - URL: `https://your-property-system.com/api/tenants/lookup`
+    - Headers: `Authorization: Bearer YOUR_API_KEY`
+    - Body:
+    ```json
+    {
+      "phone": "{{caller_phone}}",
+      "inquiry_type": "{{inquiry_type}}"
+    }
+    ```
+  </Step>
+  <Step title="Configure response mapping">
+    Map the API response to workflow variables:
+    - `tenant_status` → Extract from `response.tenant.status`
+    - `property_address` → Extract from `response.tenant.property`
+    - `account_standing` → Extract from `response.tenant.account_standing`
+    - `emergency_contact` → Extract from `response.tenant.emergency_contact`
+  </Step>
+  <Step title="Add error handling">
+    Configure what happens if the API call fails:
+    - **On Error**: Route to general agent queue
+    - **Error Message**: "I'll connect you with our general team who can help."
+  </Step>
+</Steps>
+
+---
+
+## 3. Build Emergency Routing Logic
+
+<Steps>
+  <Step title="Add emergency detection node">
+    Add a **Conversation** node for emergency handling:
+    
+    **Condition**: `inquiry_type == "emergency"`
+    
+    **First Message**:
+    ```txt
+    I understand this is an emergency. Let me immediately connect you with our emergency maintenance team. Please stay on the line.
+    ```
+    
+    **System Prompt**:
+    ```txt
+    This is an emergency maintenance situation. Confirm the emergency details quickly and route to emergency maintenance immediately. Keep interaction brief.
+    ```
+  </Step>
+  <Step title="Add emergency API routing">
+    Add an **API Request** node to get emergency destination:
+    
+    **URL**: `https://your-system.com/api/routing/emergency`
+    **Method**: `POST`
+    **Body**:
+    ```json
+    {
+      "tenant_id": "{{tenant_id}}",
+      "property": "{{property_address}}",
+      "inquiry_type": "emergency",
+      "priority": "high"
+    }
+    ```
+  </Step>
+  <Step title="Add emergency transfer node">
+    Add a **Transfer Call** node:
+    - **Destination**: Use the phone number from the API response
+    - **Transfer Plan**: Include emergency context and tenant information
+    - **Priority**: Set to highest priority for immediate routing
+  </Step>
+</Steps>
+
+---
+
+## 4. Create Inquiry-Based Routing
+
+<Steps>
+  <Step title="Add maintenance routing branch">
+    Add **API Request** node for maintenance team routing:
+    
+    **Condition**: `inquiry_type == "maintenance"`
+    **URL**: `https://your-system.com/api/routing/maintenance`
+    **Body**:
+    ```json
+    {
+      "tenant_id": "{{tenant_id}}",
+      "property": "{{property_address}}",
+      "inquiry_type": "maintenance",
+      "tenant_status": "{{tenant_status}}"
+    }
+    ```
+    
+    Response should include:
+    - Available maintenance coordinator phone
+    - Estimated wait time
+    - Work order creation capability
+  </Step>
+  <Step title="Add leasing office routing">
+    Add **API Request** node for leasing inquiries:
+    
+    **Condition**: `inquiry_type == "lease"`
+    **URL**: `https://your-system.com/api/routing/leasing`
+    **Body**:
+    ```json
+    {
+      "tenant_id": "{{tenant_id}}",
+      "property": "{{property_address}}",
+      "inquiry_type": "lease",
+      "account_standing": "{{account_standing}}"
+    }
+    ```
+  </Step>
+  <Step title="Add rent/billing routing">
+    Add **API Request** node for billing department:
+    
+    **Condition**: `inquiry_type == "rent"`
+    **URL**: `https://your-system.com/api/routing/billing`
+    **Body**:
+    ```json
+    {
+      "tenant_id": "{{tenant_id}}",
+      "account_standing": "{{account_standing}}",
+      "inquiry_type": "rent"
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 5. Add Agent Availability Logic
+
+<Steps>
+  <Step title="Create availability checking flow">
+    Before each transfer, add an **API Request** to check agent availability:
+    
+    **URL**: `https://your-system.com/api/agents/availability`
+    **Method**: `GET`
+    **Query Parameters**: `department={{department}}&priority={{priority}}`
+    
+    Response includes:
+    - Available agents with phone numbers
+    - Current queue length
+    - Estimated wait times
+  </Step>
+  <Step title="Add queue management logic">
+    Add conditional routing based on availability:
+    
+    **If agents available**: Direct transfer to agent
+    **If queue exists**: Inform caller of wait time and offer callback
+    **If all busy**: Route to voicemail or priority callback system
+  </Step>
+  <Step title="Configure callback handling">
+    Add **API Request** node for callback scheduling:
+    
+    **URL**: `https://your-system.com/api/callbacks/schedule`
+    **Body**:
+    ```json
+    {
+      "tenant_id": "{{tenant_id}}",
+      "phone": "{{caller_phone}}",
+      "inquiry_type": "{{inquiry_type}}",
+      "priority": "{{priority}}",
+      "requested_time": "{{preferred_callback_time}}"
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 6. Build Transfer Nodes with Context
+
+<Steps>
+  <Step title="Create dynamic transfer destinations">
+    Use the API response data to populate transfer nodes:
+    
+    **Maintenance Transfer**:
+    - **Destination**: `{{maintenance_agent_phone}}`
+    - **Message**: "Connecting you to {{agent_name}} from our maintenance team."
+    - **Transfer Plan**: Include tenant property address and issue details
+    
+    **Leasing Transfer**:
+    - **Destination**: `{{leasing_agent_phone}}`
+    - **Message**: "Transferring you to our leasing office."
+    - **Transfer Plan**: Include tenant status and lease information
+    
+    **Billing Transfer**:
+    - **Destination**: `{{billing_agent_phone}}`
+    - **Message**: "Connecting you with our billing department."
+    - **Transfer Plan**: Include account standing and payment history
+  </Step>
+  <Step title="Configure transfer context">
+    Each transfer node should include rich context:
+    
+    ```txt title="Transfer Plan Summary"
+    Tenant: {{tenant_name}} at {{property_address}}
+    Account Status: {{account_standing}}
+    Inquiry Type: {{inquiry_type}}
+    Previous Context: {{conversation_summary}}
+    Priority: {{priority_level}}
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 7. Add Error Handling and Fallbacks
+
+<Steps>
+  <Step title="Create fallback routing">
+    Add **API Request** node for fallback scenarios:
+    
+    **Triggers**:
+    - API lookup failures
+    - No available agents
+    - Unknown inquiry types
+    - System errors
+    
+    **URL**: `https://your-system.com/api/routing/fallback`
+    **Body**:
+    ```json
+    {
+      "phone": "{{caller_phone}}",
+      "error_type": "{{error_reason}}",
+      "original_inquiry": "{{inquiry_type}}"
+    }
+    ```
+  </Step>
+  <Step title="Add general queue routing">
+    Create **Transfer Call** node for general queue:
+    
+    **Destination**: Main office line
+    **Message**: "Let me connect you with our general team who can assist you."
+    **Transfer Plan**: "Call requires general assistance - routing details unavailable"
+  </Step>
+  <Step title="Configure voicemail option">
+    Add **End Call** node with voicemail message:
+    
+    **Condition**: All agents busy and caller declines callback
+    **Message**: "Please leave a detailed voicemail including your name, property address, and the nature of your request. We'll call you back within 4 hours."
+  </Step>
+</Steps>
+
+---
+
+## 8. Test Your Property Routing Workflow
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Create a phone number">
+        - Navigate to **Phone Numbers** in your dashboard
+        - Click **Create Phone Number**
+        - Assign your property management workflow
+        - Configure any additional settings
+      </Step>
+      <Step title="Test different routing scenarios">
+        Call your number and test various scenarios:
+        - Emergency maintenance calls
+        - Regular maintenance requests from verified tenants
+        - Leasing inquiries from prospective tenants
+        - Billing questions from current tenants
+        - Calls from unrecognized phone numbers
+      </Step>
+      <Step title="Monitor workflow performance">
+        Check your workflow analytics to verify:
+        - Call routing patterns
+        - Emergency response times
+        - Variable extraction accuracy
+        - Transfer success rates
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="API Testing">
+    Test your workflow using the API:
+    
+    ```bash
+    # Create a test call
+    curl -X POST https://api.vapi.ai/call \
+         -H "Authorization: Bearer $VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "workflowId": "YOUR_WORKFLOW_ID",
+           "customer": {
+             "number": "+1234567890",
+             "name": "Test Caller"
+           }
+         }'
+    ```
+  </Tab>
+</Tabs>
+
+## API Integration Examples
+
+Your property management system can integrate with the workflow using these API endpoints:
+
+### Tenant Lookup Endpoint
+
+```http
+POST /api/tenants/lookup
+Content-Type: application/json
+
+{
+  "phone": "+1234567890",
+  "inquiry_type": "maintenance"
+}
+```
+
+**Response:**
+
+```json
+{
+  "tenant": {
+    "id": "tenant_123",
+    "name": "John Smith",
+    "status": "active",
+    "property": "123 Main St, Apt 4B",
+    "account_standing": "good"
+  },
+  "routing_suggestion": "maintenance_team"
+}
+```
+
+### Agent Availability Check
+
+```http
+GET /api/agents/availability?department=maintenance&priority=normal
+```
+
+**Response:**
+
+```json
+{
+  "available_agents": [
+    {
+      "id": "agent_456",
+      "name": "Mike Johnson",
+      "phone": "+15551234567",
+      "department": "maintenance"
+    }
+  ],
+  "queue_length": 2,
+  "estimated_wait_minutes": 5,
+  "department_status": "available"
+}
+```
+
+### Emergency Routing
+
+```http
+POST /api/routing/emergency
+Content-Type: application/json
+
+{
+  "tenant_id": "tenant_123",
+  "property": "123 Main St, Apt 4B",
+  "inquiry_type": "emergency"
+}
+```
+
+**Response:**
+
+```json
+{
+  "destination": "+15559876543",
+  "agent_name": "Emergency Maintenance",
+  "ticket_id": "EM_789",
+  "priority": "critical"
+}
+```
+
+## Advanced Workflow Features
+
+### Queue Management with Priorities
+
+Configure priority-based routing in your tenant lookup API:
+
+```json
+{
+  "tenant": {
+    "tier": "commercial",
+    "account_standing": "good",
+    "inquiry_type": "emergency"
+  },
+  "routing_priority": "critical"
+}
+```
+
+Priority levels:
+
+- **Critical**: Emergency situations, commercial tenants
+- **High**: Good standing tenants with urgent issues
+- **Normal**: Standard maintenance and lease inquiries
+- **Low**: Delinquent accounts with non-urgent matters
+
+### Business Hours Routing
+
+Configure time-based routing logic:
+
+```json
+{
+  "business_hours": {
+    "weekdays": "9:00-17:00",
+    "weekends": "10:00-15:00"
+  },
+  "after_hours_routing": {
+    "emergency": "+15559876543",
+    "general": "voicemail"
+  }
+}
+```
+
+## Next Steps
+
+You've built a sophisticated property management call routing workflow! Consider these enhancements:
+
+- **[Customer support escalation system](/assistants/examples/support-escalation)** - Explore the assistant-based approach
+- **[Workflow Analytics](/workflows/analytics)** - Track routing patterns and optimize decision trees
+- **[Integration Templates](/workflows/integrations)** - Connect with popular property management systems
+- **[Advanced Routing](/workflows/advanced-routing)** - Implement complex routing logic with multiple conditions
+
+---
+
+title: Multilingual support workflow
+subtitle: >-
+Build a structured multilingual customer support workflow with language
+selection and dedicated conversation paths for each language
+slug: workflows/examples/multilingual-support
+description: >-
+Build a multilingual voice AI customer support workflow with language
+selection, dedicated conversation nodes, and cultural context using Vapi's
+workflow builder.
+
+---
+
+## Overview
+
+Build a structured multilingual customer support workflow that guides customers through language selection at the start of the call, then routes them to dedicated conversation paths optimized for English, Spanish, and French support.
+
+**What You'll Build:**
+
+- Visual workflow with language selection and routing logic
+- Dedicated conversation nodes for each language with cultural context
+- Language-specific voice and prompt configurations
+- Multilingual knowledge base integration with customer data
+- 24/7 international phone support with optimal user experience
+
+## Prerequisites
+
+- A [Vapi account](https://dashboard.vapi.ai/).
+
+## Scenario
+
+We will be creating a multilingual support workflow for GlobalTech International, a technology company serving customers across North America, Europe, and Latin America. Instead of trying to detect language automatically, the workflow provides a clear language selection menu and routes customers to dedicated support paths optimized for each language and culture.
+
+## Final Workflow
+
+<Frame caption="Complete multilingual support workflow with language selection and dedicated conversation paths for English, Spanish, and French">
+  <img src="file:6247768d-eae0-49bf-bcf5-cb968d2eafb0" alt="Multilingual support workflow showing language selection node and branching conversation paths" />
+</Frame>
+
+---
+
+## 1. Create a Multilingual Knowledge Base
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Download the spreadsheets">
+        <div className="flex gap-2">
+          <Download src="file:51e7363d-5789-4a3e-8352-76581f954774">
+            <Button intent="primary">Download customers.csv</Button>
+          </Download>
+          <Download src="file:290c3dac-e5a4-4f06-8c57-d0ee41bac855">
+            <Button intent="primary">Download products.csv</Button>
+          </Download>
+          <Download src="file:11495913-af38-44ec-a2fd-6c0807031ac8">
+            <Button intent="primary">Download support_articles.csv</Button>
+          </Download>
+        </div>
+      </Step>
+      <Step title="Navigate to the Files section">
+        In your Vapi dashboard, click `Files` in the left sidebar.
+      </Step>
+      <Step title="Upload the spreadsheets">
+        - Click `Choose file`. Upload all three CSV files: `customers.csv`, `products.csv`, and `support_articles.csv`.
+        - Note the file IDs. We'll need them later to create multilingual tools.
+
+        <video autoPlay loop muted src="file:5aee5201-b29a-4207-962a-615bd9706474" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+    import fs from 'fs';
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    async function uploadMultilingualFiles() {
+      try {
+        // Upload customers file
+        const customersFile = await vapi.files.create({
+          file: fs.createReadStream("customers.csv")
+        });
+
+        // Upload products file
+        const productsFile = await vapi.files.create({
+          file: fs.createReadStream("products.csv")
+        });
+
+        // Upload support articles file
+        const supportFile = await vapi.files.create({
+          file: fs.createReadStream("support_articles.csv")
+        });
+
+        console.log(`Customers file ID: ${customersFile.id}`);
+        console.log(`Products file ID: ${productsFile.id}`);
+        console.log(`Support articles file ID: ${supportFile.id}`);
+
+        return {
+          customersFileId: customersFile.id,
+          productsFileId: productsFile.id,
+          supportFileId: supportFile.id
+        };
+      } catch (error) {
+        console.error('Error uploading files:', error);
+        throw error;
+      }
+    }
+
+    // Upload all files for multilingual workflow
+    const fileIds = await uploadMultilingualFiles();
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def upload_multilingual_file(file_path):
+        """Upload a CSV file for multilingual support data"""
+        url = "https://api.vapi.ai/file"
+        headers = {"Authorization": f"Bearer {YOUR_VAPI_API_KEY}"}
+
+        try:
+            with open(file_path, 'rb') as file:
+                files = {'file': file}
+                response = requests.post(url, headers=headers, files=files)
+                response.raise_for_status()
+                return response.json()
+        except requests.exceptions.RequestException as error:
+            print(f"Error uploading {file_path}: {error}")
+            raise
+
+    # Upload all required files for multilingual workflow
+    customers_file = upload_multilingual_file("customers.csv")
+    products_file = upload_multilingual_file("products.csv")
+    support_file = upload_multilingual_file("support_articles.csv")
+
+    print(f"Customers file ID: {customers_file['id']}")
+    print(f"Products file ID: {products_file['id']}")
+    print(f"Support articles file ID: {support_file['id']}")
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Upload customers.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@customers.csv"
+
+    # Upload products.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@products.csv"
+
+    # Upload support_articles.csv
+    curl -X POST https://api.vapi.ai/file \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -F "file=@support_articles.csv"
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## 2. Create a Multilingual Workflow
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Open the Vapi Dashboard">
+        Go to [dashboard.vapi.ai](https://dashboard.vapi.ai) and log in to your account.
+      </Step>
+      <Step title="Navigate to the Workflows section">
+        Click `Workflows` in the left sidebar.
+      </Step>
+      <Step title="Create a new workflow">
+        - Click `Create Workflow`.
+        - Enter workflow name: `GlobalTech Multilingual Support Workflow`.
+        - Select the default template (includes Call Start node).
+        - Click "Create Workflow".
+      </Step>
+      <Step title="Configure Workflow Settings">
+        - Set up workflow variables for customer language preference and support context
+        - Configure global settings for the multilingual workflow
+
+        <video autoPlay loop muted src="file:3d1752a2-0135-44a8-9897-e747188b82b6" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    async function createMultilingualWorkflow() {
+      try {
+        // Create workflow with language selection node
+        const workflow = await vapi.workflows.create({
+          name: "GlobalTech Multilingual Support Workflow",
+          nodes: [
+            {
+              id: "language_selection",
+              type: "conversation",
+              firstMessage: "Hello! Hola! Bonjour! Welcome to GlobalTech International support. For English, say 'English' or 'one'. Para español, diga 'Español' o 'dos'. Pour français, dites 'Français' ou 'trois'.",
+              systemPrompt: "You are helping the customer select their preferred language. Listen for 'English', 'Español', 'Français', or numbers 1, 2, 3. Extract their language preference clearly.",
+              extractVariables: [
+                {
+                  name: "preferred_language",
+                  type: "string",
+                  description: "Customer's preferred language choice",
+                  enum: ["english", "spanish", "french"]
+                }
+              ]
+            }
+          ],
+          edges: []
+        });
+
+        console.log(`Multilingual workflow created with ID: ${workflow.id}`);
+        return workflow;
+      } catch (error) {
+        console.error('Error creating workflow:', error);
+        throw error;
+      }
+    }
+
+    // Create the multilingual workflow
+    const workflow = await createMultilingualWorkflow();
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_multilingual_workflow():
+        """Create a new multilingual support workflow"""
+        url = "https://api.vapi.ai/workflow"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "name": "GlobalTech Multilingual Support Workflow",
+            "nodes": [
+                {
+                    "id": "language_selection",
+                    "type": "conversation",
+                    "firstMessage": "Hello! Hola! Bonjour! Welcome to GlobalTech International support. For English, say 'English' or 'one'. Para español, diga 'Español' o 'dos'. Pour français, dites 'Français' ou 'trois'.",
+                    "systemPrompt": "You are helping the customer select their preferred language. Listen for 'English', 'Español', 'Français', or numbers 1, 2, 3. Extract their language preference clearly.",
+                    "extractVariables": [
+                        {
+                            "name": "preferred_language",
+                            "type": "string",
+                            "description": "Customer's preferred language choice",
+                            "enum": ["english", "spanish", "french"]
+                        }
+                    ]
+                }
+            ],
+            "edges": []
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as error:
+            print(f"Error creating workflow: {error}")
+            raise
+
+    # Create the multilingual workflow
+    workflow = create_multilingual_workflow()
+    print(f"Multilingual workflow created with ID: {workflow['id']}")
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Create the complete multilingual workflow with all conversation nodes
+    curl -X POST https://api.vapi.ai/workflow \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "GlobalTech Multilingual Support Workflow",
+           "transcriber": {
+             "provider": "deepgram",
+             "model": "nova-2",
+             "language": "multi"
+           },
+           "voice": {
+             "provider": "azure",
+             "voiceId": "en-US-AriaNeural"
+           },
+           "globalPrompt": "GlobalTech International is a technology company specializing in workflow automation and productivity solutions. Always be helpful, professional, and solution-focused when assisting customers.",
+           "nodes": [
+             {
+               "name": "language_selection",
+               "type": "conversation",
+               "prompt": "You are helping the customer select their preferred language for support. Listen carefully for: English/one/1 to select english, Español/Spanish/dos/two/2 to select spanish, Français/French/trois/three/3 to select french. Extract their language preference clearly. If unclear, ask them to repeat their choice.",
+               "isStart": true,
+               "messagePlan": {
+                 "firstMessage": "Hello! Hola! Bonjour! Welcome to GlobalTech International support. For English, say English or one. Para español, diga Español o dos. Pour français, dites Français ou trois."
+               },
+               "variableExtractionPlan": {
+                 "output": [
+                   {
+                     "type": "string",
+                     "title": "preferred_language",
+                     "description": "Customer preferred language choice",
+                     "enum": ["english", "spanish", "french"]
+                   }
+                 ]
+               }
+             },
+             {
+               "name": "english_support",
+               "type": "conversation",
+               "voice": {
+                 "provider": "azure",
+                 "voiceId": "en-US-AriaNeural"
+               },
+               "prompt": "You are Maria, GlobalTech English customer support representative. TONE: Direct, friendly, professional. Conversational but efficient. Solution-focused, provide clear steps. CAPABILITIES: Product information and recommendations, Account support, Technical troubleshooting and guidance, Transfer to specialized teams when needed. Keep responses concise under 40 words while being thorough and helpful.",
+               "messagePlan": {
+                 "firstMessage": "Perfect! I am Maria, your English support representative. I am here to help you with any questions about GlobalTech products, account issues, or technical support. How can I assist you today?"
+               }
+             },
+             {
+               "name": "spanish_support",
+               "type": "conversation",
+               "voice": {
+                 "provider": "azure",
+                 "voiceId": "es-ES-ElviraNeural"
+               },
+               "prompt": "Eres María, representante de soporte al cliente de GlobalTech en español. TONO: Cálido, respetuoso y paciente. Usa usted formalmente al principio, luego adapta según la preferencia del cliente. Toma tiempo para crear rapport, sé completa en las explicaciones. CAPACIDADES: Información y recomendaciones de productos, Soporte de cuenta, Solución de problemas técnicos y orientación, Transferir a equipos especializados cuando sea necesario. Mantén las respuestas concisas menos de 40 palabras mientras eres completa y útil.",
+               "messagePlan": {
+                 "firstMessage": "¡Perfecto! Soy María, su representante de soporte en español. Estoy aquí para ayudarle con cualquier pregunta sobre los productos de GlobalTech, problemas de cuenta o soporte técnico. ¿Cómo puedo asistirle hoy?"
+               }
+             },
+             {
+               "name": "french_support",
+               "type": "conversation",
+               "voice": {
+                 "provider": "azure",
+                 "voiceId": "fr-FR-DeniseNeural"
+               },
+               "prompt": "Vous êtes Maria, représentante du support client GlobalTech en français. TON: Poli, courtois et professionnel. Utilisez les conventions de salutation appropriées. Réponses structurées, respectueux de la formalité. CAPACITÉS: Informations et recommandations sur les produits, Support de compte, Dépannage technique et orientation, Transfert vers des équipes spécialisées si nécessaire. Gardez les réponses concises moins de 40 mots tout en étant complète et utile.",
+               "messagePlan": {
+                 "firstMessage": "Parfait! Je suis Maria, votre représentante du support en français. Je suis là pour vous aider avec toutes vos questions concernant les produits GlobalTech, les problèmes de compte ou le support technique. Comment puis-je vous aider aujourd hui?"
+               }
+             }
+           ],
+           "edges": [
+             {
+               "from": "language_selection",
+               "to": "english_support",
+               "condition": {
+                 "type": "ai",
+                 "prompt": "Customer selected English language support"
+               }
+             },
+             {
+               "from": "language_selection",
+               "to": "spanish_support",
+               "condition": {
+                 "type": "ai",
+                 "prompt": "Customer selected Spanish language support"
+               }
+             },
+             {
+               "from": "language_selection",
+               "to": "french_support",
+               "condition": {
+                 "type": "ai",
+                 "prompt": "Customer selected French language support"
+               }
+             }
+           ]
+         }'
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+**Complete Workflow JSON**: You can download the complete workflow configuration as a JSON file and use it with any HTTP client or save it for version control:
+
+```bash
+# Save the workflow JSON to a file
+cat > multilingual_workflow.json << 'EOF'
+{
+  "name": "GlobalTech Multilingual Support Workflow",
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "nova-2",
+    "language": "multi"
+  },
+  "voice": {
+    "provider": "azure",
+    "voiceId": "en-US-AriaNeural"
+  },
+  "globalPrompt": "GlobalTech International is a technology company specializing in workflow automation and productivity solutions. Always be helpful, professional, and solution-focused when assisting customers.",
+  "nodes": [
+    {
+      "name": "language_selection",
+      "type": "conversation",
+      "prompt": "You are helping the customer select their preferred language for support. Listen carefully for: English/one/1 to select english, Español/Spanish/dos/two/2 to select spanish, Français/French/trois/three/3 to select french. Extract their language preference clearly. If unclear, ask them to repeat their choice.",
+      "isStart": true,
+      "messagePlan": {
+        "firstMessage": "Hello! Hola! Bonjour! Welcome to GlobalTech International support. For English, say English or one. Para español, diga Español o dos. Pour français, dites Français ou trois."
+      },
+      "variableExtractionPlan": {
+        "output": [
+          {
+            "type": "string",
+            "title": "preferred_language",
+            "description": "Customer preferred language choice",
+            "enum": ["english", "spanish", "french"]
+          }
+        ]
+      }
+    },
+    {
+      "name": "english_support",
+      "type": "conversation",
+      "voice": {
+        "provider": "azure",
+        "voiceId": "en-US-AriaNeural"
+      },
+      "prompt": "You are Maria, GlobalTech English customer support representative. TONE: Direct, friendly, professional. Conversational but efficient. Solution-focused, provide clear steps. CAPABILITIES: Product information and recommendations, Account support, Technical troubleshooting and guidance, Transfer to specialized teams when needed. Keep responses concise under 40 words while being thorough and helpful.",
+      "messagePlan": {
+        "firstMessage": "Perfect! I am Maria, your English support representative. I am here to help you with any questions about GlobalTech products, account issues, or technical support. How can I assist you today?"
+      }
+    },
+    {
+      "name": "spanish_support",
+      "type": "conversation",
+      "voice": {
+        "provider": "azure",
+        "voiceId": "es-ES-ElviraNeural"
+      },
+      "prompt": "Eres María, representante de soporte al cliente de GlobalTech en español. TONO: Cálido, respetuoso y paciente. Usa usted formalmente al principio, luego adapta según la preferencia del cliente. Toma tiempo para crear rapport, sé completa en las explicaciones. CAPACIDADES: Información y recomendaciones de productos, Soporte de cuenta, Solución de problemas técnicos y orientación, Transferir a equipos especializados cuando sea necesario. Mantén las respuestas concisas menos de 40 palabras mientras eres completa y útil.",
+      "messagePlan": {
+        "firstMessage": "¡Perfecto! Soy María, su representante de soporte en español. Estoy aquí para ayudarle con cualquier pregunta sobre los productos de GlobalTech, problemas de cuenta o soporte técnico. ¿Cómo puedo asistirle hoy?"
+      }
+    },
+    {
+      "name": "french_support",
+      "type": "conversation",
+      "voice": {
+        "provider": "azure",
+        "voiceId": "fr-FR-DeniseNeural"
+      },
+      "prompt": "Vous êtes Maria, représentante du support client GlobalTech en français. TON: Poli, courtois et professionnel. Utilisez les conventions de salutation appropriées. Réponses structurées, respectueux de la formalité. CAPACITÉS: Informations et recommandations sur les produits, Support de compte, Dépannage technique et orientation, Transfert vers des équipes spécialisées si nécessaire. Gardez les réponses concises moins de 40 mots tout en étant complète et utile.",
+      "messagePlan": {
+        "firstMessage": "Parfait! Je suis Maria, votre représentante du support en français. Je suis là pour vous aider avec toutes vos questions concernant les produits GlobalTech, les problèmes de compte ou le support technique. Comment puis-je vous aider aujourd hui?"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "language_selection",
+      "to": "english_support",
+      "condition": {
+        "type": "ai",
+        "prompt": "Customer selected English language support"
+      }
+    },
+    {
+      "from": "language_selection",
+      "to": "spanish_support",
+      "condition": {
+        "type": "ai",
+        "prompt": "Customer selected Spanish language support"
+      }
+    },
+    {
+      "from": "language_selection",
+      "to": "french_support",
+      "condition": {
+        "type": "ai",
+        "prompt": "Customer selected French language support"
+      }
+    }
+  ]
+}
+EOF
+
+# Then create the workflow using the JSON file
+curl -X POST https://api.vapi.ai/workflow \
+     -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d @multilingual_workflow.json
+```
+
+</Note>
+
+---
+
+## 3. Build the Multilingual Workflow
+
+You'll start with a language selection node and then create dedicated conversation paths for each language with appropriate cultural context and voices.
+
+<Steps>
+  <Step title="Configure the Language Selection Node">
+    The workflow starts with a language selection node. Click on it and configure:
+    
+    ```txt title="First Message"
+    Hello! Hola! Bonjour! Welcome to GlobalTech International support. For English, say 'English' or 'one'. Para español, diga 'Español' o 'dos'. Pour français, dites 'Français' ou 'trois'.
+    ```
+    
+    ```txt title="Prompt"
+    You are helping the customer select their preferred language for support.
+
+    Listen carefully for:
+    - "English" or "one" or "1" → english
+    - "Español" or "Spanish" or "dos" or "two" or "2" → spanish
+    - "Français" or "French" or "trois" or "three" or "3" → french
+
+    Extract their language preference clearly. If unclear, ask them to repeat their choice.
+    ```
+
+    **Extract Variables**:
+    - Variable: `preferred_language`
+    - Type: `String`
+    - Description: `Customer's preferred language choice`
+    - Enum Values: `english`, `spanish`, `french`
+
+  </Step>
+
+  <Step title="Add English Support Path">
+    Click the + button and add a new **Conversation** node:
+    
+    ```txt title="Condition"
+    preferred_language == "english"
+    ```
+
+    ```txt title="First Message"
+    Perfect! I'm Maria, your English support representative. I'm here to help you with any questions about GlobalTech products, account issues, or technical support. How can I assist you today?
+    ```
+
+    ```txt title="Prompt"
+    You are Maria, GlobalTech's English customer support representative.
+
+    TONE & STYLE:
+    - Direct, friendly, and professional
+    - Conversational but efficient
+    - Solution-focused, provide clear steps
+
+    CAPABILITIES:
+    - Product information and recommendations
+    - Account support (billing, subscriptions, access)
+    - Technical troubleshooting and guidance
+    - Transfer to specialized teams when needed
+
+    Keep responses concise (under 40 words) while being thorough and helpful.
+    Use tools to look up customer information and provide accurate support.
+    ```
+
+    **Voice Configuration**:
+    - Provider: `Azure`
+    - Voice: `en-US-AriaNeural`
+
+    **Extract Variables**:
+    - Variable: `customer_inquiry_type`
+    - Type: `String`
+    - Description: `Type of support needed`
+    - Enum Values: `product_info`, `account_support`, `technical_help`, `billing_question`
+
+  </Step>
+
+  <Step title="Add Spanish Support Path">
+    Add another **Conversation** node:
+    
+    ```txt title="Condition"
+    preferred_language == "spanish"
+    ```
+
+    ```txt title="First Message"
+    ¡Perfecto! Soy María, su representante de soporte en español. Estoy aquí para ayudarle con cualquier pregunta sobre los productos de GlobalTech, problemas de cuenta o soporte técnico. ¿Cómo puedo asistirle hoy?
+    ```
+
+    ```txt title="Prompt"
+    Eres María, representante de soporte al cliente de GlobalTech en español.
+
+    TONO Y ESTILO:
+    - Cálido, respetuoso y paciente
+    - Usa "usted" formalmente al principio, luego adapta según la preferencia del cliente
+    - Toma tiempo para crear rapport, sé completa en las explicaciones
+
+    CAPACIDADES:
+    - Información y recomendaciones de productos
+    - Soporte de cuenta (facturación, suscripciones, acceso)
+    - Solución de problemas técnicos y orientación
+    - Transferir a equipos especializados cuando sea necesario
+
+    Mantén las respuestas concisas (menos de 40 palabras) mientras eres completa y útil.
+    Usa las herramientas para buscar información del cliente y brindar soporte preciso.
+    ```
+
+    **Voice Configuration**:
+    - Provider: `Azure`
+    - Voice: `es-ES-ElviraNeural` (or `es-MX-DaliaNeural` for Mexican Spanish)
+
+    **Extract Variables**:
+    - Variable: `customer_inquiry_type`
+    - Type: `String`
+    - Description: `Tipo de soporte necesario`
+    - Enum Values: `informacion_producto`, `soporte_cuenta`, `ayuda_tecnica`, `pregunta_facturacion`
+
+  </Step>
+
+  <Step title="Add French Support Path">
+    Add another **Conversation** node:
+    
+    ```txt title="Condition"
+    preferred_language == "french"
+    ```
+
+    ```txt title="First Message"
+    Parfait! Je suis Maria, votre représentante du support en français. Je suis là pour vous aider avec toutes vos questions concernant les produits GlobalTech, les problèmes de compte ou le support technique. Comment puis-je vous aider aujourd'hui?
+    ```
+
+    ```txt title="Prompt"
+    Vous êtes Maria, représentante du support client GlobalTech en français.
+
+    TON ET STYLE:
+    - Poli, courtois et professionnel
+    - Utilisez les conventions de salutation appropriées ("Bonjour/Bonsoir")
+    - Réponses structurées, respectueux de la formalité
+
+    CAPACITÉS:
+    - Informations et recommandations sur les produits
+    - Support de compte (facturation, abonnements, accès)
+    - Dépannage technique et orientation
+    - Transfert vers des équipes spécialisées si nécessaire
+
+    Gardez les réponses concises (moins de 40 mots) tout en étant complète et utile.
+    Utilisez les outils pour rechercher les informations client et fournir un support précis.
+    ```
+
+    **Voice Configuration**:
+    - Provider: `Azure`
+    - Voice: `fr-FR-DeniseNeural` (or `fr-CA-SylvieNeural` for Canadian French)
+
+    **Extract Variables**:
+    - Variable: `customer_inquiry_type`
+    - Type: `String`
+    - Description: `Type de support nécessaire`
+    - Enum Values: `info_produit`, `support_compte`, `aide_technique`, `question_facturation`
+
+  </Step>
+
+  <Step title="Add Customer Lookup Flow">
+    For each language path, add a **Tool** node to look up customer information:
+
+    **English Customer Lookup**:
+    ```txt title="Condition"
+    preferred_language == "english" AND customer_inquiry_type identified
+    ```
+
+    **Tool**: Select your pre-configured `lookup_customer` tool
+
+    **Follow-up Conversation Node**:
+    ```txt title="First Message"
+    I found your account information. Let me help you with your [inquiry_type]. What specific issue are you experiencing?
+    ```
+
+    **Spanish Customer Lookup**:
+    ```txt title="Condition"
+    preferred_language == "spanish" AND customer_inquiry_type identified
+    ```
+
+    **Tool**: Select your pre-configured `lookup_customer` tool
+
+    **Follow-up Conversation Node**:
+    ```txt title="First Message"
+    Encontré la información de su cuenta. Permíteme ayudarle con su [inquiry_type]. ¿Qué problema específico está experimentando?
+    ```
+
+    **French Customer Lookup**:
+    ```txt title="Condition"
+    preferred_language == "french" AND customer_inquiry_type identified
+    ```
+
+    **Tool**: Select your pre-configured `lookup_customer` tool
+
+    **Follow-up Conversation Node**:
+    ```txt title="First Message"
+    J'ai trouvé les informations de votre compte. Laissez-moi vous aider avec votre [inquiry_type]. Quel problème spécifique rencontrez-vous?
+    ```
+
+  </Step>
+
+  <Step title="Add Support Resolution Flows">
+    Create specialized flows for different inquiry types in each language:
+
+    **Product Information Flow** (for each language):
+    - **Tool Node**: Use `get_product_info` tool
+    - **Conversation Node**: Present product information in customer's language
+    - **Follow-up**: Ask if they need additional assistance
+
+    **Technical Support Flow** (for each language):
+    - **Tool Node**: Use `search_support_articles` tool
+    - **Conversation Node**: Guide through troubleshooting in customer's language
+    - **Follow-up**: Verify issue resolution or escalate if needed
+
+    **Account Support Flow** (for each language):
+    - **Conversation Node**: Collect account details in customer's language
+    - **Tool Node**: Look up account information
+    - **Conversation Node**: Resolve account issues or transfer to billing team
+
+  </Step>
+
+  <Step title="Add Transfer and Completion Nodes">
+    **Transfer to Human Agent** (language-specific):
+    
+    **English Transfer**:
+    ```txt title="Condition"
+    Issue requires human assistance
+    ```
+    **Node Type**: `Transfer Call`
+    **First Message**: `I'm connecting you to one of our English-speaking specialists who can better assist you. Please hold for just a moment.`
+    **Phone**: `+1-555-SUPPORT`
+
+    **Spanish Transfer**:
+    ```txt title="Condition"
+    Issue requires human assistance AND preferred_language == "spanish"
+    ```
+    **Node Type**: `Transfer Call`
+    **First Message**: `Le estoy conectando con uno de nuestros especialistas de habla hispana que puede ayudarle mejor. Por favor, manténgase en línea por un momento.`
+    **Phone**: `+1-555-SOPORTE`
+
+    **French Transfer**:
+    ```txt title="Condition"
+    Issue requires human assistance AND preferred_language == "french"
+    ```
+    **Node Type**: `Transfer Call`
+    **First Message**: `Je vous mets en relation avec l'un de nos spécialistes francophones qui pourra mieux vous aider. Veuillez patienter un instant.`
+    **Phone**: `+1-555-SOUTIEN`
+
+    **End Call Node** (language-specific):
+
+    **English**: `Thank you for contacting GlobalTech International. Have a great day!`
+    **Spanish**: `Gracias por contactar a GlobalTech International. ¡Que tenga un excelente día!`
+    **French**: `Merci d'avoir contacté GlobalTech International. Passez une excellente journée!`
+
+  </Step>
+</Steps>
+
+---
+
+## 4. Configure Phone Number
+
+<Tabs>
+  <Tab title="Dashboard">
+    <Steps>
+      <Step title="Navigate to Phone Numbers">
+        Click `Phone Numbers` in the left sidebar of your dashboard.
+      </Step>
+      <Step title="Create or Import Phone Number">
+        - Click `Create Phone Number` for a new Vapi number, or
+        - Click `Import Phone Number` to use your existing number from Twilio/Telnyx
+      </Step>
+      <Step title="Configure Inbound Settings">
+        **Workflow**: Select your `GlobalTech Multilingual Support Workflow`
+        
+        **Advanced Settings**:
+        - Enable call recording for quality assurance
+        - Set maximum call duration (e.g., 20 minutes)
+        - Configure voicemail detection if needed
+      </Step>
+      <Step title="Test Your Multilingual Workflow">
+        Call your Vapi phone number to test the complete workflow:
+        - Test language selection with different inputs
+        - Verify each language path works correctly
+        - Test customer lookup and support tools
+        - Ensure transfers work for each language
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="TypeScript (Server SDK)">
+    ```typescript
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const vapi = new VapiClient({ token: "YOUR_VAPI_API_KEY" });
+
+    async function createMultilingualPhoneNumber(workflowId: string) {
+      try {
+        // Create phone number for multilingual workflow
+        const phoneNumber = await vapi.phoneNumbers.create({
+          name: "GlobalTech International Support Line",
+          workflowId: workflowId,
+          inboundSettings: {
+            maxCallDurationMinutes: 20,
+            recordingEnabled: true,
+            voicemailDetectionEnabled: true
+          }
+        });
+
+        console.log(`Multilingual support phone number created: ${phoneNumber.number}`);
+        return phoneNumber;
+      } catch (error) {
+        console.error('Error creating phone number:', error);
+        throw error;
+      }
+    }
+
+    async function testMultilingualWorkflow(workflowId: string, testNumber: string) {
+      try {
+        // Test the multilingual workflow with an outbound call
+        const call = await vapi.calls.create({
+          workflowId: workflowId,
+          customer: {
+            number: testNumber
+          }
+        });
+
+        console.log(`Multilingual workflow test call created: ${call.id}`);
+        return call;
+      } catch (error) {
+        console.error('Error testing workflow:', error);
+        throw error;
+      }
+    }
+
+    // Create phone number and test workflow
+    const phoneNumber = await createMultilingualPhoneNumber('YOUR_WORKFLOW_ID');
+    const testCall = await testMultilingualWorkflow('YOUR_WORKFLOW_ID', '+1234567890');
+    ```
+
+  </Tab>
+  <Tab title="Python (Server SDK)">
+    ```python
+    import requests
+
+    def create_multilingual_phone_number(workflow_id):
+        """Create phone number for multilingual workflow"""
+        url = "https://api.vapi.ai/phone-number"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "name": "GlobalTech International Support Line",
+            "workflowId": workflow_id,
+            "inboundSettings": {
+                "maxCallDurationMinutes": 20,
+                "recordingEnabled": True,
+                "voicemailDetectionEnabled": True
+            }
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as error:
+            print(f"Error creating phone number: {error}")
+            raise
+
+    def test_multilingual_workflow(workflow_id, test_number):
+        """Test multilingual workflow with outbound call"""
+        url = "https://api.vapi.ai/call"
+        headers = {
+            "Authorization": f"Bearer {YOUR_VAPI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "workflowId": workflow_id,
+            "customer": {
+                "number": test_number
+            }
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as error:
+            print(f"Error testing workflow: {error}")
+            raise
+
+    # Create phone number and test
+    phone_number = create_multilingual_phone_number('YOUR_WORKFLOW_ID')
+    test_call = test_multilingual_workflow('YOUR_WORKFLOW_ID', '+1234567890')
+
+    print(f"Phone number: {phone_number['number']}")
+    print(f"Test call ID: {test_call['id']}")
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Create phone number with workflow
+    curl -X POST https://api.vapi.ai/phone-number \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "GlobalTech International Support Line",
+           "workflowId": "YOUR_WORKFLOW_ID",
+           "inboundSettings": {
+             "maxCallDurationMinutes": 20,
+             "recordingEnabled": true,
+             "voicemailDetectionEnabled": true
+           }
+         }'
+
+    # Test the workflow with an outbound call
+    curl -X POST https://api.vapi.ai/call \
+         -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "workflowId": "YOUR_WORKFLOW_ID",
+           "customer": {
+             "number": "+1234567890"
+           }
+         }'
+    ```
+
+  </Tab>
+</Tabs>
+
+## Benefits of Workflow-Based Multilingual Support
+
+### **Structured Language Selection**
+
+- **Clear menu**: Customers explicitly choose their language
+- **No guesswork**: Eliminates language detection errors
+- **Better UX**: Customers know exactly what to expect
+
+### **Optimized Conversation Paths**
+
+- **Dedicated nodes**: Each language has its own conversation flow
+- **Cultural context**: Language-specific tone and formality levels
+- **Native voices**: Optimal voice selection for each language
+
+### **Easier Maintenance**
+
+- **Separate logic**: Independent conversation flows for each language
+- **Clear analytics**: Track usage and success by language
+- **Scalable**: Easy to add new languages without affecting existing flows
+
+### **Enhanced Performance**
+
+- **No real-time detection**: Faster response times
+- **Optimized prompts**: Language-specific system prompts
+- **Better accuracy**: Eliminates language switching confusion
+
+<Note>
+**Alternative Approach**: For automatic language detection during conversation, see our [Assistant-based multilingual agent](../../assistants/examples/multilingual-agent) that detects and switches languages dynamically within a single conversation flow.
+</Note>
+
+## Next Steps
+
+Just like that, you've built a structured multilingual support workflow that provides clear language selection and optimal conversation paths for each language.
+
+Consider reading the following guides to further enhance your workflow:
+
+- [**Assistant-based Multilingual Agent**](../../assistants/examples/multilingual-agent) - Compare with automatic language detection approach
+- [**Custom Tools**](../../tools/custom-tools) - Create advanced multilingual tools and integrations
+- [**Advanced Workflows**](../overview) - Learn about complex workflow patterns and conditional logic
+
+<Callout>
+Need help with multilingual workflows? Chat with the team on our [Discord](https://discord.com/invite/pUFNcf2WmH) or mention us on [X/Twitter](https://x.com/Vapi_AI).
+</Callout>
+
+---
+
+title: Voice AI Prompting Guide
+subtitle: How to write effective prompts for voice AI assistants
+slug: prompting-guide
+
+---
+
+## Overview
+
+This guide helps you write effective prompts for Voice AI assistants. Learn how to design, test, and refine prompts to get the best results from your agents. Use these strategies to improve your agent's reliability, success rate, and user experience.
+
+## Why prompt engineering matters
+
+Prompt engineering is the art of crafting clear, actionable instructions for AI agents. Well-designed prompts:
+
+- Guide the AI to produce accurate, relevant, and context-sensitive outputs
+- Improve the agent's ability to handle requests without human intervention
+- Increase your overall success rate
+
+Poor prompts can lead to ambiguous or incorrect results, limiting the agent's utility.
+
+## How to measure success
+
+Your "success rate" is the percentage of requests your agent handles from start to finish without human intervention. The more complex your use case, the more you'll need to experiment and iterate on your prompt to improve this rate.
+
+## The process
+
+Follow a structured approach to prompt engineering:
+
+<Steps>
+  <Step title="Design">
+    Craft your initial prompt, considering the specific task, context, and desired outcome. Clear and detailed prompts help guide the AI in understanding your needs.
+  </Step>
+  <Step title="Test">
+    Run the prompt through the AI. Evaluate if the response aligns with your expectations and meets the intended goal. Testing helps identify potential gaps in clarity or structure.
+  </Step>
+  <Step title="Refine">
+    Adjust the prompt based on test results. Reword, add detail, or change phrasing to avoid ambiguity and improve the response.
+  </Step>
+  <Step title="Repeat">
+    Iterate on the process, testing and refining until the AI's output is accurate and relevant. Your success rate should improve with each cycle.
+  </Step>
+</Steps>
+
+## Principles of effective prompts
+
+### Organize prompts into sections
+
+Break down system prompts into clear sections, each focused on a specific aspect:
+
+- **Identity:** Define the agent's persona and role
+- **Style:** Set stylistic guidelines (conciseness, tone, humor)
+- **Response guidelines:** Specify formatting, question limits, or structure
+- **Task & goals:** Outline objectives and steps
+
+**Example:**
+
+```md wordWrap
+[Identity]
+You are a helpful and knowledgeable virtual assistant for a travel booking platform.
+
+[Style]
+
+- Be informative and comprehensive.
+- Maintain a professional and polite tone.
+- Be concise, as you are currently operating as a Voice Conversation.
+
+[Response Guideline]
+
+- Present dates in a clear format (e.g., January 15, 2024).
+- Offer up to three travel options based on user preferences.
+
+[Task]
+
+1. Greet the user and inquire about their desired travel destination.
+2. Ask about travel dates and preferences (e.g., budget, interests).
+3. Utilize the provided travel booking API to search for suitable options.
+4. Present the top three options to the user, highlighting key features.
+```
+
+### Break down complex tasks
+
+For complex interactions, use step-by-step instructions and conditional logic to guide the agent's responses.
+
+**Example:**
+
+```md wordWrap
+[Task]
+
+1. Welcome the user to the technical support service.
+2. Inquire about the nature of the technical issue.
+3. If the issue is related to software, ask about the specific software and problem details.
+4. If the issue is hardware-related, gather information about the device and symptoms.
+5. Based on the collected information, provide troubleshooting steps or escalate to a human technician if necessary.
+```
+
+### Control response timing
+
+Explicitly indicate when the agent should wait for the user's response before proceeding.
+
+**Example:**
+
+```md wordWrap
+[Task]
+
+1. Inform the user about the purpose of the call.
+2. Ask for the user's name and account information.
+   <wait for user response>
+3. Inquire about the reason for the call and offer assistance options.
+```
+
+### Integrate tools and APIs
+
+Specify when and how the agent should use external tools or APIs. Reference tools by their designated names and describe their functions.
+
+**Example:**
+
+```md wordWrap
+[Task] 3. If the user wants to know about something, use the get_data function with the parameter 'query', which will contain the user's question to initiate the process. 4. Guide the user through the password reset steps provided by the API.
+```
+
+### Silent transfers
+
+If the AI determines that the user needs to be transferred, do not send any text response back to the user. Instead, silently call the appropriate tool for transferring the call. This ensures a seamless user experience and avoids confusion.
+
+### Include fallback and error handling
+
+Always include fallback options and error-handling mechanisms in your prompts. This ensures the agent can gracefully handle unexpected user inputs or system errors.
+
+**Example:**
+
+```md wordWrap
+[Error Handling]
+If the customer's response is unclear, ask clarifying questions. If you encounter any issues, inform the customer politely and ask to repeat.
+```
+
+## Additional tips
+
+- **Iterate as much as possible.** AI is driven by experimentation and iteration—refining prompts through trial and error will help you achieve more precise, relevant, and effective responses.
+- **Use Markdown formatting:** Structure your content for clarity and easy scanning.
+- **Emotional prompting:** Use expressive language to shape the AI's tone and create more engaging, relatable responses. For example, "Can you tell me a cozy bedtime story that's warm and comforting?"
+- **Add voice realism:** Incorporate natural speech elements like stuttering, hesitations, and pauses:
+  - **Stuttering:** Use repeated letters or sounds (e.g., "I-I-I don't know").
+  - **Hesitations:** Add fillers like "uh," "um," or "well" (e.g., "I was, uh, thinking about it").
+  - **Pauses:** Use ellipses ("...") to indicate a pause (e.g., "I... I don't know how to say this").
+  - **Emotional emphasis:** Use capital letters, exclamation marks, or ellipses to reflect tone (e.g., "I can't... I just can't believe it!").
+
+## Common issues
+
+**Numbers sound robotic?**
+
+- Spell out numbers in prompts for more natural-sounding speech.
+
+**How to make assistants sound more human-like?**
+
+- Add personality and tone to the assistant. For example:
+  ```md wordWrap
+  - Tone: conversational, spartan, use less corporate jargon
+  - Act as Iva, a sales agent who is a human being and has real feelings.
+  ```
+
+## Example: Appointment setter prompt
+
+```md wordWrap
+[Role]
+You're Susan, an AI assistant for xxx. Your primary task is to interact with the customer, ask questions, and gather information for appointment booking.
+
+[Context]
+You're engaged with the customer to book an appointment. Stay focused on this context and provide relevant information. Once connected to a customer, proceed to the Conversation Flow section. Do not invent information not drawn from the context. Answer only questions related to the context.
+
+[Response Handling]
+When asking any question from the 'Conversation Flow' section, evaluate the customer's response to determine if it qualifies as a valid answer. Use context awareness to assess relevance and appropriateness. If the response is valid, proceed to the next relevant question or instructions. Avoid infinite loops by moving forward when a clear answer cannot be obtained.
+
+[Warning]
+Do not modify or attempt to correct user input parameters or user input, Pass them directly into the function or tool as given.
+
+[Response Guidelines]
+Keep responses brief.
+Ask one question at a time, but combine related questions where appropriate.
+Maintain a calm, empathetic, and professional tone.
+Answer only the question posed by the user.
+Begin responses with direct answers, without introducing additional data.
+If unsure or data is unavailable, ask specific clarifying questions instead of a generic response.
+Present dates in a clear format (e.g., January Twenty Four) and Do not mention years in dates.
+Present time in a clear format (e.g. Four Thirty PM) like: 11 pm can be spelled: eleven pee em
+Speak dates gently using English words instead of numbers.
+Never say the word 'function' nor 'tools' nor the name of the Available functions.
+Never say ending the call.
+If you think you are about to transfer the call, do not send any text response. Simply trigger the tool silently. This is crucial for maintaining a smooth call experience.
+
+[Error Handling]
+If the customer's response is unclear, ask clarifying questions. If you encounter any issues, inform the customer politely and ask to repeat.
+
+[Conversation Flow]
+
+1. Ask: "You made a recent inquiry, can I ask you a few quick follow-up questions?"
+
+- if response indicates interest: Proceed to step 2.
+- if response indicates no interest: Proceed to 'Call Closing'.
+
+2. Ask: "You connected with us in regard to an auto accident. Is this something you would still be interested in pursuing?"
+
+- If response indicates interest: Proceed to step 3.
+- If response indicates no interest: Proceed to 'Call Closing'.
+
+3. Ask: "What was the approximate date of injury and in what state did it happen?"
+
+- Proceed to step 4.
+
+4. Ask: "On a scale of 1 to 3, would you rate the injury? 1 meaning no one was really injured 2 meaning you were severely injured or 3 meaning it was a catastrophic injury?"
+
+- If response indicates injury level above 1: Proceed to step 5.
+- If response indicates no injury or minor injury: Proceed to 'Call Closing'.
+
+5. Ask: "Can you describe in detail your injury and if anyone else in the car was injured and their injuries?"
+
+- Proceed to step 6.
+
+6. Ask: "Did the police issue a ticket?"
+
+- Proceed to step 7.
+
+7. Ask: "Did the police say whose fault it was and was the accident your fault?"
+
+- If response indicates not at fault(e.g. "no", "not my fault", etc.):Proceed to step 8.
+- If response indicates at fault(e.g. "yes", "my fault", etc.): Proceed to 'Call Closing'.
+
+8. Ask: "Do you have an attorney representing you in this case?"
+
+- If response confirms no attorney: Proceed to step 9.
+- If response indicates they have an attorney: Proceed to 'Call Closing'.
+
+9. Ask: "Would you like to speak with an attorney now or book an appointment?"
+
+- If the response indicates "speak now": Proceed to 'Transfer Call'
+- if the response indicates "book appointment": Proceed to 'Book Appointment'
+
+10. After receiving response, proceed to the 'Call Closing' section.
+
+[Book Appointment]
+
+1. Ask: "To make sure I have everything correct, could you please confirm your first name for me?"
+2. Ask: "And your last name, please?"
+3. We're going to send you the appointment confirmation by text, can you provide the best mobile number for you to receive a sms or text?"
+4. Trigger the 'fetchSlots' tool and map the result to {{available_slots}}.
+5. Ask: "I have two slots available, {{available_slots}}. Would you be able to make one of those times work?"
+6. <wait for user response>
+7. Set the {{selectedSlot}} variable to the user's response.
+8. If {{selectedSlot}} is one of the available slots (positive response):
+   - Trigger the 'bookSlot' tool with the {{selectedSlot}}.
+   - <wait for 'bookSlot' tool result>
+   - Inform the user of the result of the 'bookSlot' tool.
+   - Proceed to the 'Call Closing' section.
+9. If {{selectedSlot}} is not one of the available slots (negative response):
+   - Proceed to the 'Suggest Alternate Slot' section.
+
+[Suggest Alternate Slot]
+
+1. Ask: "If none of these slots work for you, could you please suggest a different time that suits you?"
+2. <wait for user response>
+3. Set the {{selectedSlot}} variable to the user's response.
+4. Trigger the 'bookSlot' tool with the {{selectedSlot}}.
+5. <wait for 'bookSlot' tool result>
+6. If the {{selectedSlot}} is available:
+   - Inform the user of the result.
+7. If the {{selectedSlot}} is not available:
+   - Trigger the 'fetchSlots' tool, provide the user {{selectedSlot}} as input and map the result to {{available_slots}}.
+   - Say: "That time is unavailable but here are some other times we can do {{available_slots}}."
+   - Ask: "Do either of those times work?"
+   - <wait for user response>
+   - If the user agrees to one of the new suggested slots:
+     - Set the {{selectedSlot}} variable to the user's response.
+     - Trigger the 'bookSlot' tool with the {{selectedSlot}}.
+     - <wait for 'bookSlot' tool result>
+     - Inform the user of the result.
+   - If the user rejects the new suggestions:
+     - Proceed to the 'Last Message' section.
+
+[Last Message]
+
+- Respond: "Looks like this is taking longer than expected. Let me have one of our appointment specialists get back to you to make this process simple and easy."
+- Proceed to the 'Call Closing' section.
+
+[Call Closing]
+
+- Trigger the endCall Function.
+```
+
+## Additional resources
+
+Check out these additional resources to learn more about prompt engineering:
+
+- [learnprompting.org](https://learnprompting.org)
+- [promptingguide.ai](https://promptingguide.ai)
+- [OpenAI's guide to prompt engineering](https://platform.openai.com/docs/guides/prompt-engineering)
+
+---
+
+title: Debugging voice agents
+subtitle: >-
+Learn to identify, diagnose, and fix common issues with your voice assistants
+and workflows
+slug: debugging
+
+---
+
+## Overview
+
+Voice agents involve multiple AI systems working together—speech recognition, language models, and voice synthesis. When something goes wrong, systematic debugging helps you quickly identify and fix the root cause.
+
+**Most common issues fall into these categories:**
+
+<CardGroup cols={2}>
+  <Card title="Speech & Understanding" icon="microphone">
+    * Agent doesn't understand user input correctly
+    * Responses are inappropriate or inconsistent
+    * Agent sounds robotic or unnatural
+  </Card>
+  <Card title="Technical & Integration" icon="gear">
+    * Call quality issues or audio problems
+    * Tool integrations failing or returning errors
+    * Workflow logic not executing as expected
+  </Card>
+</CardGroup>
+
+## Quick diagnostics
+
+Start with these immediate checks before diving deeper:
+
+<Steps>
+  <Step title="Test in dashboard">
+    Test your voice agent directly in the [dashboard](https://dashboard.vapi.ai/):
+    
+    <CardGroup cols={2}>
+      <Card title="Assistants" icon="robot">
+        Click "Talk to Assistant" to test
+      </Card>
+      <Card title="Workflows" icon="diagram-project">
+        Click "Call" to test workflow
+      </Card>
+    </CardGroup>
+    
+    **Benefits:**
+    - Eliminates phone network variables
+    - Provides real-time transcript view  
+    - Shows tool execution results immediately
+  </Step>
+  <Step title="Check logs">
+    Navigate to the `Observe` section in your [dashboard](https://dashboard.vapi.ai/) sidebar:
+    
+    <CardGroup cols={3}>
+      <Card title="Call Logs" icon="phone">
+        Review call transcripts, durations, and error messages
+      </Card>
+      <Card title="API Logs" icon="code">
+        Check API requests and responses for integration issues
+      </Card>
+      <Card title="Webhook Logs" icon="webhook">
+        Verify webhook deliveries and server responses
+      </Card>
+    </CardGroup>
+  </Step>
+  <Step title="Test individual components">
+    Use [dashboard](https://dashboard.vapi.ai/) testing features:
+    
+    <CardGroup cols={2}>
+      <Card title="Voice Test Suites" icon="vial">
+        Automated testing for assistants
+      </Card>
+      <Card title="Tool Testing" icon="wrench">
+        Test tools with sample data
+      </Card>
+    </CardGroup>
+  </Step>
+  <Step title="Verify provider status">
+    Check if AI service providers are experiencing issues:
+    
+    **Core Services:**
+    - Visit [Vapi Status Page](https://status.vapi.ai/) for Vapi service status
+    
+    **Provider Status Pages:**
+    - [OpenAI Status](https://status.openai.com/) for OpenAI language models
+    - [Anthropic Status](https://status.anthropic.com/) for Anthropic language models  
+    - [ElevenLabs Status](https://status.elevenlabs.io/) for ElevenLabs voice synthesis
+    - [Deepgram Status](https://status.deepgram.com/) for Deepgram speech-to-text
+    - And other providers' status pages as needed
+  </Step>
+</Steps>
+
+## Dashboard debugging resources
+
+The [Vapi dashboard](https://dashboard.vapi.ai/) provides powerful debugging features to help you identify and fix issues quickly:
+
+### Call Logs
+
+Navigate to `Observe > Call Logs` to:
+
+- Review complete call transcripts
+- Check call duration and completion status
+- Identify where calls failed or ended unexpectedly
+- See tool execution results and errors
+- Analyze conversation flow in workflows
+
+<video autoPlay loop muted src="file:fd05a0f9-5e6c-4bb3-9344-abd6c313866a" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+
+### API Logs
+
+Navigate to `Observe > API Logs` to:
+
+- Monitor all API requests and responses
+- Check for authentication errors
+- Verify request payloads and response codes
+- Debug integration issues with external services
+
+<video autoPlay loop muted src="file:cb0da020-abd9-4b2a-ad3b-8306e7b1c1cf" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+
+### Webhook Logs
+
+Navigate to `Observe > Webhook Logs` to:
+
+- Verify webhook deliveries to your server
+- Check server response codes and timing
+- Debug webhook authentication issues
+- Monitor event delivery failures
+
+<video autoPlay loop muted src="file:bb04161e-1b46-42d5-9470-930a81dc64ab" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+
+Use the Vapi CLI to forward webhooks to your local development server:
+
+```bash
+# Terminal 1: Create tunnel (e.g., with ngrok)
+ngrok http 4242
+
+# Terminal 2: Forward webhooks
+vapi listen --forward-to localhost:3000/webhook
+```
+
+<Note>
+`vapi listen` is a local forwarder that requires a separate tunneling service. Update your webhook URLs in Vapi to use the tunnel's public URL. [Learn more →](/cli/webhook)
+</Note>
+
+### Voice Test Suites
+
+Navigate to `Test > Voice Test Suites` to:
+
+- Run automated tests on your assistants (not available for workflows)
+- Test conversation flows with predefined scenarios
+- Verify assistant behavior across different inputs
+- Monitor performance over time
+
+<video autoPlay loop muted src="file:b60a412a-4651-42fd-886f-83b608395456" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+
+### Tool Testing
+
+For any tool in your `Tools` section:
+
+- Navigate to `Tools > [Select Tool]`
+- Use the `Test` button to send sample payloads
+- Verify tool responses and error handling
+- Debug parameter extraction and API calls
+
+<video autoPlay loop muted src="file:063de03a-f152-4157-9754-722edd8482bd" type="video/mp4" style={{ aspectRatio: '16 / 9', width: '100%' }} />
+
+## Speech and language issues
+
+| Problem                    | Symptoms                                                                                    | Solution                                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Transcription accuracy** | Incorrect words in transcripts, missing words/phrases, poor performance with accents        | Switch to more accurate transcriber.                                                                                       |
+| **Intent recognition**     | Agent responds to wrong intent, fails to extract variables, workflow routing to wrong nodes | Make system prompt / node prompt more specific; use clear enum values; adjust the temperature to ensure consistent outputs |
+| **Response quality**       | Different responses to identical inputs, agent forgets context, doesn't follow instructions | Review system prompt / node prompt specificity; check model configuration; adjust temperature to achieve consistency       |
+
+**Debug steps for response quality:**
+
+1. **Review system prompt** - Navigate to your assistant/workflow in the [dashboard](https://dashboard.vapi.ai/) and check the system prompt specificity
+2. **Check model configuration** - Scroll down to `Model` section and verify:
+   - You're using an appropriate model (e.g., `gpt-4o`)
+   - `Max Tokens` is sufficient for response length
+   - Necessary tools are enabled and configured correctly
+
+| Response Issue         | Solution                                                       |
+| ---------------------- | -------------------------------------------------------------- |
+| **Responses too long** | Add "Keep responses under X words" to system prompt            |
+| **Robotic speech**     | Switch to a different voice provider                           |
+| **Forgetting context** | Use models with larger context windows                         |
+| **Wrong information**  | Check tool outputs and knowledge base accuracy via `Call Logs` |
+
+## Tool and workflow debugging
+
+| Problem Type            | Issue                                                                | Solution                                                                                                                                              |
+| ----------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tool execution**      | Tools failing, HTTP errors, parameter issues                         | Navigate to `Observe > Call Logs` and check tool execution section, test tools individually at `Tools > [Select Tool] > Test`, validate configuration |
+| **Variable extraction** | Variables not extracted, wrong values, missing data                  | Be specific in variable descriptions, use distinct enum values, add validation prompts                                                                |
+| **Workflow logic**      | Wrong node routing, conditions not triggering, variables not passing | Use `Call Logs` to trace conversation path, verify edge conditions are clear, check global node conflicts                                             |
+
+**Variable extraction details:**
+
+| Problem                        | Cause                    | Solution                                                                 |
+| ------------------------------ | ------------------------ | ------------------------------------------------------------------------ |
+| **Variables not extracted**    | Unclear description      | Be specific in variable descriptions: "Customer's 10-digit phone number" |
+| **Wrong variable values**      | Ambiguous enum options   | Use distinct enum values: "schedule", "cancel", "reschedule"             |
+| **Missing required variables** | User didn't provide info | Add validation prompts to request missing data                           |
+
+## Common error patterns
+
+| Error Pattern                    | Likely Cause             | Quick Fix                                                |
+| -------------------------------- | ------------------------ | -------------------------------------------------------- |
+| **Agent misinterpreting speech** | Speech recognition issue | Check transcriber model, add custom keyterms             |
+| **Irrelevant responses**         | Poor prompt engineering  | Be more specific in system prompt                        |
+| **Call drops immediately**       | Configuration error      | Check all required fields in assistant/workflow settings |
+| **Tool errors**                  | API integration issue    | Test tools individually, verify endpoint URLs            |
+| **Long silences**                | Model processing delay   | Use faster models or reduce response length              |
+
+## Getting help
+
+When you're stuck:
+
+<Card
+title="Community Support"
+icon="user-group"
+href="https://discord.com/invite/pUFNcf2WmH"
+
+>
+
+  <div className='absolute top-4 right-4'>
+    <Icon icon="arrow-up-right-from-square" />
+  </div>
+  Join the Vapi Discord for real-time help from the community and team
+</Card>
+
+<Card
+title="API Reference"
+icon="book"
+href="/api-reference"
+
+>
+
+  <div className='absolute top-4 right-4'>
+    <Icon icon="arrow-up-right-from-square" />
+  </div>
+  Check the API reference for detailed configuration options
+</Card>
+
+<Card
+title="Status Page"
+icon="fa-light fa-heartbeat"
+href="https://status.vapi.ai/"
+
+>
+
+  <div className='absolute top-4 right-4'>
+    <Icon icon="arrow-up-right-from-square" />
+  </div>
+  Check real-time status of Vapi services and AI providers
+</Card>
+
+**Before asking for help:**
+
+- Include call ID and timestamp from `Call Logs` in your [dashboard](https://dashboard.vapi.ai/)
+- Describe expected vs. actual behavior
+- Share relevant configuration (without API keys)
+- Include error messages from [dashboard](https://dashboard.vapi.ai/) logs
+
+---
+
+title: Test Suites
+subtitle: End-to-end test automation for AI voice agents
+slug: /test/test-suites
+
+---
+
+## Overview
+
+**Test Suite** is an end-to-end feature that automates testing of your AI voice agents. Our platform simulates an AI tester that interacts with your voice agent by following a pre-defined script. After the interaction, the transcript is sent to a language model (LLM) along with your evaluation rubric. The LLM then determines if the interaction met the defined objectives.
+
+## Creating a Test Suite
+
+Begin by creating a **Test Suite** that organizes and executes multiple test cases.
+
+<Steps>
+  ### Step 1: Create a New Test Suite
+    - Navigate to the **Test** tab in your dashboard and select **Test Suites**.
+    - Click the **Create Test Suite** button.
+
+### Step 2: Define Test Suite Details
+
+    - Enter a title for your **Test Suite**.
+    - Select a phone number from your organization using the dropdown.
+    - Make sure the phone number has an assistant assigned to it (if not, navigate to Phone Numbers tab to complete that action).
+
+### Step 3: Add Test Cases
+
+    - Once your **Test Suite** is created, you will see a table where you can add test cases.
+    - Click **Add Test** to add a new test case (up to 50 can be added).
+
+### Step 4: Configure Each Test Case
+
+    - **Script:** Define how the testing agent should behave, including a detailed multi-step prompt to simulate how the customer should behave on the call.
+    - **Type:** Set the type of the test. 'Chat' simulates a text conversation, which we recommend because it is faster. 'Voice' simulates a call so you can hear a voice recording of the two assistants talking to each other.
+    - **Rubric:** List one or more questions that an LLM will use to evaluate if the interaction was successful.
+    - **Attempts:** Choose the number of times (up to 5) the test case should be executed each time the **Test Suite** is run.
+
+### Step 5: Run and Review Tests
+
+    - Click **Run Tests** to execute all test cases one by one.
+    - While tests are running, you will see a loading state.
+    - Upon completion, a table displays the outcomes with check marks (success) or x-marks (failure).
+    - Click on a test row to view detailed results: a dropdown shows each attempt, the LLM's reasoning, the transcript of the call, the defined script, and the success rubric.
+
+</Steps>
+
+## Test Execution and Evaluation
+
+When you run a **Test Suite**, the following steps occur:
+
+- **Simulation:** An AI tester chats with or calls your voice agent, executing the pre-defined script.
+- **Transcript Capture:** The entire conversation is transcribed, capturing both the caller's behavior and your voice agent's responses.
+- **Automated Evaluation:** The transcript, along with your Success Criteria, is processed by an LLM to determine if the call was successful.
+- **Results Display:** Each test case outcome is shown with details. Clicking on a test case reveals:
+  - The number of attempts made.
+  - The LLM's reasoning for each attempt.
+  - The complete transcript.
+  - The configured script and rubric.
+
+## Example Test Cases
+
+Below are three example test cases to illustrate how you can configure detailed simulation scripts and evaluation rubrics.
+
+### Example 1: Billing Support
+
+In this example, we will simulate a customer who is frustrated and calling about a billing discrepancy.
+
+**Script:**
+
+```md title="Script" wordWrap
+1. Express anger over an unexpected charge and the current bill appearing unusually high.
+2. Try to get a detailed explanation, confirming whether an overcharge occurred, and understanding the steps for resolution.
+3. End the call.
+```
+
+**Rubric:**
+
+```md title="Rubric" wordWrap
+The voice agent acknowledges the billing discrepancy respectfully without dismissing the concern.
+```
+
+### Example 2: Account Inquiry
+
+Unlike in the previous example, this time we will provide a more free-form script for the test agent to follow.
+
+**Script:**
+
+```md title="Script" wordWrap
+Simulate a customer inquiring about their account status with growing concern as unexplained charges appear in their statement.
+
+Your primary objective is to clarify several unexplained charges by requesting a detailed breakdown of your recent transactions and ensuring your account balance is accurate.
+
+Begin the call by stating your name and expressing concern over unexpected charges. Ask straightforward questions and press for more details if the explanation is not satisfactory.
+```
+
+**Rubric:**
+
+```md title="Rubric" wordWrap
+1. The voice agent clearly presents the current account balance.
+2. The voice agent provides a detailed breakdown of recent transactions.
+3. The response addresses the customer's concerns in a calm and informative manner.
+```
+
+### Example 3: Appointment Scheduling
+
+This time, we will spin up an even more detailed personality for the test agent. By showing these varied styles of scripts, we hope to show the flexibility of the **Test Suite** feature and how you can use it to meet your testing needs.
+
+**Script:**
+
+```md title="Script" wordWrap
+Simulate a customer trying to schedule an appointment with a hint of urgency due to previous delays.
+
+[Identity]
+You are an organized customer who values efficiency and punctuality.
+
+[Personality]
+While generally courteous and friendly, you are anxious due to previous delays in scheduling appointments, and your tone conveys urgency.
+
+[Goals]
+Your goal is to secure an appointment at your preferred time, while remaining flexible enough to consider alternative timings if your desired slot is unavailable.
+
+[Interaction Style]
+Begin the call by stating your need for an appointment, specifying a preferred date and time (e.g., next Monday at 3 PM). Request clear confirmation of your slot, and if unavailable, ask for suitable alternatives.
+```
+
+**Rubric:**
+
+```md title="Rubric" wordWrap
+1. The voice agent confirms the requested appointment time clearly and accurately.
+2. The agent reiterates the appointment details to ensure clarity.
+3. The scheduling process ends with a definitive confirmation message of the booked appointment.
+```
+
+### Frequently Asked Questions
+
+<AccordionGroup>
+    <Accordion title="Is testing free?" icon="phone" iconType="regular">
+        No, test calls cost you the same as regular calls.
+    </Accordion>
+</AccordionGroup>
+
+---
+
+title: Chat Testing
+subtitle: Automated text-based testing for AI agents
+slug: /test/chat-testing
+
+---
+
+## Overview
+
+Chat Test Suites allow you to evaluate your AI agents through simulated text conversations. This is our recommended solution for testing as it is much faster than voice testing and lets you isolate testing the behavior of your agent.
+
+## How Chat Testing Works
+
+1. **Simulation:** Our AI tester engages with your agent in a text-based conversation.
+2. **Scripted Interaction:** The testing agent follows your predefined script to simulate specific customer scenarios.
+3. **Transcript Capture:** The conversation is captured as a transcript.
+4. **Evaluation:** A language model (LLM) assesses the transcript against your success criteria.
+
+## Designing your tests
+
+Good test design is critical to evaluating your agent. You'll want to consider testing:
+
+1. The tool calls of your agent. Set your script to schedule an appointment or call a transfer tool. At the evaluation step, your rubric will have context of the tool call history to evaluate success.
+2. Knowledge base integrations. Test different Q&A to make sure that your agent responds as expected.
+3. Legal / compliance issues. Ask the agent to answer things it's not supposed to, and verify that it refuses to answer.
+4. Personality. Simulate an angry, frustrated or manipulative customer, and make sure your assistant handles the situation well.
+
+## Benefits of Chat Testing
+
+- **Speed:** Chat tests execute faster than voice tests, allowing for rapid iteration.
+- **Cost-Effective:** No TTS or STT models are used during chat testing.
+- **Focused Assessment:** Evaluate pure conversational ability without audio-related variables.
+- **Higher Test Volume:** Run more tests in less time to ensure comprehensive coverage.
+
+## Creating Chat Tests
+
+You can create chat tests as part of a Test Suite:
+
+1. Navigate to the **Test** tab and select **Test Suites**.
+2. Create a new Test Suite or edit an existing one.
+3. When adding tests, select **Chat** as the test type.
+4. Define your script and success criteria as detailed in the [Test Suites](./test-suites) documentation.
+
+## Best Practices for Chat Testing
+
+- Use chat tests for rapid iteration during development.
+- Create variations of the same scenario to test different user inputs.
+- Test edge cases and potential misunderstandings.
+
+For comprehensive instructions on creating and managing test suites that include chat tests, refer to the [Test Suites](./test-suites) documentation.
+
+---
+
+title: Voice Testing
+subtitle: Automated voice call testing for AI voice agents
+slug: /test/voice-testing
+
+---
+
+## Overview
+
+Voice Test Suites enable you to test your AI voice agents through simulated phone conversations. Our platform connects two AI agents - your voice agent and our testing agent - on a real phone call, following your predefined scripts to evaluate performance under various scenarios.
+
+## How Voice Testing Works
+
+1. **Simulation:** Our AI tester calls your voice agent and follows a script that simulates real customer behavior.
+2. **Conversation:** Both AIs engage in a natural voice conversation, with the tester following your script guidelines.
+3. **Recording:** The entire call is recorded and transcribed for evaluation.
+4. **Assessment:** After the call, the transcript is evaluated against your rubric by a language model (LLM).
+
+## Benefits of Voice Testing
+
+- **Natural Interaction:** Test your voice agent in the most realistic scenario - actual phone calls.
+- **Audio Quality Assessment:** Evaluate not just responses but also voice clarity, tone, and cadence.
+- **End-to-End Verification:** Confirm that your entire voice pipeline works correctly from telephony to response.
+
+## Creating Voice Tests
+
+You can create voice tests as part of a Test Suite:
+
+1. Navigate to the **Test** tab and select **Test Suites**.
+2. Create a new Test Suite or edit an existing one.
+3. When adding tests, select **Voice** as the test type.
+4. Define your script and success criteria as detailed in the [Test Suites](./test-suites) documentation.
+
+## Voice Test Limitations
+
+- Voice tests require more time to execute compared to chat tests.
+- Each test consumes calling minutes from your account.
+- Maximum call duration is limited to 15 minutes per test.
+
+For detailed instructions on creating and managing test suites that include voice tests, see the [Test Suites](./test-suites) documentation.
+
+---
+
+title: Creating Free Phone Numbers
+subtitle: Creating free phone numbers on the Vapi platform.
+slug: free-telephony
+
+---
+
+This guide details how to create free phone numbers on the Vapi platform, which you can use with your assistants or squads.
+
+<Steps>
+  ### Head to the “Phone Numbers” tab in your Vapi dashboard.
+
+<Frame>
+  <img src="file:9027c4ca-27f3-43a8-ab01-f1c3c77b2362" />
+</Frame>
+
+### Click on “Create a Phone Number”
+
+<Frame>
+  <img src="file:7eed2b09-868f-4a44-8ab6-3278edcface5" />
+</Frame>
+
+### Within the "Free Vapi Number" tab, enter your desired area code
+
+<Note>
+    Currently, only US phone numbers can be directly created through Vapi.
+</Note>
+
+<Frame>
+  <img src="file:fbce1fc1-8b13-4de4-87e0-fdc2fd142e94" />
+</Frame>
+
+### Vapi will automatically allot you a random phone number — free of charge!
+
+<Note>
+    It takes a couple of minutes for the phone number to be fully activated. During this period, calls will not be functional.
+</Note>
+
+<Frame>
+  <img src="file:ae3a77f2-1f45-4cad-a248-56780cd974da" />
+</Frame>
+
+</Steps>
+
+### Frequently Asked Questions
+
+<AccordionGroup>
+    <Accordion title="Can I get more than 10 free phone numbers?" icon="phone" iconType="regular">
+        For now, each wallet can have up to 10 free numbers. This limit ensures we can continue offering reliable, high-quality service to everyone.
+    </Accordion>
+    <Accordion title="Are international calls and numbers also free?" icon="phone" iconType="regular">
+        Not at this time. You can still bring in global numbers using our phone number import feature.
+    </Accordion>
+    <Accordion title="Is there a catch to the free service?" icon="phone" iconType="regular">
+        None at all. We’re simply passing on the cost efficiencies we’ve gained through robust engineering and volume partnerships.
+    </Accordion>
+</AccordionGroup>
+
+---
+
+title: Import number from Twilio
+subtitle: Import a new or existing number from Twilio
+slug: phone-numbers/import-twilio
+
+---
+
+## Overview
+
+As you scale your agents, you may want to use other telephony providers, like Twilio. In this guide, you'll learn how to add a new or existing Twilio number to Vapi.
+
+## Prerequisites
+
+- [A Twilio account](https://console.twilio.com/)
+
+## Get started
+
+<Steps>
+  <Step title="Buy a Phone Number via Twilio (if needed)">
+    If you don't have a Twilio number, purchase one in your Twilio console's "Buy a number" section.
+    <Frame caption="The Twilio 'Buy a Number' page in the Twilio console.">
+      <img src="file:1a2edbce-9f9f-4f60-9d51-264a02550ef0" />
+    </Frame>
+  </Step>
+  <Step title="Get Your Twilio Account SID & Auth Token">
+    In your Twilio console, go to "API keys & tokens" to find your Account SID and Auth Token.
+    <Frame caption="Navigate to the credentials section of your Twilio account.">
+      <img src="file:aab73f70-613b-4584-beff-e487fe300d39" />
+    </Frame>
+    <Frame>
+      <img src="file:21c548e4-dd58-469e-becd-7dcf06c7b9a0" />
+    </Frame>
+  </Step>
+  <Step title="Import Your Number in the Vapi Dashboard">
+    1. Go to the "Phone Numbers" section in Vapi and click "Import".
+    <Frame caption="Click 'Import' in the 'Phone Numbers' tab of your dashboard.">
+      <img src="file:6270d6c4-41e0-44c9-9c60-bd9aac1fe4c4" />
+    </Frame>
+    2. Enter your phone number and Twilio credentials, then click "Import".
+    <Frame>
+      <img src="file:a5eaa6c2-87ad-4783-811c-54b6b9cef668" />
+    </Frame>
+  </Step>
+  <Step title="Your number is ready now ready">
+    You can use the number with an assistant for inbound or outbound calls. 
+    <Frame caption="The phone number detail page, where you can configure your phone number.">
+      <img src="file:be213bf2-a3fb-41d9-8e68-cc9e5eb96bc1" />
+    </Frame>
+  </Step>
+</Steps>
+
+---
+
+title: Import number from Telnyx
+subtitle: Import and use your Telnyx numbers with Vapi
+slug: telnyx
+
+---
+
+## Overview
+
+This guide shows you how to import your existing Telnyx phone numbers to the Vapi platform and enable outbound calling. Follow the steps below to use your Telnyx numbers with your assistants or squads.
+
+<Steps>
+  <Step title="Go to the Phone Numbers tab in your Vapi dashboard">
+    <Frame>
+      <img src="file:9027c4ca-27f3-43a8-ab01-f1c3c77b2362" />
+    </Frame>
+  </Step>
+
+  <Step title="Click on Create a Phone Number">
+    <Frame>
+      <img src="file:7eed2b09-868f-4a44-8ab6-3278edcface5" />
+    </Frame>
+  </Step>
+
+  <Step title="Select the Telnyx tab and enter your phone number details">
+    <Note>
+      You'll need to have an active Telnyx account with phone numbers that you want to import.
+    </Note>
+    <Frame>
+      <img src="file:5239face-4381-4ab7-9227-4eb93ba360a5" />
+    </Frame>
+  </Step>
+</Steps>
+
+## Configuring outbound calling with Telnyx
+
+To enable outbound calling with your imported Telnyx numbers, configure your Telnyx account:
+
+<Steps>
+  <Step title="Log in to the Telnyx Portal">
+    Go to the [Telnyx Portal](https://portal.telnyx.com/#/outbound-profiles).
+  </Step>
+  <Step title="Create or edit an Outbound Voice Profile">
+    Set up or select the outbound voice profile you want to use.
+  </Step>
+  <Step title="Add Vapi as a connection">
+    Under the "Connections and Applications" tab, add Vapi as a connection.
+  </Step>
+  <Step title="Save your changes">
+    Save your configuration to enable outbound calling.
+  </Step>
+</Steps>
+
+<Note>
+Without this configuration, outbound calling functionality will not work properly with your Telnyx numbers on the Vapi platform.
+</Note>
+
+---
+
+title: SIP introduction
+subtitle: Make SIP calls to your Vapi assistant
+slug: advanced/sip
+
+---
+
+## Overview
+
+This guide shows you how to set up and test SIP calls to your Vapi assistant using any SIP client or softphone. You'll create an assistant, assign it a SIP phone number, and make a call using a SIP URI. You can also pass template variables via SIP headers.
+
+<Steps>
+  <Step title="Create an assistant">
+    Create an assistant with the `POST /assistant` endpoint. This is the same as creating an assistant for any other transport.
+    ```json
+    {
+      "name": "My SIP Assistant",
+      "firstMessage": "Hello {{first_name}}, you've reached me over SIP."
+    }
+    ```
+  </Step>
+
+  <Step title="Create a SIP phone number">
+    Create a SIP phone number with the `POST /phone-number` endpoint.
+    ```json
+    {
+      "provider": "vapi",
+      "sipUri": "sip:your_unique_user_name@sip.vapi.ai",
+      "assistantId": "your_assistant_id"
+    }
+    ```
+    <Info>
+      `sipUri` must be in the format `sip:username@sip.vapi.ai`. You can choose any username you like.
+    </Info>
+  </Step>
+
+  <Step title="Start a SIP call">
+    Use any SIP softphone (e.g., [Zoiper](https://www.zoiper.com/), [Linphone](https://www.linphone.org/)) to dial your SIP URI (e.g., `sip:your_unique_user_name@sip.vapi.ai`).
+    
+    The assistant will answer your call. No authentication or SIP registration is required.
+  </Step>
+
+  <Step title="Send SIP headers to fill template variables">
+    To fill template variables, send custom SIP headers with your call.
+    
+    For example, to fill the `first_name` variable, send a SIP header:
+    ```
+    x-first_name: John
+    ```
+    Header names are case-insensitive (e.g., `X-First_Name`, `x-first_name`, and `X-FIRST_NAME` all work).
+  </Step>
+
+  <Step title="Use a custom assistant for each call">
+    You can use a custom assistant for SIP calls just like for phone calls.
+    
+    Set the `assistantId` to `null` and the `serverUrl` to your server, which will respond to the `assistant-request` event.
+    
+    `PATCH /phone-number/:id`
+    ```json
+    {
+      "assistantId": null,
+      "serverUrl": "https://your_server_url"
+    }
+    ```
+    Now, every time you make a call to this phone number, your server will receive an `assistant-request` event.
+  </Step>
+</Steps>
+
+---
+
+title: SIP Trunking
+subtitle: How to integrate your SIP provider with Vapi
+slug: advanced/sip/sip-trunk
+
+---
+
+SIP trunking replaces traditional phone lines with a virtual connection over the internet, allowing your business to make and receive calls via a broadband connection. It connects your internal PBX or VoIP system to a SIP provider, which then routes calls to the Public Switched Telephone Network (PSTN). This setup simplifies your communications infrastructure and often reduces costs.
+
+## Network requirements
+
+To allow SIP signaling and media between Vapi and your SIP provider, you must allowlist the following IP addresses:
+
+- 44.229.228.186/32
+- 44.238.177.138/32
+- 172.31.9.106/32
+
+These IPs are used exclusively for SIP traffic.
+
+<Warning>
+We generally don't recommend IP-based authentication for SIP trunks as it can lead to routing issues. Since our servers are shared by many customers, if your telephony provider has multiple customers using IP-based authentication, calls may be routed incorrectly. IP-based authentication works reliably only when your SIP provider offers a unique termination URI or a dedicated SIP server for each customer, as is the case with Plivo and Twilio integrations.
+</Warning>
+
+## Supported SIP providers
+
+Vapi supports multiple SIP trunk configurations, including:
+
+- **Plivo**: Uses a unique SIP domain and supports IP-based authentication.
+- **Telnyx**: Uses SIP gateway domain (e.g., sip.telnyx.com) with IP-based authentication.
+- **Zadarma**: Uses SIP credentials (username/password) with its SIP server (e.g., sip.zadarma.com).
+- **Custom "BYO" SIP Trunk**: Allows integration with any SIP provider. You simply provide the SIP gateway address and the necessary authentication details.
+
+## Setup process
+
+<Steps>
+  <Step title="Obtain provider details">
+    Gather the SIP server address, authentication credentials (username/password or IP-based), and at least one phone number (DID) from your provider.
+  </Step>
+
+  <Step title="Create a SIP trunk credential in Vapi">
+    Use the Vapi API to create a new credential (type: byo-sip-trunk) with your provider's details. This informs Vapi how to connect to your SIP network.
+
+    **Example (using Zadarma):**
+    ```bash
+    curl -X POST "https://api.vapi.ai/credential" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer YOUR_VAPI_PRIVATE_KEY" \
+      -d '{
+        "provider": "byo-sip-trunk",
+        "name": "Zadarma Trunk",
+        "gateways": [{
+          "ip": "sip.zadarma.com"
+        }],
+        "outboundLeadingPlusEnabled": true,
+        "outboundAuthenticationPlan": {
+          "authUsername": "YOUR_SIP_NUMBER",
+          "authPassword": "YOUR_SIP_PASSWORD"
+        }
+      }'
+    ```
+    Save the returned Credential ID for later use.
+
+  </Step>
+
+  <Step title="Associate a phone number with the SIP trunk">
+    Link your external phone number (DID) to the SIP trunk credential in Vapi by creating a Phone Number resource.
+
+    **Example:**
+    ```bash
+    curl -X POST "https://api.vapi.ai/phone-number" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer YOUR_VAPI_PRIVATE_KEY" \
+      -d '{
+        "provider": "byo-phone-number",
+        "name": "Zadarma Number",
+        "number": "15551234567",
+        "numberE164CheckEnabled": false,
+        "credentialId": "YOUR_CREDENTIAL_ID"
+      }'
+    ```
+    Note the returned Phone Number ID for use in test calls.
+
+  </Step>
+
+  <Step title="Test your SIP trunk">
+    <Steps>
+      <Step title="Outbound call test">
+        Initiate a call through the Vapi dashboard or API to ensure outbound calls are properly routed.
+        
+        **API Example:**
+        ```json
+        POST https://api.vapi.ai/call/phone
+        {
+          "assistantId": "YOUR_ASSISTANT_ID",
+          "customer": {
+            "number": "15557654321",
+            "numberE164CheckEnabled": false
+          },
+          "phoneNumberId": "YOUR_PHONE_NUMBER_ID"
+        }
+        ```
+      </Step>
+      <Step title="Inbound call test">
+        If inbound routing is configured, call your phone number from an external line. Ensure your provider forwards calls to the correct SIP URI (e.g., `{phoneNumber}@<credential_id>.sip.vapi.ai` for Zadarma).
+        
+        <Warning>
+        Note: Please ensure that you provide all the signaling IP addresses when creating the SIP trunk. Failure to do so will prevent proper whitelisting, which may result in encountering unauthorized 401 errors for inbound calls.
+        </Warning>
+      </Step>
+    </Steps>
+  </Step>
+
+  <Step title="SIP REFER (call transfer)">
+    If you need to transfer a call to another number, you will need to add a SIP Transfer based call forwarding where the transfer number will look like this: `sip:transfer-number@your-telecom-provider-domain.com`
+
+    Example: `sip:15557654321@sip.zadarma.com`
+
+Note: Certain providers require phone numbers to be formatted in the proper E.164 standard. For example, the transfer URI should appear as: `sip:+15557654321@sip.zadarma.com`.
+
+    Example tool configuration required for SIP REFER:
+    ```json
+    {
+      "type": "transferCall",
+      "destinations": [
+        {
+          "type": "sip",
+          "sipUri": "sip:14039932200@sip.telnyx.com"
+        }
+      ]
+    }
+    ```
+    <Info>You might need to enable SIP REFER in your SIP provider to allow this.</Info>
+
+  </Step>
+</Steps>
+
+---
+
+title: Twilio SIP Integration
+subtitle: How to integrate Twilio SIP with Vapi
+slug: advanced/sip/twilio
+
+---
+
+<Frame>
+  <div class="video-embed-wrapper">
+    <iframe
+      src="https://www.youtube.com/embed/_wo5wokt3dI?si=72E1azM7tYv6TsBI"
+      title='An embedded YouTube video titled "The Ultimate SIP Trunking Guide for AI Voice Agents | Twilio + Vapi"'
+      frameborder="0"
+      allow="fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowfullscreen
+      referrerpolicy="strict-origin-when-cross-origin"
+    />
+  </div>
+</Frame>
+
+This guide walks you through setting up both outbound and inbound SIP trunking between Twilio and Vapi. The steps are quite similar for other telephony providers.
+
+## Outbound Calls (Twilio to Vapi)
+
+### Twilio Configuration
+
+1. **Create Elastic SIP Trunk**
+
+   Log in to your Twilio account and create a new trunk, assigning it a name, and adjusting the general settings as needed.
+
+   ![Twilio SIP Trunk](file:9acc12b1-09a4-4d2f-9242-4a304a1464a8)
+
+2. **Set Up Termination (Outbound Calls)**
+
+   Configure the termination settings. The termination SIP URI is crucial as it will be used in later steps.
+
+   ![Termination SIP URI](file:8b3e4edc-863b-47e5-aa27-a4041d1ab24d)
+
+   To allow your Elastic SIP Trunk to accept outbound requests, you need to whitelist IP addresses:
+
+   ![IP Authentication](file:0c5c7587-dd70-40be-a4fa-20533542d853)
+
+   Whitelist Vapi's SIP server static IPs:
+
+   - 44.229.228.186
+   - 44.238.177.138
+
+   Ensure you whitelist the entire IP range as shown below:
+
+   ![IP Whitelist 1](file:74a1209a-7203-4c2b-9700-d10f434676be)
+
+   ![IP Whitelist 2](file:2629f477-8242-4be3-91e1-dc38da8218f3)
+
+3. **Purchase or Move Numbers to Elastic SIP Trunk**
+
+   After creating the Elastic SIP trunk, purchase new numbers or move existing numbers to this trunk.
+
+   ![Number Attachment](file:c7274e25-e691-430c-966b-71689e88de9f)
+
+### Vapi Configuration
+
+1. **Retrieve Your Vapi API Key**
+
+   Log in to your Vapi.ai account and retrieve your API key from the Organization Settings.
+
+2. **Create a SIP Trunk Credential**
+
+   Use the following API call to create a SIP trunk credential, replacing the gateway IP with your Twilio Termination SIP URI:
+
+   ```bash
+   curl -X POST https://api.vapi.ai/credential \
+   -H "Content-Type: application/json" \
+   -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+   -d '{
+     "provider": "byo-sip-trunk",
+     "name": "Twilio Trunk",
+     "gateways": [
+       {
+         "ip": "YOUR_TWILIO_GATEWAY_ID"
+       }
+     ],
+     "outboundLeadingPlusEnabled": true
+   }'
+   ```
+
+   Note the `id` (credentialId) from the response for the next step.
+
+3. **Register Your Phone Number**
+
+   Associate your Twilio number with the SIP trunk:
+
+   ```bash
+   curl -X POST https://api.vapi.ai/phone-number \
+   -H "Content-Type: application/json" \
+   -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+   -d '{
+     "provider": "byo-phone-number",
+     "name": "Twilio SIP Number",
+     "number": "YOUR_SIP_PHONE_NUMBER",
+     "numberE164CheckEnabled": false,
+     "credentialId": "YOUR_CREDENTIAL_ID"
+   }'
+   ```
+
+   Note the phone number ID from the response for making calls.
+
+4. **Make Outbound Calls**
+
+   You can make outbound calls in two ways:
+
+   **Using the Vapi Dashboard:**
+
+   The phone number will appear in your dashboard. Select your assistant and enter the destination number you want to call.
+
+   **Using the API:**
+
+   ```bash
+   curl --location 'https://api.vapi.ai/call/phone' \
+   --header 'Authorization: Bearer YOUR_VAPI_API_KEY' \
+   --header 'Content-Type: application/json' \
+   --data '{
+     "assistantId": "YOUR_ASSISTANT_ID",
+     "customer": {
+       "number": "DESTINATION_PHONE_NUMBER",
+       "numberE164CheckEnabled": false
+     },
+     "phoneNumberId": "YOUR_PHONE_NUMBER_ID"
+   }'
+   ```
+
+## Inbound Calls (Vapi to Twilio)
+
+### Twilio Configuration
+
+1. **Set Up Origination (Inbound Calls)**
+
+   Navigate to the Origination section in your Twilio SIP Trunk settings.
+
+   ![Origination Settings](file:6ad65c44-7d61-45ad-b0eb-3460d450f084)
+
+   Add your Vapi SIP URI in the following format: `sip:YOUR_PHONE_NUMBER@sip.vapi.ai`, where "YOUR_PHONE_NUMBER" is your chosen SIP number that you will attach to this trunk.
+
+   ![Origination Creation](file:cd66a2a2-78bb-416b-b27c-aef6d38b6f96)
+
+### Vapi Configuration
+
+1. **Create and Configure a Vapi Assistant**
+
+   - Create an assistant following the steps in our [Phone Quickstart](/quickstart/phone#create-your-first-voice-assistant)
+   - In the assistant settings, link it to the phone number you created
+
+   Now when someone calls your Twilio number, the call will be routed to your Vapi assistant.
+
+---
+
+title: Telnyx SIP integration
+subtitle: How to integrate SIP Telnyx to Vapi
+slug: advanced/sip/telnyx
+
+---
+
+Integrate your Telnyx SIP trunk with Vapi to enable your AI voice assistants to handle calls efficiently. This guide walks you through the complete setup process for both inbound and outbound calls.
+
+<Steps>
+  <Step title="Retrieve your Vapi private key">
+    <Steps>
+      <Step title="Get your private key">
+        - Log in to your Vapi account
+        - Navigate to **Organization Settings**
+        - In the **API Keys** section, copy your **Private Key**
+      </Step>
+    </Steps>
+  </Step>
+
+  <Step title="Configure Telnyx for inbound calls">
+    <Steps>
+      <Step title="Create a SIP trunk">
+        - Go to Voice / SIP Trunking / Create
+        - Select FQDN
+        - Click "Add FQDN"
+        - Select A record type
+        - Set FQDN to: `sip.vapi.ai`
+        - Port should be 5060 by default
+      </Step>
+      <Step title="Configure inbound settings">
+        - Navigate to the Inbound tab of your SIP trunk
+        - Configure settings as shown:
+        <Frame>
+          <img src="file:bc8897c4-218c-4ab7-98a4-46f6aaa3ebbe" />
+        </Frame>
+      </Step>
+      <Step title="Assign phone number">
+        - Go to the Numbers tab
+        - Assign your acquired phone number to the SIP trunk
+      </Step>
+      <Step title="Configure SIP invite">
+        - Go to Numbers, edit the number you'll be using
+        - Navigate to Voice settings
+        - Scroll down to find "Translated Number"
+        - Set this value to match your Vapi SIP URI
+        <Info>
+          You can get your Vapi SIP URI when you create a new SIP number through the **Phone Numbers** tab in the Vapi dashboard. The URI will look like:
+          <br />
+          <code>sip:&lt;your-unique-id&gt;@sip.vapi.ai</code>
+        </Info>
+        *This setting modifies the SIP Invite so invites are correctly routed to your Vapi SIP URI.*
+      </Step>
+    </Steps>
+  </Step>
+
+  <Step title="Configure Telnyx for outbound calls">
+    <Steps>
+      <Step title="Set up outbound authentication">
+        - Go to Voice / SIP Trunking / Authentication and routing
+        - Scroll down to "Outbound calls authentication"
+        - Create a new credential for Vapi to use
+        <Frame>
+          <img src="file:26fc96ea-246c-4109-8e1e-0116177eece8" />
+        </Frame>
+      </Step>
+      <Step title="Create outbound voice profile">
+        - Go to Voice / Outbound Voice Profiles
+        - Create a new profile
+        - Name it appropriately
+        - Configure desired destinations
+        - Leave default configuration settings
+        - Assign your SIP trunk
+        - Complete setup
+        Alternatively, go to your SIP trunk / Outbound tab and select your newly created outbound voice profile.
+      </Step>
+      <Step title="Configure outbound settings">
+        - Choose the country you'll be making most calls to
+        *We recommend creating a separate SIP Trunk for each country you aim to be making most calls to.*
+        <Frame>
+          <img src="file:f7395fd5-bb0b-4b52-8d99-5267c4d1aeaf" />
+        </Frame>
+      </Step>
+    </Steps>
+  </Step>
+
+  <Step title="Add your Telnyx SIP credentials to Vapi">
+    Use the Vapi API to create a SIP trunk credential:
+    ```bash
+    curl -X POST https://api.vapi.ai/credential \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer YOUR_VAPI_PRIVATE_KEY" \
+      -d '{
+        "provider": "byo-sip-trunk",
+        "name": "Telnyx Trunk",
+        "gateways": [
+          {
+            "ip": "sip.telnyx.com"
+          }
+        ],
+        "outboundAuthenticationPlan": {
+          "authUsername": "YOUR_SIP_USERNAME",
+          "authPassword": "YOUR_SIP_PASSWORD",
+          "sipRegisterPlan": {
+                "realm": "sip.telnyx.com"
+            }
+        }
+      }'
+    ```
+    Replace `YOUR_VAPI_PRIVATE_KEY`, `YOUR_SIP_USERNAME`, and `YOUR_SIP_PASSWORD` with your actual credentials.
+    If successful, the response will include an `id` for the created credential, which you'll use in the next step.
+  </Step>
+
+  <Step title="Add your phone number to Vapi">
+    Associate your phone number with the SIP trunk in Vapi:
+    ```bash
+    curl -X POST https://api.vapi.ai/phone-number \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer YOUR_VAPI_PRIVATE_KEY" \
+      -d '{
+        "provider": "byo-phone-number",
+        "name": "Telnyx SIP Number",
+        "number": "YOUR_PHONE_NUMBER",
+        "numberE164CheckEnabled": false,
+        "credentialId": "YOUR_CREDENTIAL_ID"
+      }'
+    ```
+    Replace `YOUR_VAPI_PRIVATE_KEY`, `YOUR_PHONE_NUMBER`, and `YOUR_CREDENTIAL_ID` with your actual details.
+  </Step>
+
+  <Step title="Assign your voice assistant to handle calls">
+    - In your Vapi dashboard, go to the **Build** section and select **Phone Numbers**
+    - Click on your **Telnyx Number**
+    - In the **Inbound Settings** section, assign your voice assistant to handle incoming calls
+    - In the **Outbound Form** section, assign your voice assistant to handle outgoing calls
+  </Step>
+
+  <Step title="Make outbound calls">
+    To initiate outbound calls through your Telnyx SIP trunk:
+    ```bash
+    curl --location 'https://api.vapi.ai/call/phone' \
+      --header 'Authorization: Bearer YOUR_VAPI_PRIVATE_KEY' \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "assistantId": "YOUR_ASSISTANT_ID",
+        "customer": {
+          "number": "CUSTOMER_PHONE_NUMBER",
+          "numberE164CheckEnabled": false
+        },
+        "phoneNumberId": "YOUR_PHONE_ID"
+      }'
+    ```
+    Replace all placeholder values with your actual information.
+  </Step>
+</Steps>
+
+By following these steps, your Telnyx SIP trunk will be fully integrated with Vapi, allowing your AI voice assistants to manage calls effectively.
+
+---
+
+title: Zadarma SIP Integration
+subtitle: How to integrate SIP Zadarma to Vapi
+slug: advanced/sip/zadarma
+
+---
+
+Integrate your Zadarma SIP trunk with Vapi.ai to enable your AI voice assistants to handle calls efficiently. Follow the steps below to set up this integration:
+
+## 1. Retrieve Your Vapi.ai Private Key
+
+- Log in to your Vapi.ai account.
+- Navigate to **Organization Settings**.
+- In the **API Keys** section, copy your **Private Key**.
+
+## 2. Add Your Zadarma SIP Credentials to Vapi.ai
+
+You'll need to send a `curl` request to Vapi.ai's API to add your SIP credentials:
+
+- **Private Key**: Your Vapi.ai private key.
+- **Trunk Name**: A name for your SIP trunk (e.g., "Zadarma Trunk").
+- **Server Address**: The server address provided by Zadarma (e.g., "sip.zadarma.com").
+- **SIP Number**: Your Zadarma SIP number.
+- **SIP Password**: The password for your Zadarma SIP number.
+
+Here's the `curl` command to execute:
+
+```bash
+curl -L 'https://api.vapi.ai/credential' \\
+-H 'Content-Type: application/json' \\
+-H 'Authorization: Bearer YOUR_PRIVATE_KEY' \\
+-d '{
+  "provider": "byo-sip-trunk",
+  "name": "Zadarma Trunk",
+  "gateways": [
+    { "ip": "sip.zadarma.com" }
+  ],
+  "outboundLeadingPlusEnabled": true,
+  "outboundAuthenticationPlan": {
+    "authUsername": "YOUR_SIP_NUMBER",
+    "authPassword": "YOUR_SIP_PASSWORD"
+  }
+}'
+```
+
+Replace `YOUR_PRIVATE_KEY`, `YOUR_SIP_NUMBER`, and `YOUR_SIP_PASSWORD` with your actual credentials.
+
+If successful, the response will include an `id` for the created credential, which you'll use in the next step.
+
+## 3. Add Your Virtual Number to Vapi.ai
+
+Next, associate your virtual number with the SIP trunk in Vapi.ai:
+
+- **Private Key**: Your Vapi.ai private key.
+- **Number Name**: A name for your virtual number (e.g., "Zadarma Number").
+- **Virtual Number**: Your Zadarma virtual number in international format (e.g., "15551111111").
+- **Credential ID**: The `id` from the previous step.
+
+Use the following `curl` command:
+
+```bash
+curl -L 'https://api.vapi.ai/phone-number' \\
+-H 'Content-Type: application/json' \\
+-H 'Authorization: Bearer YOUR_PRIVATE_KEY' \\
+-d '{
+  "provider": "byo-phone-number",
+  "name": "Zadarma Number",
+  "number": "YOUR_VIRTUAL_NUMBER",
+  "numberE164CheckEnabled": false,
+  "credentialId": "YOUR_CREDENTIAL_ID"
+}'
+```
+
+Replace `YOUR_PRIVATE_KEY`, `YOUR_VIRTUAL_NUMBER`, and `YOUR_CREDENTIAL_ID` with your actual details.
+
+## 4. Assign Your Voice Assistant to Handle Calls
+
+- In your Vapi.ai dashboard, go to the **Build** section and select **Phone Numbers**.
+- Click on your **Zadarma Number**.
+- In the **Inbound Settings** section, assign your voice assistant to handle incoming calls.
+- In the **Outbound Form** section, assign your voice assistant to handle outgoing calls.
+
+## 5. Configure Incoming Call Reception in Zadarma
+
+To forward incoming calls from your Zadarma virtual number to Vapi.ai:
+
+- Log in to your Zadarma account.
+- Navigate to **Settings** → **Virtual phone numbers**.
+- Click the ⚙ (gear) icon next to your number.
+- Open the **External server** tab.
+- Enable **External server (SIP URI)**.
+- Enter the address: `YOUR_VIRTUAL_NUMBER@sip.vapi.ai` (replace `YOUR_VIRTUAL_NUMBER` with your number in international format).
+- Click **Save**.
+
+By following these steps, your Zadarma SIP trunk will be integrated with Vapi.ai, allowing your AI voice assistants to manage calls effectively.
+
+---
+
+title: Plivo SIP Integration
+subtitle: Learn to connect your Plivo SIP trunk to Vapi for inbound and outbound calls
+slug: advanced/sip/plivo
+
+---
+
+## Overview
+
+For a general introduction to SIP trunking with Vapi (concepts and architecture), see our [SIP Trunking Guide](../sip-trunk.mdx).
+
+This guide shows you how to connect your Plivo SIP trunk to your existing Vapi agents. It covers:
+
+- Step-by-step configuration of Plivo and Vapi for SIP trunking (outbound and inbound)
+- How to register and associate your Plivo phone numbers with Vapi
+- How to make outbound calls using the Vapi API and dashboard
+- How to assign Plivo numbers for inbound call routing through Vapi
+
+## Prerequisites
+
+- [A Plivo account](https://console.plivo.com/accounts/request-trial/)
+- Admin access to your Plivo and PBX/SIP trunk configuration
+- A phone number you want to connect to Vapi via Plivo
+
+<Warning>
+Indian phone numbers cannot be used with Plivo on Vapi due to TRAI regulations. These regulations require SIP termination to occur via an Indian server, which Vapi does not currently support.
+</Warning>
+
+## Get Started
+
+<Tabs>
+  <Tab title="Outbound (Vapi to user)">
+    ## Plivo Configuration
+    <Steps>
+      <Step title="Login to Plivo Console">
+        <a href="https://console.plivo.com/accounts/login/" target="_blank" rel="noopener">Access the Plivo console</a>.
+      </Step>
+      <Step title="Create IP Access Control List">
+        1. **Navigate to:**
+           `Zentrunk (SIP) → Outbound Trunks → IP Access Control List → Create New IP Group`
+        
+        2. **Fill out the form:**
+        - **Name:** Enter a descriptive name (for example, `VAPI-IP-Group`).
+        - **IP Address List:** Add each of the following IP addresses one at a time:
+        ```
+44.229.228.186/32
+        ```
+        ```
+44.238.177.138/32
+        ```
+        3. **Click** **Create ACL** to save.
+        
+        ![Plivo IP Access Control List](file:097c7d59-73a7-42ca-a913-7e935a279c11)
+      </Step>
+      <Step title="Create Outbound Trunk">
+        1. **Navigate to:**
+           `Zentrunk (SIP) → Outbound Trunks → Trunks → Create New Outbound Trunk`
+        
+        2. **Fill out the form:**
+        - **Trunk Name:** Enter a descriptive name (for example, `Vapi-Outbound-Trunk`).
+        - **IP Access Control List:** Select the IP ACL created in the previous step.
+        3. **Click** **Create Trunk** to save.
+        
+        ![Create New Outbound Trunk](file:91ca0e88-8a20-477c-b22b-4e321fba1b2e)
+      </Step>
+      <Step title="Note Your Termination SIP Domain">
+        After creating the trunk, locate the **Termination SIP Domain** in the trunk details page. It will look something like:
+        `12700668357XXXXXX.zt.plivo.com`
+        ![Termination SIP Domain](file:0ad2c63e-7590-488c-a7c5-cf6db8c77151)
+        
+        **You will need this value when configuring your SIP trunk in Vapi.**
+      </Step>
+      <Step title="Purchase a Phone Number">
+        Navigate to:
+        `Numbers → Buy a new number`
+        
+        Once purchased, note down your new phone number. You will associate this number with your SIP trunk in a later step.
+        
+        ![Buy Phone Number](file:c40f9c6a-c528-41f0-8ad7-e4ec1ecdf97e)
+      </Step>
+    </Steps>
+    
+    ## Vapi Configuration
+    <Steps>
+      <Step title="Get Your Vapi API Key">
+        Sign in to the dashboard and [get your API key](https://dashboard.vapi.ai/org/api-keys). 
+      </Step>
+      <Step title="Create a SIP Trunk Credential">
+        1. Copy the following API call.
+        2. Replace `YOUR_PLIVO_TERMINATION_SIP_DOMAIN` with your actual Plivo Termination SIP Domain (for example, `12700668357XXXXXX.zt.plivo.com`).
+
+        ```bash
+        curl -X POST https://api.vapi.ai/credential \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer YOUR_VAPI_PRIVATE_API_KEY" \
+          -d '{
+            "provider": "byo-sip-trunk",
+            "name": "PLIVO Trunk",
+            "gateways": [
+              {
+                "ip": "YOUR_PLIVO_TERMINATION_SIP_DOMAIN"
+              }
+            ]
+          }'
+        ```
+        3. You'll receive a response like the one below. Note the `id` (credentialId) for the next step.
+
+        ```json
+        {
+          "id": "d293b924-f68d-4cbc-850f-xxxxxxxxxxxxxxx",
+          "orgId": "424acf80-dbea-4015-ace8-0f3924e6000xxxx",
+          "provider": "byo-sip-trunk",
+          "createdAt": "2025-05-05T16:38:08.815Z",
+          "updatedAt": "2025-05-05T16:38:08.815Z",
+          "gateways": [
+            {
+              "ip": "1856282236xxxxxxxxxxx.zt.plivo.com"
+            }
+          ],
+          "name": "PLIVO Trunk"
+        }
+        ```
+      </Step>
+      <Step title="Register Your Phone Number">
+        1. Associate your Plivo number with the SIP trunk. Replace `YOUR_PLIVO_PHONE_NUMBER` and `YOUR_CREDENTIAL_ID` with the numbers from previous steps.
+        ```bash
+        curl -X POST https://api.vapi.ai/phone-number \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer YOUR_VAPI_PRIVATE_API_KEY" \
+        -d '{
+          "provider": "byo-phone-number",
+          "name": "PLIVO SIP Number",
+          "number": "YOUR_PLIVO_PHONE_NUMBER",
+          "numberE164CheckEnabled": false,
+          "credentialId": "YOUR_CREDENTIAL_ID"
+        }'
+        ```
+        2. Your response will look like this, note the phone number ID from the response for making calls.
+        ```bash
+        {
+          "id": "eba2fb13-259f-4123-abfa-xxxxxxxxxxxxxxx",
+          "orgId": "489ea344-c56f-4243-8723-b28362cd5a5c",
+          "number": "1833684XXXX",
+          "createdAt": "2025-03-05T18:31:30.389Z",
+          "updatedAt": "2025-03-05T18:31:30.389Z",
+          "name": "PLIVO SIP Number",
+          "credentialId": "a2c815b8-03f4-40f5-813c-xxxxxxxxxxxx",
+          "provider": "byo-phone-number",
+          "numberE164CheckEnabled": false,
+          "status": "active"
+        }
+        ```
+      </Step>
+      <Step title="Create a Vapi Assistant">
+        1. [Follow this guide to create an assistant](/quickstart/phone#create-your-first-voice-assistant)
+        2. Note your Assistant ID for making calls.
+      </Step>
+      <Step title="Make Outbound Calls">
+        [**Using the API**](/calls/outbound-calling)
+
+        ```bash
+        curl --location 'https://api.vapi.ai/call/phone' \
+        --header 'Authorization: Bearer YOUR_VAPI_PRIVATE_API_KEY' \
+        --header 'Content-Type: application/json' \
+        --data '{
+          "assistantId": "29d47d31-ba3c-451c-86ce-xxxxxxxxx",
+          "customer": {
+            "number": "9199437XXXXX",
+            "numberE164CheckEnabled": false
+          },
+          "phoneNumberId": "eba2fb13-259f-4123-abfa-xxxxxxxxxxx"
+        }'
+        ```
+
+        [**Using the Vapi Dashboard**](/quickstart/phone#try-outbound-calling)
+
+        1. Select your Assistant
+        2. Enter the phone number of the user you want to call
+        ![VAPI Dashboard Call](file:8e0512b3-a88b-4a7a-b3cc-ccab1b291d5e)
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="Inbound (user to Vapi)">
+    ## Plivo Configuration
+    <Steps>
+      <Step title="Login to Plivo Console">
+        <a href="https://console.plivo.com/accounts/login/" target="_blank" rel="noopener">Access the Plivo console</a>.
+      </Step>
+      <Step title="Create Origination URI">
+        1. **Navigate to:**
+           `Zentrunk (SIP) → Inbound Trunks → Origination URI → Create New IP URI`
+        
+        2. **Fill out the form:**
+        - **Name:** Enter a descriptive name (for example, `Vapi Inbound`).
+        - **URI:** Enter this origination URI exactly: `sip.vapi.ai;transport=udp`
+        3. **Click** **Create URI** to save.
+        
+        ![Create New IP URI](file:16f48e0f-4808-46cf-a060-1fc059df0905)
+      </Step>
+      <Step title="Create Inbound Trunk">
+        1. **Navigate to:**
+           `Zentrunk (SIP) → Inbound Trunks → Trunks → Create New Inbound Trunk`
+        
+        2. **Fill out the form:**
+        - **Trunk Name:** Enter a descriptive name (for example, `Vapi Inbound Trunk`).
+        - **Primary URI:** Select the URI created in the previous step.
+        3. **Click** **Create Trunk** to save.
+        
+        ![Create New Inbound Trunk](file:6a9652f4-fdae-4e03-8f33-a1b4216bc372)
+      </Step>
+      <Step title="Attach Phone Number to Inbound Trunk">
+        1. **Navigate to:**
+           `Phone Numbers → Select your purchased number`
+        
+        2. **Configure the number:**
+        - In the **Application** dropdown, select **Zentrunk**.
+        - In the **Zentrunk** dropdown, select your inbound trunk.
+        3. **Click** **Save** to apply changes.
+        
+        ![Attach Number to Inbound Trunk](file:ae6d6551-24aa-4b37-92bf-894ba5c27705)
+      </Step>
+    </Steps>
+    
+    ## Vapi Configuration
+    <Steps>
+      <Step title="Get Your Vapi API Key">
+        Sign into the dashboard and [get your api key](https://dashboard.vapi.ai/org/api-keys). 
+      </Step>
+      <Step title="Create an Inbound SIP Trunk Credential">
+        ```bash
+        curl -X POST https://api.vapi.ai/credential \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer YOUR_VAPI_PRIVATE_API_KEY" \
+        -d '{
+          "provider": "byo-sip-trunk",
+          "name": "PLIVO Inbound Trunk",
+          "type": "inbound"
+        }'
+        ```
+        Note the `id` (credentialId) from the response for the next step.
+      </Step>
+      <Step title="Register Your Phone Number">
+        ```bash
+        curl -X POST https://api.vapi.ai/phone-number \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer YOUR_VAPI_PRIVATE_API_KEY" \
+        -d '{
+          "provider": "byo-phone-number",
+          "name": "PLIVO SIP Inbound Number",
+          "number": "1833684XXXX",
+          "numberE164CheckEnabled": false,
+          "credentialId": "a2c815b8-03f4-40f5-813c-xxxxxxxxxxxx"
+        }'
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Errors
+
+- **Codec Support:** Limit trunk codecs to G.711 µ‑law and A‑law only. Other codecs are not supported by Plivo SIP trunks.
+- **SIP REFER Not Supported:** Plivo SIP trunks do not accept SIP REFER for call transfers.
+- **Origination URI Already Exists:** This was previously an error on Plivo's side and has been fixed.
+
+---
+
+title: Phone Number Hooks
+slug: phone-numbers/phone-number-hooks
+
+---
+
+## Overview
+
+Phone number hooks allow you to configure actions that will be performed when specific events occur during a call. Currently, hooks support the `call.ringing` event (which is triggered when a call is ringing).
+
+## Usage
+
+Hooks are defined in the `hooks` array of a phone number. Each hook consists of:
+
+- `on`: The event that triggers the hook (supports `call.ringing`)
+- `do`: The actions to perform when the hook triggers (supports `transfer` and `say`)
+
+## Example: Say Message on Call Ringing
+
+This example shows how to play a message when a call is ringing:
+
+```bash
+curl -X PATCH "https://api.vapi.ai/phone-number/<id>" \
+     -H "Authorization: Bearer <auth>" \
+     -H "Content-Type: application/json" \
+     -d '{
+  "hooks": [{
+    "on": "call.ringing",
+    "do": [{
+      "type": "say",
+      "exact": "inbound calling is disabled."
+    }]
+  }]
+}'
+```
+
+## Example: Transfer on Call Ringing
+
+This example shows how to transfer a call when it starts ringing:
+
+```bash
+curl -X PATCH "https://api.vapi.ai/phone-number/<id>" \
+     -H "Authorization: Bearer <auth>" \
+     -H "Content-Type: application/json" \
+     -d '{
+  "hooks": [{
+    "on": "call.ringing",
+    "do": [{
+      "type": "transfer",
+      "destination": {
+        "type": "number",
+        "number": "+1234567890",
+        "callerId": "+1987654321"
+      }
+    }]
+  }]
+}'
+```
+
+You can also transfer to a SIP destination:
+
+```bash
+curl -X PATCH "https://api.vapi.ai/phone-number/<id>" \
+     -H "Authorization: Bearer <auth>" \
+     -H "Content-Type: application/json" \
+     -d '{
+  "hooks": [{
+    "on": "call.ringing",
+    "do": [{
+      "type": "transfer",
+      "destination": {
+        "type": "sip",
+        "sipUri": "sip:user@domain.com"
+      }
+    }]
+  }]
+}'
+```
+
+Common use cases for phone number hooks include:
+
+- Disabling inbound calling by playing a message or transferring
+
+---
+
+title: Outbound Calling
+subtitle: Learn how to send outbound calls from Vapi.
+slug: calls/outbound-calling
+
+---
+
+## Introduction to Outbound Calling
+
+Vapi's outbound calling API lets you programmatically initiate single or batch calls to any phone number. You can schedule calls for specific dates and times, ideal for time-sensitive communications. Easily integrate outbound calling into your app for appointment reminders, automated surveys, and call campaigns.
+
+## Prerequisites
+
+- **Vapi Account**: Access to the Vapi Dashboard for configuration.
+- **Configured Assistant**: Either a saved assistant or a transient assistant.
+- **Phone Number**: Either an imported phone number from one of the supported providers or a free Vapi number. (Note: You cannot make international calls with a free Vapi number).
+- **Customer's Phone Number**: The phone number that you want to call.
+
+## Outbound Calls
+
+You can place an outbound call from one of your phone numbers using the [`/call`](/api-reference/calls/create-phone-call) endpoint.
+
+1. **Specify an Assistant:** you must specify either a transient assistant in the `assistant` field or reuse a saved assistant in the `assistantId` field.
+2. **Get a Phone Number:** provide the `phoneNumberId` of the imported number or free Vapi number you wish to call from.
+3. **Provide a Destination:** Finally, pass the customer's phone number or SIP URI in [`customer`](/api-reference/calls/create#request.body.customer).
+
+Provide your authorization token and now we're ready to issue the API call!
+
+```jsx
+{
+    "assistantId": "assistant-id",
+    "phoneNumberId": "phone-number-id",
+    "customer": {
+        "number": "+11231231234"
+    }
+}
+```
+
+## Scheduling Outbound Calls
+
+To schedule a call for the future, use the [`schedulePlan`](/api-reference/calls/create#request.body.schedulePlan) parameter and pass a future ISO date-time string to `earliestAt`. This will be the earliest time Vapi will attempt to trigger the outbound call. You may also provider `latestAt`, which will be the latest time Vapi will attempt to trigger the call.
+
+When you schedule a call, we will save the Assistant, Phone Number, and Customer Number resources and refetch them at the time of the call. If you choose to provide a saved assistant through `assistantId`, we will pick up the most up-to-date version of your assistant at the call time. Likewise, if you delete your saved assistant, the call will fail! To ensure the call is issued with a static version of an assistant, pass it as a transient assistant through the `assistant` parameter.
+
+```jsx
+{
+    "assistantId": "assistant-id",
+    "phoneNumberId": "phone-number-id",
+    "customer": {
+        "number": "+11231231234"
+    },
+    "schedulePlan": {
+        "earliestAt": "2025-05-30T00:00:00Z"
+    }
+}
+```
+
+## Batch Calling [#batch-calling]
+
+To call more than one number at a time, use the [`customers`](/api-reference/calls/create#request.body.customers) parameter to pass an array of `customer`. To provide customer specific assistant overrides, please call the endpoint separately for each destination number.
+
+Use both `customers` and `schedulePlan` together to schedule batched calls.
+
+```jsx
+{
+    "assistantId": "assistant-id",
+    "phoneNumberId": "phone-number-id",
+    "customers": [
+        {
+            "number": "+11231231234"
+        },
+        {
+            "number": "+12342342345"
+        }
+    ],
+    "schedulePlan": {
+        "earliestAt": "2025-05-30T00:00:00Z"
+    }
+}
+```
+
+## Creating Outboud Calls from the Dashboard
+
+Learn more about how to launch [Outbound Calling Campaigns via Dashboard](/outbound-campaigns/quickstart)
+
+## Trusted Calling and Caller ID
+
+To maximize call answer rates and establish trust with recipients, you should implement proper caller identification and trusted calling standards. This involves several key components that work together to verify your identity and build caller reputation.
+
+### STIR/SHAKEN Implementation
+
+**STIR/SHAKEN** (Secure Telephone Identity Revisited / Signature-based Handling of Asserted Information using toKENs) is a framework designed to combat robocalls and caller ID spoofing by digitally signing calls to verify the caller's identity.
+
+When you make outbound calls, STIR/SHAKEN provides three levels of attestation:
+
+- **Level A (Full Attestation)**: The service provider has verified both the caller's identity and their right to use the calling number
+- **Level B (Partial Attestation)**: The service provider has verified the caller's identity but not their right to use the number
+- **Level C (Gateway Attestation)**: The service provider has authenticated the call source but cannot verify the caller's identity
+
+To enable STIR/SHAKEN on your Twilio numbers:
+
+1. **Complete Trust Hub verification** in your Twilio Console
+2. **Submit business information** including legal business name, address, and authorized representative details
+3. **Provide supporting documentation** such as business registration and tax identification
+4. **Wait for approval** - the verification process typically takes 5-7 business days
+
+<Note>
+STIR/SHAKEN is currently required for US and Canadian calling. Implementation helps ensure your calls are properly authenticated and less likely to be flagged as spam.
+</Note>
+
+Learn more: [Twilio STIR/SHAKEN Documentation](https://www.twilio.com/docs/voice/trusted-calling-with-shakenstir)
+
+### CNAM Registry Registration
+
+**CNAM** (Caller Name) displays your business name instead of just your phone number when you call someone. This significantly improves answer rates and establishes professional credibility.
+
+To register your business name with the CNAM database through your phone number provider:
+
+<Steps>
+  <Step title="Access CNAM registration">
+    Navigate to your phone number provider's CNAM registration portal (e.g., Twilio Console → Phone Numbers → Manage → Caller ID)
+  </Step>
+  
+  <Step title="Complete business profile">
+    Provide your complete business information:
+    - **Legal business name** (exactly as registered with your EIN)
+    - **Business address** and contact information
+    - **Business type** and industry classification
+    - **Tax identification number** or business registration details
+  </Step>
+  
+  <Step title="Designate authorized representative">
+    Assign a point of contact with authority to make changes:
+    - Full name and business title
+    - Direct phone number and email address
+    - Verification that they're authorized to represent the business
+  </Step>
+  
+  <Step title="Submit for verification">
+    Submit your application for review. Processing typically takes 3-5 business days, and you'll receive confirmation once approved.
+  </Step>
+</Steps>
+
+<Tip>
+Use an email address associated with your business domain rather than personal email addresses to expedite the approval process.
+</Tip>
+
+Learn more: [Twilio CNAM Branding Guide](https://www.twilio.com/docs/voice/brand-your-calls-using-cnam)
+
+### Caller Reputation Databases
+
+Beyond CNAM registration, registering with major caller reputation databases helps establish trust and reduces the likelihood of your calls being flagged as spam or blocked.
+
+#### First Orion Registration
+
+[First Orion](https://firstorion.com/) provides caller identification and spam protection services used by major carriers and call-blocking apps.
+
+**Registration benefits:**
+
+- Displays your business name and logo on supported devices
+- Reduces spam flagging and call blocking
+- Provides branded calling experience
+
+**Registration process:**
+
+1. Visit the First Orion business portal
+2. Verify your business ownership of the phone numbers
+3. Submit branding assets (logo, business description)
+4. Complete the verification process
+
+#### Hiya (Free Caller Registry)
+
+[Hiya](https://www.hiya.com/) operates one of the largest caller ID and spam protection networks, powering caller identification for millions of users.
+
+**Benefits of Hiya registration:**
+
+- Enhanced caller ID display across multiple platforms
+- Protection against false spam reporting
+- Access to call analytics and reputation monitoring
+
+**Registration steps:**
+
+1. Create a business account on Hiya's platform
+2. Verify ownership of your phone numbers
+3. Submit business profile and branding information
+4. Monitor your caller reputation through their dashboard
+
+### Spam Monitoring and Phone Number Health
+
+Proactive monitoring of your phone number reputation is essential to maintain high answer rates and prevent spam labeling. Several tools and services can help you track and remediate spam labels before they impact your campaigns.
+
+#### Twilio Voice Integrity
+
+[Twilio Voice Integrity](https://www.twilio.com/docs/voice/spam-monitoring-with-voiceintegrity) helps remediate spam labels on your phone numbers and monitor their reputation across major carrier networks.
+
+**What Voice Integrity provides:**
+
+- **Spam label remediation** for T-Mobile, Sprint, and AT&T networks
+- **Reputation monitoring** across carrier analytic engines
+- **Automatic registration** of your Twilio phone numbers with carrier databases
+- **Integration with Trust Hub** for streamlined verification
+
+**Getting started with Voice Integrity:**
+
+<Steps>
+  <Step title="Meet prerequisites">
+    - Ensure you have an approved Primary Customer Profile in Trust Hub
+    - For ISVs: obtain approved secondary customer profiles for tenants
+  </Step>
+  
+  <Step title="Register through Trust Hub">
+    - Access Voice Integrity through your Twilio Console
+    - Complete the registration process via Trust Hub REST API or console
+    - Your numbers will be automatically registered with carrier analytic engines
+  </Step>
+  
+  <Step title="Monitor and maintain">
+    - Voice Integrity will automatically work to remediate spam labels
+    - Future updates will include reputation monitoring and degradation alerts
+    - Verizon Wireless integration coming soon (automatic for existing users)
+  </Step>
+</Steps>
+
+<Note>
+Voice Integrity works best when combined with STIR/SHAKEN attestation, as the highest level of attestation signals to analytic engines that you're a legitimate caller.
+</Note>
+
+#### External Phone Number Health Monitoring
+
+In addition to carrier-provided services, external monitoring APIs can help you proactively check your phone number reputation across different networks and spam databases.
+
+**Recommended monitoring services:**
+
+**IPQualityScore Phone Number Validation**
+
+- **Service**: [IPQualityScore](https://www.ipqualityscore.com/) provides comprehensive phone number reputation scoring
+- **Features**: Real-time spam risk assessment, carrier identification, line type detection
+- **Use case**: Check numbers before campaigns and monitor reputation changes
+- **Integration**: REST API for batch checking or real-time validation
+
+**Nomorobo Spam Database**
+
+- **Service**: [Nomorobo](https://www.nomorobo.com/) maintains one of the largest spam phone number databases
+- **Features**: Spam reputation lookup, robocall identification, carrier reporting
+- **Use case**: Verify if your numbers are flagged in spam databases
+- **Integration**: API access for reputation checking
+
+### Best Practices for Trusted Calling
+
+<CardGroup cols={2}>
+  <Card title="Maintain consistency" icon="check">
+    Use the same business name across all registrations (CNAM, First Orion, Hiya) to avoid confusion
+  </Card>
+  <Card title="Monitor reputation" icon="chart-line">
+    Regularly check your caller reputation scores and address any spam reports promptly
+  </Card>
+  <Card title="Follow compliance" icon="shield">
+    Ensure all outbound calls comply with TCPA regulations and obtain proper consent before calling
+  </Card>
+  <Card title="Update information" icon="refresh">
+    Keep your business information current across all platforms when details change
+  </Card>
+</CardGroup>
+
+<Warning>
+Proper caller identification setup can take 2-4 weeks to fully propagate across all networks and databases. Plan accordingly when launching new outbound calling campaigns.
+</Warning>
+
+Note: Vapi free numbers have limited number of outbound calls per day. Import a number from Twilio, Vonage, or Telnyx to scale without limits.
+
+<Warning>
+  It is a violation of FCC law to dial phone numbers without consent in an
+  automated manner. See our [TCPA Consent Guide](/tcpa-consent) and the [Telemarketing Sales
+  Rule](/glossary#telemarketing-sales-rule) to learn more.
+</Warning>
+
+---
+
+title: WebSocket Transport
+description: >-
+Stream audio directly via WebSockets for real-time, bidirectional
+communication
+slug: calls/websocket-transport
+
+---
+
+# WebSocket Transport
+
+Vapi's WebSocket transport enables real-time, bidirectional audio communication directly between your application and Vapi's AI assistants. Unlike traditional phone or web calls, this transport method lets you stream raw audio data instantly with minimal latency.
+
+## Key Benefits
+
+- **Low Latency**: Direct streaming ensures minimal delays.
+- **Bidirectional Streaming**: Real-time audio flow in both directions.
+- **Easy Integration**: Compatible with any environment supporting WebSockets.
+- **Flexible Audio Formats**: Customize audio parameters such as sample rate.
+- **Automatic Sample Rate Conversion**: Seamlessly handles various audio rates.
+
+## Creating a WebSocket Call
+
+To initiate a call using WebSocket transport:
+
+```bash
+curl 'https://api.vapi.ai/call' \
+  -H 'authorization: Bearer YOUR_API_KEY' \
+  -H 'content-type: application/json' \
+  --data-raw '{
+    "assistantId": "YOUR_ASSISTANT_ID",
+    "transport": {
+      "provider": "vapi.websocket",
+      "audioFormat": {
+        "format": "pcm_s16le",
+        "container": "raw",
+        "sampleRate": 16000
+      }
+    }
+  }'
+```
+
+### Sample API Response
+
+```json
+{
+  "id": "7420f27a-30fd-4f49-a995-5549ae7cc00d",
+  "assistantId": "5b0a4a08-133c-4146-9315-0984f8c6be80",
+  "type": "vapi.websocketCall",
+  "createdAt": "2024-09-10T11:14:12.339Z",
+  "updatedAt": "2024-09-10T11:14:12.339Z",
+  "orgId": "eb166faa-7145-46ef-8044-589b47ae3b56",
+  "cost": 0,
+  "status": "queued",
+  "transport": {
+    "provider": "vapi.websocket",
+    "websocketCallUrl": "wss://api.vapi.ai/7420f27a-30fd-4f49-a995-5549ae7cc00d/transport"
+  }
+}
+```
+
+## Audio Format Configuration
+
+When creating a WebSocket call, the audio format can be customized:
+
+| Parameter    | Description            | Default                  |
+| ------------ | ---------------------- | ------------------------ |
+| `format`     | Audio encoding format  | `pcm_s16le` (16-bit PCM) |
+| `container`  | Audio container format | `raw` (Raw PCM)          |
+| `sampleRate` | Sample rate in Hz      | `16000` (16kHz)          |
+
+Currently, Vapi supports only raw PCM (`pcm_s16le` with `raw` container). Additional formats may be supported in future updates.
+
+<Note>
+Vapi automatically converts sample rates as needed. You can stream audio at 8kHz, 44.1kHz, etc., and Vapi will handle conversions seamlessly.
+</Note>
+
+## Connecting to the WebSocket
+
+Use the WebSocket URL from the response to establish a connection:
+
+```javascript
+const socket = new WebSocket(
+  "wss://api.vapi.ai/7420f27a-30fd-4f49-a995-5549ae7cc00d/transport"
+);
+
+socket.onopen = () => console.log("WebSocket connection opened.");
+socket.onclose = () => console.log("WebSocket connection closed.");
+socket.onerror = (error) => console.error("WebSocket error:", error);
+```
+
+## Sending and Receiving Data
+
+The WebSocket supports two types of messages:
+
+- **Binary audio data** (PCM, 16-bit signed little-endian)
+- **Text-based JSON control messages**
+
+### Sending Audio Data
+
+```javascript
+function sendAudioChunk(audioBuffer) {
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send(audioBuffer);
+  }
+}
+
+navigator.mediaDevices
+  .getUserMedia({ audio: true })
+  .then((stream) => {
+    const audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(stream);
+    const processor = audioContext.createScriptProcessor(1024, 1, 1);
+
+    processor.onaudioprocess = (event) => {
+      const pcmData = event.inputBuffer.getChannelData(0);
+      const int16Data = new Int16Array(pcmData.length);
+
+      for (let i = 0; i < pcmData.length; i++) {
+        int16Data[i] = Math.max(
+          -32768,
+          Math.min(32767, pcmData[i] * 32768)
+        );
+      }
+
+      sendAudioChunk(int16Data.buffer);
+    };
+
+    source.connect(processor);
+    processor.connect(audioContext.destination);
+  });
+```
+
+### Receiving Data
+
+```javascript
+socket.onmessage = (event) => {
+  if (event.data instanceof Blob) {
+    event.data.arrayBuffer().then((buffer) => {
+      const audioData = new Int16Array(buffer);
+      playAudio(audioData);
+    });
+  } else {
+    try {
+      const message = JSON.parse(event.data);
+      handleControlMessage(message);
+    } catch (error) {
+      console.error("Failed to parse message:", error);
+    }
+  }
+};
+```
+
+### Sending Control Messages
+
+```javascript
+function sendControlMessage(messageObj) {
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(messageObj));
+  }
+}
+
+// Example: hangup call
+function hangupCall() {
+  sendControlMessage({ type: "hangup" });
+}
+```
+
+## Ending the Call
+
+To gracefully end the WebSocket call:
+
+```javascript
+sendControlMessage({ type: "hangup" });
+socket.close();
+```
+
+## Comparison: WebSocket Transport vs. Call Listen Feature
+
+Vapi provides two WebSocket options:
+
+| WebSocket Transport               | Call Listen Feature                |
+| --------------------------------- | ---------------------------------- |
+| Primary communication method      | Secondary, monitoring-only channel |
+| Bidirectional audio streaming     | Unidirectional (listen-only)       |
+| Replaces phone/web as transport   | Supplements existing calls         |
+| Uses `provider: "vapi.websocket"` | Accessed via `monitor.listenUrl`   |
+
+Refer to [Live Call Control](/calls/call-features) for more on the Call Listen feature.
+
+<Warning>
+When using WebSocket transport, phone-based parameters (`phoneNumber` or `phoneNumberId`) are not permitted. These methods are mutually exclusive.
+</Warning>
+
+---
+
+title: Live Call Control
+slug: calls/call-features
+
+---
+
+Vapi offers two main features that provide enhanced control over live calls:
+
+1. **Call Control**: This feature allows you to inject conversation elements dynamically during an ongoing call.
+2. **Call Listen**: This feature enables real-time audio data streaming using WebSocket connections.
+
+To use these features, you first need to obtain the URLs specific to the live call. These URLs can be retrieved by triggering a `/call` endpoint, which returns the `listenUrl` and `controlUrl` within the `monitor` object.
+
+## Obtaining URLs for Call Control and Listen
+
+To initiate a call and retrieve the `listenUrl` and `controlUrl`, send a POST request to the `/call` endpoint.
+
+### Sample Request
+
+```bash
+curl 'https://api.vapi.ai/call'
+-H 'authorization: Bearer YOUR_API_KEY'
+-H 'content-type: application/json'
+--data-raw '{
+  "assistantId": "5b0a4a08-133c-4146-9315-0984f8c6be80",
+  "customer": {
+    "number": "+12345678913"
+  },
+  "phoneNumberId": "42b4b25d-031e-4786-857f-63b346c9580f"
+}'
+
+```
+
+### Sample Response
+
+```json
+{
+  "id": "7420f27a-30fd-4f49-a995-5549ae7cc00d",
+  "assistantId": "5b0a4a08-133c-4146-9315-0984f8c6be80",
+  "phoneNumberId": "42b4b25d-031e-4786-857f-63b346c9580f",
+  "type": "outboundPhoneCall",
+  "createdAt": "2024-09-10T11:14:12.339Z",
+  "updatedAt": "2024-09-10T11:14:12.339Z",
+  "orgId": "eb166faa-7145-46ef-8044-589b47ae3b56",
+  "cost": 0,
+  "customer": {
+    "number": "+12345678913"
+  },
+  "status": "queued",
+  "phoneCallProvider": "twilio",
+  "phoneCallProviderId": "CA4c6793d069ef42f4ccad69a0957451ec",
+  "phoneCallTransport": "pstn",
+  "monitor": {
+    "listenUrl": "wss://aws-us-west-2-production1-phone-call-websocket.vapi.ai/7420f27a-30fd-4f49-a995-5549ae7cc00d/transport",
+    "controlUrl": "<https://aws-us-west-2-production1-phone-call-websocket.vapi.ai/7420f27a-30fd-4f49-a995-5549ae7cc00d/control>"
+  }
+}
+```
+
+## Call Control Features
+
+Once you have the `controlUrl`, you can use various control features during a live call. Here are all the available control options:
+
+### 1. Say Message
+
+Makes the assistant say a specific message during the call.
+
+```bash
+curl -X POST 'https://aws-us-west-2-production1-phone-call-websocket.vapi.ai/7420f27a-30fd-4f49-a995-5549ae7cc00d/control'
+-H 'content-type: application/json'
+--data-raw '{
+  "type": "say",
+  "content": "Welcome to Vapi, this message was injected during the call.",
+  "endCallAfterSpoken": false
+}'
+```
+
+### 2. Add Message to Conversation
+
+Adds a message to the conversation history and optionally triggers a response.
+
+```bash
+curl -X POST 'https://aws-us-west-2-production1-phone-call-websocket.vapi.ai/7420f27a-30fd-4f49-a995-5549ae7cc00d/control'
+-H 'content-type: application/json'
+--data-raw '{
+  "type": "add-message",
+  "message": {
+    "role": "system",
+    "content": "New message added to conversation"
+  },
+  "triggerResponseEnabled": true
+}'
+```
+
+### 3. Assistant Control
+
+Control the assistant's behavior during the call.
+
+```bash
+curl -X POST 'https://aws-us-west-2-production1-phone-call-websocket.vapi.ai/7420f27a-30fd-4f49-a995-5549ae7cc00d/control'
+-H 'content-type: application/json'
+--data-raw '{
+  "type": "control",
+  "control": "mute-assistant"  // Options: "mute-assistant", "unmute-assistant", "say-first-message"
+}'
+```
+
+### 4. End Call
+
+Programmatically end the ongoing call.
+
+```bash
+curl -X POST 'https://aws-us-west-2-production1-phone-call-websocket.vapi.ai/7420f27a-30fd-4f49-a995-5549ae7cc00d/control'
+-H 'content-type: application/json'
+--data-raw '{
+  "type": "end-call"
+}'
+```
+
+### 5. Transfer Call
+
+Transfer the call to a different destination.
+
+```bash
+curl -X POST 'https://aws-us-west-2-production1-phone-call-websocket.vapi.ai/7420f27a-30fd-4f49-a995-5549ae7cc00d/control'
+-H 'content-type: application/json'
+--data-raw '{
+  "type": "transfer",
+  "destination": {
+    "type": "number",
+    "number": "+1234567890"
+  },
+  "content": "Transferring your call now"
+}'
+```
+
+## Call Listen Feature
+
+The `listenUrl` allows you to connect to a WebSocket and stream the audio data in real-time. You can either process the audio directly or save the binary data to analyze or replay later.
+
+### Example: Saving Audio Data from a Live Call
+
+Here is a simple implementation for saving the audio buffer from a live call using Node.js:
+
+```jsx
+const WebSocket = require("ws");
+const fs = require("fs");
+
+let pcmBuffer = Buffer.alloc(0);
+
+const ws = new WebSocket(
+  "wss://aws-us-west-2-production1-phone-call-websocket.vapi.ai/7420f27a-30fd-4f49-a995-5549ae7cc00d/transport"
+);
+
+ws.on("open", () => console.log("WebSocket connection established"));
+
+ws.on("message", (data, isBinary) => {
+  if (isBinary) {
+    pcmBuffer = Buffer.concat([pcmBuffer, data]);
+    console.log(
+      `Received PCM data, buffer size: ${pcmBuffer.length}`
+    );
+  } else {
+    console.log("Received message:", JSON.parse(data.toString()));
+  }
+});
+
+ws.on("close", () => {
+  if (pcmBuffer.length > 0) {
+    fs.writeFileSync("audio.pcm", pcmBuffer);
+    console.log("Audio data saved to audio.pcm");
+  }
+});
+
+ws.on("error", (error) => console.error("WebSocket error:", error));
+```
+
+---
+
+title: Customer join timeout
+subtitle: Configure web call join timeout for better success rates
+slug: calls/customer-join-timeout
+description: Set maximum time for users to join web calls before automatic termination
+
+---
+
+## Overview
+
+**Customer join timeout** sets the maximum time users have to join a web call before it's automatically terminated. This parameter helps you optimize call success rates by accounting for real-world connection challenges.
+
+**You'll learn to:**
+
+- Configure timeout values for different user scenarios
+- Monitor join success rates and failures
+- Troubleshoot timeout-related call issues
+
+<Note>
+  This setting applies only to **web calls**. Phone calls are not affected by
+  this parameter.
+</Note>
+
+## How it works
+
+When a web call starts, users must complete several steps within the timeout window:
+
+<CardGroup cols={3}>
+  <Card title="Network Connection" icon="wifi" iconType="solid">
+    Establish connection to Vapi servers
+  </Card>
+  <Card title="Permissions" icon="microphone" iconType="solid">
+    Grant browser microphone access
+  </Card>
+  <Card title="WebRTC Setup" icon="share-nodes" iconType="solid">
+    Complete audio handshake process
+  </Card>
+</CardGroup>
+
+**Default timeout:** 15 seconds  
+**Available range:** 1-60 seconds
+
+<Warning>
+  If users don't complete all steps within the timeout, the call ends with an
+  `assistant-did-not-receive-customer-audio` error.
+</Warning>
+
+## Configuration
+
+Configure `customerJoinTimeoutSeconds` through the Vapi API for both permanent and transient assistants.
+
+<Tabs>
+  <Tab title="Create Assistant">
+    Set timeout when creating a new assistant:
+
+    <CodeBlocks>
+    ```typescript title="TypeScript (Server SDK)"
+    import { VapiClient } from "@vapi-ai/server-sdk";
+
+    const client = new VapiClient({ token: process.env.VAPI_API_KEY });
+
+    const assistant = await client.assistants.create({
+      name: "Customer Support Assistant",
+      model: {
+        provider: "openai",
+        model: "gpt-4.1-mini"
+      },
+      voice: {
+        provider: "11labs",
+        voiceId: "21m00Tcm4TlvDq8ikWAM"
+      },
+      customerJoinTimeoutSeconds: 30
+    });
+    ```
+    ```python title="Python (Server SDK)"
+    from vapi import Vapi
+
+    client = Vapi(token=os.getenv("VAPI_API_KEY"))
+
+    assistant = client.assistants.create(
+      name="Customer Support Assistant",
+      model={"provider": "openai", "model": "gpt-4.1-mini"},
+      voice={"provider": "11labs", "voiceId": "21m00Tcm4TlvDq8ikWAM"},
+      customer_join_timeout_seconds=30
+    )
+    ```
+    ```bash title="cURL"
+    curl -X POST "https://api.vapi.ai/assistant" \
+         -H "Authorization: Bearer $VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "Customer Support Assistant",
+           "model": {"provider": "openai", "model": "gpt-4.1-mini"},
+           "voice": {"provider": "11labs", "voiceId": "21m00Tcm4TlvDq8ikWAM"},
+           "customerJoinTimeoutSeconds": 30
+         }'
+    ```
+    </CodeBlocks>
+
+  </Tab>
+
+  <Tab title="Update Existing">
+    Modify timeout for an existing assistant:
+
+    <CodeBlocks>
+    ```typescript title="TypeScript (Server SDK)"
+    const updatedAssistant = await client.assistants.update("assistant-id", {
+      customerJoinTimeoutSeconds: 45
+    });
+    ```
+    ```python title="Python (Server SDK)"
+    updated_assistant = client.assistants.update(
+      "assistant-id",
+      customer_join_timeout_seconds=45
+    )
+    ```
+    ```bash title="cURL"
+    curl -X PATCH "https://api.vapi.ai/assistant/assistant-id" \
+         -H "Authorization: Bearer $VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{"customerJoinTimeoutSeconds": 45}'
+    ```
+    </CodeBlocks>
+
+  </Tab>
+
+  <Tab title="Transient Assistant">
+    Use timeout with inline assistant configuration:
+
+    <CodeBlocks>
+    ```typescript title="TypeScript (Server SDK)"
+    const call = await client.calls.createWeb({
+      assistant: {
+        model: { provider: "openai", model: "gpt-4.1-mini" },
+        voice: { provider: "playht", voiceId: "jennifer" },
+        customerJoinTimeoutSeconds: 60
+      }
+    });
+    ```
+    ```python title="Python (Server SDK)"
+    call = client.calls.create_web(
+      assistant={
+        "model": {"provider": "openai", "model": "gpt-4.1-mini"},
+        "voice": {"provider": "playht", "voiceId": "jennifer"},
+        "customer_join_timeout_seconds": 60
+      }
+    )
+    ```
+    ```bash title="cURL"
+    curl -X POST "https://api.vapi.ai/call/web" \
+         -H "Authorization: Bearer $VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "assistant": {
+             "model": {"provider": "openai", "model": "gpt-4.1-mini"},
+             "voice": {"provider": "playht", "voiceId": "jennifer"},
+             "customerJoinTimeoutSeconds": 60
+           }
+         }'
+    ```
+    </CodeBlocks>
+
+  </Tab>
+
+  <Tab title="Assistant Overrides">
+    Override timeout for specific calls:
+
+    <CodeBlocks>
+    ```typescript title="TypeScript (Server SDK)"
+    const call = await client.calls.createWeb({
+      assistantId: "your-assistant-id",
+      assistantOverrides: {
+        customerJoinTimeoutSeconds: 60
+      }
+    });
+    ```
+    ```python title="Python (Server SDK)"
+    call = client.calls.create_web(
+      assistant_id="your-assistant-id",
+      assistant_overrides={
+        "customer_join_timeout_seconds": 60
+      }
+    )
+    ```
+    ```bash title="cURL"
+    curl -X POST "https://api.vapi.ai/call/web" \
+         -H "Authorization: Bearer $VAPI_API_KEY" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "assistantId": "your-assistant-id",
+           "assistantOverrides": {
+             "customerJoinTimeoutSeconds": 60
+           }
+         }'
+    ```
+    </CodeBlocks>
+
+  </Tab>
+</Tabs>
+
+## Optimization guidelines
+
+### Recommended timeout values
+
+Choose timeout values based on your user scenarios:
+
+| User Type               | Recommended Timeout | Reason                              |
+| ----------------------- | ------------------- | ----------------------------------- |
+| **Corporate users**     | 45-60 seconds       | Security policies, proxy delays     |
+| **Mobile users**        | 30-45 seconds       | Permission prompts, slower networks |
+| **International users** | 30-60 seconds       | Higher latency connections          |
+| **First-time users**    | 45-60 seconds       | Unfamiliar with interface           |
+| **Returning users**     | 20-30 seconds       | Familiar with flow                  |
+
+### Balancing considerations
+
+<CardGroup cols={2}>
+  <Card title="Higher Timeouts" icon="clock" iconType="solid">
+    **Benefits:** - Improved join success rates - Better user experience - Fewer
+    support requests **Trade-offs:** - Resources tied up longer - Delayed error
+    detection
+  </Card>
+  <Card title="Lower Timeouts" icon="timer" iconType="solid">
+    **Benefits:** - Faster resource cleanup - Quick failure detection - Reduced
+    server load **Trade-offs:** - More failed joins - Frustrated users
+  </Card>
+</CardGroup>
+
+## Monitoring and troubleshooting
+
+### Key metrics to track
+
+Monitor these call ended reasons to optimize your timeout settings:
+
+<AccordionGroup>
+  <Accordion title="assistant-did-not-receive-customer-audio">
+    **Meaning:** Customer didn't complete join process within timeout
+
+    **Actions:**
+    - Increase `customerJoinTimeoutSeconds` value
+    - Analyze user feedback for connection issues
+    - Consider user base demographics
+
+  </Accordion>
+
+  <Accordion title="customer-did-not-give-microphone-permission">
+    **Meaning:** Legacy reason replaced by above (for better clarity)
+
+    **Actions:**
+    - Review your browser permission prompts
+    - Add user guidance for microphone access
+    - Consider increasing timeout for permission flow
+
+  </Accordion>
+</AccordionGroup>
+
+### Example scenario analysis
+
+A user attempting to join needs:
+
+- **5 seconds:** Network connection establishment
+- **10 seconds:** Microphone permission prompt and user response
+- **8 seconds:** WebRTC handshake completion
+- **Total:** 23 seconds required
+
+**With 15-second timeout:** Call fails  
+**With 30+ second timeout:** Call succeeds
+
+<Tip>
+  Start with 30-60 seconds and adjust based on your success rate analytics.
+</Tip>
+
+### "Meeting has ended" message
+
+This message appears when a call ends naturally and is **informational only**—not an error.
+
+## Best practices
+
+<Steps>
+  <Step title="Start conservatively">
+    Begin with 30-60 second timeouts to establish baseline success rates.
+  </Step>
+
+{" "}
+
+<Step title="Monitor analytics">
+  Track join success rates and timeout-related call ended reasons in your
+  dashboard.
+</Step>
+
+{" "}
+
+<Step title="Test thoroughly">
+  Validate timeout settings in staging environment before production deployment.
+</Step>
+
+{" "}
+
+<Step title="Segment users">
+  Consider different timeout values for different user types or regions.
+</Step>
+
+  <Step title="Provide user feedback">
+    Show loading indicators and connection status during the join process.
+  </Step>
+</Steps>
+
+## Next steps
+
+Now that you understand customer join timeouts:
+
+- **Monitor your metrics:** Check your [call analytics](/dashboard) for timeout-related failures
+- **Explore call features:** Learn about [real-time call control](/calls/call-features)
+- **Understand call failures:** Review [call ended reasons](/calls/call-ended-reason) for comprehensive troubleshooting
+
+---
+
+title: Voicemail Detection
+slug: calls/voicemail-detection
+
+---
+
+When you're running outbound voice agents, voicemails are a reality — but wasting time or missing opportunities because of them shouldn't be.
+
+**Vapi's updated voicemail detection system** gives you faster, smarter, and more flexible handling of voicemail events, so you can keep your calls efficient, responsive, and professional.
+
+## **Why Voicemail Detection Matters**
+
+- **Save time** by avoiding long waits on unanswered calls.
+- **Optimize costs** by cutting down on wasted minutes.
+- **Improve UX** by ensuring your agent behaves naturally when encountering voicemail greetings.
+- **Boost response rates** by leaving cleaner, more intentional voicemail messages.
+
+---
+
+## **Today's Detection Options**
+
+You can now choose between several detection methods — but not all are created equal:
+
+| Detection Method                 | Strengths                                        | Weaknesses                               | Recommendation                  |
+| :------------------------------- | :----------------------------------------------- | :--------------------------------------- | :------------------------------ |
+| **Vapi (Recommended)**           | Fast, accurate, gracefully handles interruptions | None significant                         | ✅ Strongly recommended         |
+| **Google**                       | Very good accuracy, reliable                     | Slightly longer detection time than Vapi | ✅ Recommended                  |
+| **OpenAI**                       | High accuracy, flexible phrasing                 | Higher cost                              | ✅ Good option if budget allows |
+| **Twilio** (legacy)              | Very fast machine beep detection                 | Prone to false positives                 | ⚠️ Use only in special cases    |
+| **Vapi Voicemail Tool** (legacy) | Keyword-based detection in transcription         | Slow, context-dependent                  | ⚠️ Use only if needed           |
+
+---
+
+## **New Default Behavior: Vapi Voicemail Detection**
+
+With **Vapi Voicemail Detection**, your assistant will:
+
+- **Detect voicemail faster** (often within the first few seconds of the call).
+- **Handle real-time pickups** gracefully — if a human picks up mid-voicemail, the agent will switch back naturally.
+- **Interrupt the bot's first message** appropriately if voicemail is detected mid-sentence.
+- **Minimize false positives** by combining audio analysis (beeps) and transcription intelligence.
+
+All three providers — **Vapi, Google, and OpenAI** — now support **interruption handling** and **false positive protection**.
+
+---
+
+## **How to Configure It**
+
+On the **Assistants tab**, you'll find an updated Voicemail Detection section:
+
+![Vapi Voicemail Detection Configuration](file:977aa801-66c5-4c6b-a02e-7b81f438c750)
+
+You can choose your preferred detection provider:
+
+- **Vapi (default)**
+- **Google**
+- **OpenAI**
+- **Twilio**
+- **Tool-based (legacy)**
+
+## **Advanced Configuration Options**
+
+For each detection method, you can fine-tune the following parameters:
+
+| Parameter                                                                                                                                                     | Description                                                             |
+| :------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------- |
+| **<a href="/api-reference/assistants/create#request.body.voicemailDetection.vapi.backoffPlan.startAtSeconds" target="_blank">Initial Detection Delay</a>**    | How long to wait (in seconds) before starting voicemail detection.      |
+| **<a href="/api-reference/assistants/create#request.body.voicemailDetection.vapi.backoffPlan.frequencySeconds" target="_blank">Detection Retry Interval</a>** | How frequently to check for voicemail after the initial delay.          |
+| **<a href="/api-reference/assistants/create#request.body.voicemailDetection.vapi.backoffPlan.maxRetries" target="_blank">Max Detection Retries</a>**          | Maximum number of detection attempts before stopping.                   |
+| **<a href="/api-reference/assistants/create#request.body.voicemailDetection.vapi.beepMaxAwaitSeconds" target="_blank">Max Voicemail Message Wait</a>**        | Maximum time to wait before leaving a voicemail if no beep is detected. |
+
+These settings allow you to balance:
+
+- **Speed** (how quickly voicemail is detected)
+- **Accuracy** (reducing false positives)
+- **Cost** (fewer detection attempts = lower API costs)
+
+---
+
+## **How Vapi Detection Works**
+
+Vapi's detection engine combines:
+
+- **Gemini model-based detection** (fast and highly accurate on common voicemail phrasing)
+- **Twilio beep detection** (optional, for faster reaction to voicemail system beeps)
+- **Real-time call monitoring** to react instantly if a human unexpectedly picks up
+- **Continuous voicemail polling** during early call stages (detecting voicemail faster without waiting for a full timeout)
+
+This hybrid approach means **less call delay, fewer mistakes, and a much more natural call experience.**
+
+---
+
+By switching to Vapi's new detection system, you'll avoid the common pitfalls of older voicemail detection, while creating a **faster, smarter, and more professional experience** for your users.
+
+---
+
+title: Call Forwarding
+slug: call-forwarding
+
+---
+
+Vapi's call forwarding functionality allows you to redirect calls to different phone numbers based on specific conditions using tools. This guide explains how to set up and use the `transferCall` function for call forwarding.
+
+## Key Concepts
+
+### Call Forwarding Tools
+
+- **`transferCall` Tool**: This tool enables call forwarding to predefined phone numbers with specific messages based on the destination.
+
+### Parameters and Messages
+
+- **Destinations**: A list of phone numbers where the call can be forwarded.
+- **Messages**: Custom messages that inform the caller about the call being forwarded.
+
+## Setting Up Call Forwarding
+
+### 1. Create a Transfer Call Tool in the Dashboard
+
+The recommended approach is to create your transfer call tool in the Vapi dashboard:
+
+1. Navigate to **Tools** in your Vapi dashboard
+2. Click **Create Tool**
+3. Select **Transfer Call** as the tool type
+4. Configure your destinations:
+   - **Department A**: `+1234567890` with message "I am forwarding your call to Department A. Please stay on the line."
+   - **Department B**: `+0987654321` with message "I am forwarding your call to Department B. Please stay on the line."
+   - **Department C**: `+1122334455` with message "I am forwarding your call to Department C. Please stay on the line."
+
+### 2. Alternative: API Configuration
+
+You can also define the tool via API with destinations and corresponding messages:
+
+```json
+{
+  "tools": [
+    {
+      "type": "transferCall",
+      "destinations": [
+        {
+          "type": "number",
+          "number": "+1234567890",
+          "message": "I am forwarding your call to Department A. Please stay on the line."
+        },
+        {
+          "type": "number",
+          "number": "+0987654321",
+          "message": "I am forwarding your call to Department B. Please stay on the line."
+        },
+        {
+          "type": "number",
+          "number": "+1122334455",
+          "message": "I am forwarding your call to Department C. Please stay on the line."
+        }
+      ],
+      "function": {
+        "name": "transferCall",
+        "description": "Use this function to transfer the call. Only use it when following instructions that explicitly ask you to use the transferCall function. DO NOT call this function unless you are instructed to do so.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "destination": {
+              "type": "string",
+              "enum": ["+1234567890", "+0987654321", "+1122334455"],
+              "description": "The destination to transfer the call to."
+            }
+          },
+          "required": ["destination"]
+        }
+      },
+      "messages": [
+        {
+          "type": "request-start",
+          "content": "I am forwarding your call to Department A. Please stay on the line.",
+          "conditions": [
+            {
+              "param": "destination",
+              "operator": "eq",
+              "value": "+1234567890"
+            }
+          ]
+        },
+        {
+          "type": "request-start",
+          "content": "I am forwarding your call to Department B. Please stay on the line.",
+          "conditions": [
+            {
+              "param": "destination",
+              "operator": "eq",
+              "value": "+0987654321"
+            }
+          ]
+        },
+        {
+          "type": "request-start",
+          "content": "I am forwarding your call to Department C. Please stay on the line.",
+          "conditions": [
+            {
+              "param": "destination",
+              "operator": "eq",
+              "value": "+1122334455"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+You can also specify the `extension` parameter to forward the call to an extension.
+
+```json
+    "destinations": [
+        {
+            "type": "number",
+            "number": "+1234567890",
+            "extension": "4603",
+            "message": "I am forwarding your call to Department A. Please stay on the line."
+        }
+    ]
+```
+
+### 3. Using the `transferCall` Function
+
+When the assistant needs to forward a call, it uses the `transferCall` function with the appropriate destination:
+
+```json
+{
+  "function": {
+    "name": "transferCall",
+    "parameters": {
+      "destination": "+1234567890"
+    }
+  }
+}
+```
+
+### 4. Customizing Messages
+
+Customize the messages for each destination to provide clear information to the caller:
+
+```json
+{
+  "messages": [
+    {
+      "type": "request-start",
+      "content": "I am forwarding your call to Department A. Please stay on the line.",
+      "conditions": [
+        {
+          "param": "destination",
+          "operator": "eq",
+          "value": "+1234567890"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Instructing the Assistant
+
+Use the system prompt to guide the assistant on when to utilize each forwarding number. For example:
+
+- "If the user asks for sales, call the `transferCall` function with `+1234567890`."
+- "If the user requests technical support, use the `transferCall` function with `+0987654321`."
+
+## Troubleshooting
+
+- If calls are not being transferred, check the logs for errors.
+- Ensure that the correct destination numbers are used.
+- Ensure you have written the function description properly to indicate where you want to forward the call
+- Test the call forwarding setup thoroughly to confirm its functionality.
+
+## Call Transfers Mode
+
+Vapi supports two types of call transfers:
+
+1. **Blind Transfer** (default): Directly transfers the call to another agent without providing any prior information to the recipient.
+2. **Warm Transfer**: Transfers the call to another agent after providing context about the call. The context can be either a full transcript or a summary, based on your configuration.
+
+### Warm Transfer
+
+To implement a warm transfer, add a `transferPlan` object to the `transferCall` tool syntax and specify the transfer mode.
+
+<Warning>Note: Warm transfer functionality is currently available only with Twilio-based telephony systems.</Warning>
+
+#### Modes of Warm Transfer
+
+#### 1. Warm Transfer with Summary
+
+In this mode, Vapi provides a summary of the call to the recipient before transferring.
+
+- **Configuration:**
+
+  - Set the `mode` to `"warm-transfer-with-summary"`.
+  - Define a `summaryPlan` specifying how the summary should be generated.
+  - Use the `{{transcript}}` variable to include the call transcript.
+
+- **Example:**
+
+```json
+"transferPlan": {
+  "mode": "warm-transfer-with-summary",
+  "summaryPlan": {
+    "enabled": true,
+    "messages": [
+      {
+        "role": "system",
+        "content": "Please provide a summary of the call."
+      },
+      {
+        "role": "user",
+        "content": "Here is the transcript:\n\n{{transcript}}\n\n"
+      }
+    ]
+  }
+}
+```
+
+#### 2. Warm Transfer with Message
+
+In this mode, Vapi delivers a custom message to the recipient before transferring the call.
+
+- **Configuration:**
+
+  - Set the `mode` to `"warm-transfer-with-message"`.
+  - Provide the custom message in the `message` property.
+  - Note that the `{{transcript}}` variable is not available in this mode.
+
+- **Example:**
+
+```json
+"transferPlan": {
+  "mode": "warm-transfer-with-message",
+  "message": "Hey, this call has been forwarded through Vapi."
+}
+```
+
+#### Complete Example
+
+Here is a full example of a `transferCall` payload using the warm transfer with summary mode:
+
+```json
+{
+  "type": "transferCall",
+  "messages": [
+    {
+      "type": "request-start",
+      "content": "I'll transfer you to someone who can help."
+    }
+  ],
+  "destinations": [
+    {
+      "type": "number",
+      "number": "+918936850523",
+      "description": "Transfer the call",
+      "transferPlan": {
+        "mode": "warm-transfer-with-summary",
+        "summaryPlan": {
+          "enabled": true,
+          "messages": [
+            {
+              "role": "system",
+              "content": "Please provide a summary of the call."
+            },
+            {
+              "role": "user",
+              "content": "Here is the transcript:\n\n{{transcript}}\n\n"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+#### 3. Warm Transfer with Wait and Say Message
+
+In this mode, Vapi waits for the recipient to speak first and then delivers a custom message to the recipient before transferring the call.
+
+- **Configuration:**
+
+  - Set the `mode` to `"warm-transfer-wait-for-operator-to-speak-first-and-then-say-message"`.
+  - Provide the custom message in the `message` property.
+  - Note that the `{{transcript}}` variable is not available in this mode.
+
+- **Example:**
+
+```json
+"transferPlan": {
+  "mode": "warm-transfer-wait-for-operator-to-speak-first-and-then-say-message",
+  "message": "Hey, this call has been forwarded through Vapi."
+}
+```
+
+#### 4. Warm Transfer with Wait and Say Summary
+
+In this mode, Vapi waits for the recipient to speak first and then delivers a summary of the call to the recipient before transferring the call.
+
+- **Configuration:**
+
+  - Set the `mode` to `"warm-transfer-wait-for-operator-to-speak-first-and-then-say-summary"`.
+  - Define a `summaryPlan` specifying how the summary should be generated.
+  - Use the `{{transcript}}` variable to include the call transcript.
+
+- **Example:**
+
+```json
+"transferPlan": {
+  "mode": "warm-transfer-wait-for-operator-to-speak-first-and-then-say-summary",
+  "summaryPlan": {
+    "enabled": true,
+    "messages": [
+      {
+        "role": "system",
+        "content": "Please provide a summary of the call."
+      },
+      {
+        "role": "user",
+        "content": "Here is the transcript:\n\n{{transcript}}\n\n"
+      }
+    ]
+  }
+}
+```
+
+#### 5. Warm Transfer with TwiML
+
+In this mode, Vapi executes TwiML instructions on the destination call leg before connecting the destination number.
+
+- **Configuration:**
+
+  - Set the `mode` to `"warm-transfer-with-twiml"`.
+  - Provide the TwiML instructions in the `twiml` property.
+  - Supports only `Play`, `Say`, `Gather`, and `Pause` verbs.
+  - Maximum TwiML length is 4096 characters.
+  - TwiML must be provided as a single-line string without line breaks or tabs, and must be a valid XML string. For example: `<Say>Hello</Say>` is valid, but `<Say>Hello\n</Say>` is not.
+
+- **Example:**
+
+```json
+"transferPlan": {
+  "mode": "warm-transfer-with-twiml",
+  "twiml": "<Say>Hello, transferring a customer to you.</Say><Pause length=\"2\"/><Say>They called about billing questions.</Say>"
+}
+```
+
+Here is a full example of a `transferCall` payload using the warm transfer with TwiML mode:
+
+```json
+{
+  "type": "transferCall",
+  "messages": [
+    {
+      "type": "request-start",
+      "content": "I'll transfer you to someone who can help."
+    }
+  ],
+  "destinations": [
+    {
+      "type": "number",
+      "number": "+14155551234",
+      "description": "Transfer to customer support",
+      "transferPlan": {
+        "mode": "warm-transfer-with-twiml",
+        "twiml": "<Say>Hello, this is an incoming call from a customer.</Say><Pause length=\"1\"/><Say>They have questions about their recent order.</Say><Pause length=\"1\"/><Say>Connecting you now.</Say>",
+        "sipVerb": "refer"
+      }
+    }
+  ]
+}
+```
+
+#### 6. Experimental Warm Transfer
+
+In this mode, Vapi dials the destination number and places the caller on hold (with a default ringtone). If the destination answers, Vapi connects the calls. If voicemail is detected or the call isn't answered, Vapi plays a fallback message to the caller.
+
+- **Configuration:**
+
+  - Set the `mode` to `"warm-transfer-experimental"`.
+  - Provide a `message` to be spoken to the operator when they answer.
+  - Optionally define a `summaryPlan` that will take precedence over the message if enabled.
+  - Configure a `fallbackPlan` with a message and whether to end the call if transfer fails.
+  - Optionally provide a `holdAudioUrl` to play custom hold music to the customer during the transfer.
+  - Configure `voicemailDetectionType` to customize how human voice detection is performed (only applies when the provider is Google or OpenAI):
+    - `"audio"` (default): Supports a wide range of machine detection including beep detection and other audio cues
+    - `"transcript"`: Uses transcript-based detection with the lowest latency and faster transfer processing times
+  - Note that only Google or OpenAI providers are supported for voicemail detection with transfer plans, even if the assistant configuration supports other providers like Twilio or Vapi.
+
+- **Example:**
+
+```json
+"transferPlan": {
+  "mode": "warm-transfer-experimental",
+  "message": "Transferring a customer to you.",
+  "holdAudioUrl": "https://api.twilio.com/cowbell.mp3",
+  "voicemailDetectionType": "transcript",
+  "fallbackPlan": {
+    "message": "Could not transfer your call, goodbye.",
+    "endCallEnabled": true
+  },
+  "summaryPlan": {
+    "enabled": true,
+    "messages": [
+      {
+        "role": "system",
+        "content": "Please provide a summary of the call."
+      },
+      {
+        "role": "user",
+        "content": "Here is the transcript:\n\n{{transcript}}\n\n"
+      }
+    ]
+  }
+}
+```
+
+<Note>This example uses `"transcript"` for the fastest transfer processing. For wider machine detection capabilities, use `"audio"` instead.</Note>
+
+Here is a full example of a `transferCall` payload using the experimental warm transfer mode:
+
+```json
+{
+  "type": "transferCall",
+  "function": {
+    "name": "myTransferCall"
+  },
+  "destinations": [
+    {
+      "type": "number",
+      "number": "+1123456789",
+      "message": "Transferring the call now...",
+      "transferPlan": {
+        "mode": "warm-transfer-experimental",
+        "message": "Transferring a customer to you.",
+        "holdAudioUrl": "https://assets.example.com/music.mp3",
+        "voicemailDetectionType": "audio",
+        "fallbackPlan": {
+          "message": "Could not transfer your call, goodbye.",
+          "endCallEnabled": true
+        },
+        "summaryPlan": {
+          "enabled": true,
+          "messages": [
+            {
+              "role": "system",
+              "content": "Please provide a summary of the call."
+            },
+            {
+              "role": "user",
+              "content": "Here is the transcript:\n\n{{transcript}}\n\n"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+<Note>This example uses `"audio"` for comprehensive machine detection including beep detection. This is the default option if not specified.</Note>
+
+**Notes:**
+
+- In all warm transfer modes, the `{{transcript}}` variable contains the full transcript of the call and can be used within the `summaryPlan`.
+- The `holdAudioUrl` property (available only in `warm-transfer-experimental` mode) allows you to specify a custom MP3 file URL that will be played to the customer while they are on hold during the transfer. If not provided, the default hold audio will be used.
+- The `voicemailDetectionType` parameter allows you to optimize the detection method based on your needs:
+  - Use `"transcript"` for the fastest transfer processing with lowest latency
+  - Use `"audio"` (default) for comprehensive machine detection including beep detection and other audio cues
+- For more details about transfer plans and configuration options, please refer to the [transferCall API documentation](/api-reference/tools/create#request.body.transferCall.destinations.number.transferPlan)
+
+---
+
+title: Dynamic call transfers
+subtitle: >-
+Route calls to different destinations based on real-time conversation context
+and external data.
+slug: calls/call-dynamic-transfers
+description: >-
+Learn how Vapi's dynamic call transfers work and explore implementation
+patterns for intelligent call routing.
+
+---
+
+## Overview
+
+Dynamic call transfers enable intelligent routing by determining transfer destinations in real-time based on conversation context, customer data, or external system information. Unlike static transfers with predefined destinations, dynamic transfers make routing decisions on-the-fly during the call.
+
+**Key capabilities:**
+
+- Real-time destination selection based on conversation analysis
+- Integration with CRM systems, databases, and external APIs
+- Conditional routing logic for departments, specialists, or geographic regions
+- Context-aware transfers with conversation summaries
+- Fallback handling for unavailable destinations
+
+## Prerequisites
+
+- A [Vapi account](https://dashboard.vapi.ai/)
+- A server or cloud function that can receive webhooks from Vapi
+- (Optional) CRM system or customer database for enhanced routing logic
+
+## How It Works
+
+Dynamic transfers operate by leaving the destination unspecified initially, then using webhooks to determine the appropriate destination when needed.
+
+**Transfer flow:**
+
+1. **Trigger** - Voice agent determines a transfer is needed based on conversation
+2. **Webhook** - Vapi sends `transfer-destination-request` to your server with call context
+3. **Decision** - Your server analyzes context and external data to determine routing
+4. **Response** - Server returns destination details and transfer configuration
+5. **Transfer** - Vapi executes the transfer to the determined destination
+
+**Available context:** Your webhook receives conversation transcript, extracted variables, customer information, function parameters, and call metadata.
+
+---
+
+## Quick Implementation Guide
+
+<Steps>
+  <Step title="Create a dynamic transfer tool">
+    <Tabs>
+      <Tab title="Dashboard">
+        - Navigate to **Tools** in your dashboard
+        - Click **Create Tool** 
+        - Select **Transfer Call** as the tool type
+        - **Important**: Leave the destinations array empty - this creates a dynamic transfer tool
+        - Set function name: `dynamicTransfer`
+        - Add description explaining when this tool should be used
+      </Tab>
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        import { VapiClient } from "@vapi-ai/server-sdk";
+
+        const vapi = new VapiClient({ token: process.env.VAPI_API_KEY });
+
+        const dynamicTool = await vapi.tools.create({
+          type: "transferCall",
+          // Empty destinations array makes this dynamic
+          destinations: [],
+          function: {
+            name: "dynamicTransfer",
+            description: "Transfer call to appropriate destination based on customer needs",
+            parameters: {
+              type: "object",
+              properties: {
+                reason: {
+                  type: "string",
+                  description: "Reason for transfer"
+                },
+                urgency: {
+                  type: "string",
+                  enum: ["low", "medium", "high", "critical"]
+                }
+              }
+            }
+          }
+        });
+
+        console.log(`Dynamic transfer tool created: ${dynamicTool.id}`);
+        ```
+      </Tab>
+      <Tab title="Python (Server SDK)">
+        ```python
+        import requests
+        import os
+
+        def create_dynamic_transfer_tool():
+            url = "https://api.vapi.ai/tool"
+            headers = {
+                "Authorization": f"Bearer {os.getenv('VAPI_API_KEY')}",
+                "Content-Type": "application/json"
+            }
+
+            data = {
+                "type": "transferCall",
+                "destinations": [],  # Empty for dynamic routing
+                "function": {
+                    "name": "dynamicTransfer",
+                    "description": "Transfer call to appropriate destination based on customer needs",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "reason": {
+                                "type": "string",
+                                "description": "Reason for transfer"
+                            },
+                            "urgency": {
+                                "type": "string",
+                                "enum": ["low", "medium", "high", "critical"]
+                            }
+                        }
+                    }
+                }
+            }
+
+            response = requests.post(url, headers=headers, json=data)
+            return response.json()
+
+        tool = create_dynamic_transfer_tool()
+        print(f"Dynamic transfer tool created: {tool['id']}")
+        ```
+      </Tab>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST https://api.vapi.ai/tool \
+             -H "Authorization: Bearer $VAPI_API_KEY" \
+             -H "Content-Type: application/json" \
+             -d '{
+               "type": "transferCall",
+               "destinations": [],
+               "function": {
+                 "name": "dynamicTransfer",
+                 "description": "Transfer call to appropriate destination based on customer needs",
+                 "parameters": {
+                   "type": "object",
+                   "properties": {
+                     "reason": {"type": "string", "description": "Reason for transfer"},
+                     "urgency": {"type": "string", "enum": ["low", "medium", "high", "critical"]}
+                   }
+                 }
+               }
+             }'
+        ```
+      </Tab>
+    </Tabs>
+
+  </Step>
+
+  <Step title="Create an assistant with the transfer tool">
+    <Tabs>
+      <Tab title="Dashboard">
+        - Navigate to **Assistants** 
+        - Create a new assistant or edit an existing one
+        - Add your dynamic transfer tool to the assistant
+        - Enable the **transfer-destination-request** server event
+        - Set your server URL to handle the webhook
+      </Tab>
+      <Tab title="TypeScript (Server SDK)">
+        ```typescript
+        const assistant = await vapi.assistants.create({
+          name: "Dynamic Transfer Assistant", 
+          firstMessage: "Hello! How can I help you today?",
+          model: {
+            provider: "openai",
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content: "You help customers and transfer them when needed using the dynamicTransfer tool. Assess the customer's needs and transfer to the appropriate department."
+              }
+            ],
+            toolIds: ["YOUR_DYNAMIC_TOOL_ID"]
+          },
+          voice: {
+            provider: "11labs", 
+            voiceId: "burt"
+          },
+          serverUrl: "https://your-server.com/webhook",
+          serverUrlSecret: process.env.WEBHOOK_SECRET
+        });
+        ```
+      </Tab>
+      <Tab title="Python (Server SDK)">
+        ```python
+        def create_assistant_with_dynamic_transfer(tool_id):
+            url = "https://api.vapi.ai/assistant"
+            headers = {
+                "Authorization": f"Bearer {os.getenv('VAPI_API_KEY')}",
+                "Content-Type": "application/json"
+            }
+            
+            data = {
+                "name": "Dynamic Transfer Assistant",
+                "firstMessage": "Hello! How can I help you today?",
+                "model": {
+                    "provider": "openai",
+                    "model": "gpt-4o", 
+                    "messages": [{
+                        "role": "system",
+                        "content": "You help customers and transfer them when needed using the dynamicTransfer tool. Assess the customer's needs and transfer to the appropriate department."
+                    }],
+                    "toolIds": [tool_id]
+                },
+                "voice": {"provider": "11labs", "voiceId": "burt"},
+                "serverUrl": "https://your-server.com/webhook",
+                "serverUrlSecret": os.getenv("WEBHOOK_SECRET")
+            }
+            
+            response = requests.post(url, headers=headers, json=data)
+            return response.json()
+        ```
+      </Tab>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST https://api.vapi.ai/assistant \
+             -H "Authorization: Bearer $VAPI_API_KEY" \
+             -H "Content-Type: application/json" \
+             -d '{
+               "name": "Dynamic Transfer Assistant",
+               "firstMessage": "Hello! How can I help you today?",
+               "model": {
+                 "provider": "openai",
+                 "model": "gpt-4o",
+                 "messages": [{
+                   "role": "system", 
+                   "content": "You help customers and transfer them when needed using the dynamicTransfer tool."
+                 }],
+                 "toolIds": ["YOUR_DYNAMIC_TOOL_ID"]
+               },
+               "serverUrl": "https://your-server.com/webhook"
+             }'
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Build your webhook server">
+    <Tabs>
+      <Tab title="Node.js (Express)">
+        ```typescript
+        import express from 'express';
+        import crypto from 'crypto';
+
+        const app = express();
+        app.use(express.json());
+
+        function verifyWebhookSignature(payload: string, signature: string) {
+          const expectedSignature = crypto
+            .createHmac('sha256', process.env.WEBHOOK_SECRET!)
+            .update(payload)
+            .digest('hex');
+          return crypto.timingSafeEqual(
+            Buffer.from(signature),
+            Buffer.from(expectedSignature)
+          );
+        }
+
+        app.post('/webhook', (req, res) => {
+          try {
+            const signature = req.headers['x-vapi-signature'] as string;
+            const payload = JSON.stringify(req.body);
+
+            if (!verifyWebhookSignature(payload, signature)) {
+              return res.status(401).json({ error: 'Invalid signature' });
+            }
+
+            const request = req.body;
+
+            if (request.type !== 'transfer-destination-request') {
+              return res.status(200).json({ received: true });
+            }
+
+            // Simple routing logic - customize for your needs
+            const { functionCall, customer } = request;
+            const urgency = functionCall.parameters?.urgency || 'medium';
+
+            let destination;
+            if (urgency === 'critical') {
+              destination = {
+                type: "number",
+                number: "+1-555-EMERGENCY",
+                message: "Connecting you to our emergency team."
+              };
+            } else {
+              destination = {
+                type: "number",
+                number: "+1-555-SUPPORT",
+                message: "Transferring you to our support team."
+              };
+            }
+
+            res.json({ destination });
+          } catch (error) {
+            console.error('Webhook error:', error);
+            res.status(500).json({
+              error: 'Transfer routing failed. Please try again.'
+            });
+          }
+        });
+
+        app.listen(3000, () => {
+          console.log('Webhook server running on port 3000');
+        });
+        ```
+      </Tab>
+      <Tab title="Python (FastAPI)">
+        ```python
+        import os
+        import hmac
+        import hashlib
+        from fastapi import FastAPI, HTTPException, Request
+
+        app = FastAPI()
+
+        def verify_webhook_signature(payload: bytes, signature: str) -> bool:
+            webhook_secret = os.getenv('WEBHOOK_SECRET', '').encode()
+            expected_signature = hmac.new(
+                webhook_secret, payload, hashlib.sha256
+            ).hexdigest()
+            return hmac.compare_digest(signature, expected_signature)
+
+        @app.post("/webhook")
+        async def handle_webhook(request: Request):
+            try:
+                body = await request.body()
+                signature = request.headers.get('x-vapi-signature', '')
+
+                if not verify_webhook_signature(body, signature):
+                    raise HTTPException(status_code=401, detail="Invalid signature")
+
+                request_data = await request.json()
+
+                if request_data.get('type') != 'transfer-destination-request':
+                    return {"received": True}
+
+                # Simple routing logic - customize for your needs
+                function_call = request_data.get('functionCall', {})
+                urgency = function_call.get('parameters', {}).get('urgency', 'medium')
+
+                if urgency == 'critical':
+                    destination = {
+                        "type": "number",
+                        "number": "+1-555-EMERGENCY",
+                        "message": "Connecting you to our emergency team."
+                    }
+                else:
+                    destination = {
+                        "type": "number",
+                        "number": "+1-555-SUPPORT",
+                        "message": "Transferring you to our support team."
+                    }
+
+                return {"destination": destination}
+
+            except Exception as error:
+                print(f"Webhook error: {error}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Transfer routing failed. Please try again."
+                )
+        ```
+      </Tab>
+    </Tabs>
+
+  </Step>
+
+  <Step title="Test your dynamic transfer system">
+    <Tabs>
+      <Tab title="Dashboard">
+        - Create a phone number and assign your assistant
+        - Call the number and test different transfer scenarios
+        - Monitor your webhook server logs to see the routing decisions
+        - Verify transfers are working to the correct destinations
+      </Tab>
+      <Tab title="TypeScript (Testing)">
+        ```typescript
+        // Test with an outbound call
+        const testCall = await vapi.calls.create({
+          assistantId: "YOUR_ASSISTANT_ID",
+          customer: {
+            number: "+1234567890" // Your test number
+          }
+        });
+
+        console.log(`Test call created: ${testCall.id}`);
+
+        // Monitor webhook server logs to see transfer requests
+        ```
+      </Tab>
+      <Tab title="Python (Testing)">
+        ```python
+        def test_dynamic_transfers(assistant_id):
+            url = "https://api.vapi.ai/call"
+            headers = {
+                "Authorization": f"Bearer {os.getenv('VAPI_API_KEY')}",
+                "Content-Type": "application/json"
+            }
+
+            data = {
+                "assistantId": assistant_id,
+                "customer": {"number": "+1234567890"}
+            }
+
+            response = requests.post(url, headers=headers, json=data)
+            call = response.json()
+            print(f"Test call created: {call['id']}")
+            return call
+        ```
+      </Tab>
+    </Tabs>
+
+  </Step>
+</Steps>
+
+---
+
+## Implementation Approaches
+
+**Assistant-based implementation** uses transfer-type tools with conditions interpreted by the assistant through system prompts. The assistant determines when and where to route calls based on clearly defined tool purposes and routing logic in the prompt. Best for quick setup and simpler routing scenarios.
+
+**Workflow-based implementation** uses conditional logic based on outputs from any workflow node - tools, API requests, conversation variables, or other data sources. Conditions evaluate node outputs to determine routing paths within visual workflows. Best for complex business logic, structured decision trees, and team-friendly configuration.
+
+<CardGroup cols={2}>
+  <Card title="Customer Support Escalation" icon="headset" href="/assistants/examples/support-escalation">
+    <div className='absolute top-4 right-4'>
+      <Icon icon="arrow-up-right-from-square" />
+    </div>
+    **Assistant-based routing**
+    
+    Route customers to appropriate support tiers based on conversation analysis and customer data
+  </Card>
+  <Card title="Property Management Routing" icon="building" href="/workflows/examples/property-management">
+    <div className='absolute top-4 right-4'>
+      <Icon icon="arrow-up-right-from-square" />
+    </div>
+    **Workflow-based routing**
+    
+    Direct tenant calls to the right department with automated verification
+  </Card>
+</CardGroup>
+
+## Routing Patterns
+
+### Common Use Cases
+
+- **Customer support routing** - Route based on issue type, customer tier, agent availability, and interaction history. Enterprise customers and critical issues get priority routing to specialized teams.
+
+- **Geographic routing** - Direct calls to regional offices based on customer location and business hours. Automatically handle time zone differences and language preferences.
+
+- **Load balancing** - Distribute calls across available agents to optimize wait times and agent utilization. Route to the least busy qualified agent.
+
+- **Escalation management** - Implement intelligent escalation based on conversation tone, issue complexity, and customer history. Automatically route urgent issues to senior agents.
+
+### Transfer Configuration
+
+1. **Warm transfers** provide context to receiving agents with AI-generated conversation summaries, ensuring smooth handoffs with full context.
+
+2. **Cold transfers** route calls immediately with predefined context messages, useful for simple departmental routing.
+
+3. **Conditional transfers** apply different transfer modes based on routing decisions, such as priority handling for enterprise customers.
+
+4. **Destination types** include phone numbers for human agents, SIP endpoints for VoIP systems, and Vapi assistants for specialized AI agents.
+
+<Warning>
+**Security considerations:** Always verify webhook signatures to ensure requests come from Vapi. Never log sensitive customer data, implement proper access controls, and follow privacy regulations like GDPR and CCPA when handling customer information in routing decisions.
+</Warning>
+
+## Related Documentation
+
+- **[Call Forwarding](/call-forwarding)** - Static transfer options and transfer plans
+- **[Webhooks](/server-url)** - Webhook security and event handling patterns
+- **[Custom Tools](/tools/custom-tools)** - Build custom tools for advanced routing logic
+
+---
+
+title: Call Handling with Vapi and Twilio
+slug: calls/call-handling-with-vapi-and-twilio
+
+---
+
+This document explains how to handle a scenario where a user is on hold while the system attempts to connect them to a specialist. If the specialist does not pick up within X seconds or if the call hits voicemail, we take an alternate action (like playing an announcement or scheduling an appointment). This solution integrates Vapi.ai for AI-driven conversations and Twilio for call bridging.
+
+## Problem
+
+Vapi.ai does not provide a built-in way to keep the user on hold, dial a specialist, and handle cases where the specialist is unavailable. We want:
+
+1. The user already talking to the AI (Vapi).
+2. The AI offers to connect them to a specialist.
+3. The user is placed on hold or in a conference room.
+4. We dial the specialist to join.
+5. If the specialist answers, everyone is merged.
+6. If the specialist does not answer (within X seconds or goes to voicemail), we want to either announce "Specialist not available" or schedule an appointment.
+
+## Solution
+
+1. An inbound call arrives from Vapi or from the user directly.
+2. We store its details (e.g., Twilio CallSid).
+3. We send TwiML (or instructions) to put the user in a Twilio conference (on hold).
+4. We place a second call to the specialist, also directed to join the same conference.
+5. If the specialist picks up, Twilio merges the calls.
+6. If not, we handle the no-answer event by playing a message or returning control to the AI for scheduling.
+
+## Steps to Solve the Problem
+
+1. **Receive Inbound Call**
+
+   - Twilio posts data to your `/inbound_call`.
+   - You store the call reference.
+   - You might also invoke Vapi for initial AI instructions.
+
+2. **Prompt User via Vapi**
+
+   - The user decides whether they want the specialist.
+   - If yes, you call an endpoint (e.g., `/connect`).
+
+3. **Create/Join Conference**
+
+   - In `/connect`, you update the inbound call to go into a conference route.
+   - The user is effectively on hold.
+
+4. **Dial Specialist**
+
+   - You create a second call leg to the specialist’s phone.
+   - A `statusCallback` can detect no-answer or voicemail.
+
+5. **Detect Unanswered**
+
+   - If Twilio sees a no-answer or failure, your callback logic plays an announcement or signals the AI to schedule an appointment.
+
+6. **Merge or Exit**
+
+   - If the specialist answers, they join the user.
+   - If not, the user is taken off hold and the call ends or goes back to AI.
+
+7. **Use Ephemeral Call (Optional)**
+   - If you need an in-conference announcement, create a short-lived Twilio call that `<Say>` the message to everyone, then ends the conference.
+
+## Code Example
+
+Below is a minimal Express.js server aligned for On-Hold Specialist Transfer with Vapi and Twilio.
+
+1. **Express Setup and Environment**
+
+```js
+const express = require("express");
+const bodyParser = require("body-parser");
+const axios = require("axios");
+const twilio = require("twilio");
+
+const app = express();
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+// Load important env vars
+const {
+  TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN,
+  FROM_NUMBER,
+  TO_NUMBER,
+  VAPI_BASE_URL,
+  PHONE_NUMBER_ID,
+  ASSISTANT_ID,
+  PRIVATE_API_KEY,
+} = process.env;
+
+// Create a Twilio client
+const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+
+// We'll store the inbound call SID here for simplicity
+let globalCallSid = "";
+```
+
+2. **`/inbound_call` - Handling the Inbound Call**
+
+```js
+app.post("/inbound_call", async (req, res) => {
+  try {
+    globalCallSid = req.body.CallSid;
+    const caller = req.body.Caller;
+
+    // Example: We call Vapi.ai to get initial TwiML
+    const response = await axios.post(
+      `${VAPI_BASE_URL || "https://api.vapi.ai"}/call`,
+      {
+        phoneNumberId: PHONE_NUMBER_ID,
+        phoneCallProviderBypassEnabled: true,
+        customer: { number: caller },
+        assistantId: ASSISTANT_ID,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${PRIVATE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const returnedTwiml =
+      response.data.phoneCallProviderDetails.twiml;
+    return res.type("text/xml").send(returnedTwiml);
+  } catch (err) {
+    return res.status(500).send("Internal Server Error");
+  }
+});
+```
+
+3. **`/connect` - Putting User on Hold and Dialing Specialist**
+
+```js
+app.post("/connect", async (req, res) => {
+  try {
+    const protocol =
+      req.headers["x-forwarded-proto"] === "https" ? "https" : "http";
+    const baseUrl = `${protocol}://${req.get("host")}`;
+    const conferenceUrl = `${baseUrl}/conference`;
+
+    // 1) Update inbound call to fetch TwiML from /conference
+    await client.calls(globalCallSid).update({
+      url: conferenceUrl,
+      method: "POST",
+    });
+
+    // 2) Dial the specialist
+    const statusCallbackUrl = `${baseUrl}/participant-status`;
+
+    await client.calls.create({
+      to: TO_NUMBER,
+      from: FROM_NUMBER,
+      url: conferenceUrl,
+      method: "POST",
+      statusCallback: statusCallbackUrl,
+      statusCallbackMethod: "POST",
+    });
+
+    return res.json({ status: "Specialist call initiated" });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ error: "Failed to connect specialist" });
+  }
+});
+```
+
+4. **`/conference` - Placing Callers Into a Conference**
+
+```js
+app.post("/conference", (req, res) => {
+  const VoiceResponse = twilio.twiml.VoiceResponse;
+  const twiml = new VoiceResponse();
+
+  // Put the caller(s) into a conference
+  const dial = twiml.dial();
+  dial.conference(
+    {
+      startConferenceOnEnter: true,
+      endConferenceOnExit: true,
+    },
+    "my_conference_room"
+  );
+
+  return res.type("text/xml").send(twiml.toString());
+});
+```
+
+5. **`/participant-status` - Handling No-Answer or Busy**
+
+```js
+app.post("/participant-status", async (req, res) => {
+  const callStatus = req.body.CallStatus;
+  if (["no-answer", "busy", "failed"].includes(callStatus)) {
+    console.log("Specialist did not pick up:", callStatus);
+    // Additional logic: schedule an appointment, ephemeral call, etc.
+  }
+  return res.sendStatus(200);
+});
+```
+
+6. **`/announce` (Optional) - Ephemeral Announcement**
+
+```js
+app.post("/announce", (req, res) => {
+  const VoiceResponse = twilio.twiml.VoiceResponse;
+  const twiml = new VoiceResponse();
+  twiml.say("Specialist is not available. Ending call now.");
+
+  // Join the conference, then end it.
+  twiml.dial().conference(
+    {
+      startConferenceOnEnter: true,
+      endConferenceOnExit: true,
+    },
+    "my_conference_room"
+  );
+
+  return res.type("text/xml").send(twiml.toString());
+});
+```
+
+7. **Starting the Server**
+
+```js
+app.listen(3000, () => {
+  console.log("Server running on port 3000");
+});
+```
+
+## How to Test
+
+1. **Environment Variables**  
+   Set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `FROM_NUMBER`, `TO_NUMBER`, `VAPI_BASE_URL`, `PHONE_NUMBER_ID`, `ASSISTANT_ID`, and `PRIVATE_API_KEY`.
+
+2. **Expose Your Server**
+
+   - Use a tool like `ngrok` to create a public URL to port 3000.
+   - Configure your Twilio phone number to call `/inbound_call` when a call comes in.
+
+3. **Place a Real Call**
+
+   - Dial your Twilio number from a phone.
+   - Twilio hits `/inbound_call`, and run Vapi logic.
+   - Trigger `/connect` to conference the user and dial the specialist.
+   - If the specialist answers, they join the same conference.
+   - If they never answer, Twilio eventually calls `/participant-status`.
+
+4. **Use cURL for Testing**
+   - **Simulate Inbound**:
+     ```bash
+     curl -X POST https://<public-url>/inbound_call \
+       -F "CallSid=CA12345" \
+       -F "Caller=+15551112222"
+     ```
+   - **Connect**:
+     ```bash
+     curl -X POST https://<public-url>/connect \
+       -H "Content-Type: application/json" \
+       -d "{}"
+     ```
+
+## Note on Replacing "Connect" with Vapi Tools
+
+Vapi offers built-in functions or custom tool calls for placing a second call or transferring, you can replace the manual `/connect` call with that Vapi functionality. The flow remains the same: user is put in a Twilio conference, the specialist is dialed, and any no-answer events are handled.
+
+## Notes & Limitations
+
+1. **Voicemail**  
+   If a phone’s voicemail picks up, Twilio sees it as answered. Consider advanced detection or a fallback.
+
+2. **Concurrent Calls**  
+   Multiple calls at once require storing separate `CallSid`s or similar references.
+
+3. **Conference Behavior**  
+   `startConferenceOnEnter: true` merges participants immediately; `endConferenceOnExit: true` ends the conference when that participant leaves.
+
+4. **X Seconds**  
+   Decide how you detect no-answer. Typically, Twilio sets a final `callStatus` if the remote side never picks up.
+
+With these steps and code, you can integrate Vapi Assistant while using Twilio’s conferencing features to hold, dial out to a specialist, and handle an unanswered or unavailable specialist scenario.
+
+---
+
+title: Debug call forwarding drops
+subtitle: Learn to troubleshoot calls that drop immediately after initiating transfer
+
+---
+
+## Overview
+
+When you initiate call forwarding, you expect the call to transfer to the destination. Instead, the call drops immediately after initiating the transfer, leaving both parties disconnected.
+
+**In this guide, you'll learn to:**
+
+- Identify why calls drop during forwarding
+- Check call logs and API responses systematically
+- Analyze telephony provider logs for transfer failures
+- Resolve configuration issues preventing successful transfers
+
+<Note>
+  This guide focuses on the specific scenario where calls drop immediately after
+  transfer initiation, not general call quality issues.
+</Note>
+
+## Prerequisites
+
+Before you start debugging, ensure you have:
+
+- **Call ID** from the dropped call
+- **API access** to make GET requests to Vapi
+- **Admin access** to your telephony provider dashboard (Twilio, Vonage, Telnyx)
+- **Wireshark** installed (for SIP-based calls only)
+
+## Troubleshooting workflow
+
+<Steps>
+<Step title="Check call ended reason">
+
+First, verify whether Vapi successfully initiated the forwarding.
+
+<CodeBlocks>
+```bash title="cURL"
+curl -X GET "https://api.vapi.ai/call/{call_id}" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+```
+
+```typescript title="TypeScript SDK"
+import { VapiClient } from "@vapi-ai/server-sdk";
+
+const client = new VapiClient({ token: process.env.VAPI_API_KEY });
+const call = await client.calls.get("ca123456xxxxx");
+console.log("End reason:", call.endedReason);
+```
+
+```python title="Python SDK"
+from vapi import Vapi
+
+client = Vapi(token=os.getenv("VAPI_API_KEY"))
+call = client.calls.get("ca123456xxxxx")
+print(f"End reason: {call.ended_reason}")
+```
+
+</CodeBlocks>
+
+**Check the response:**
+
+```json title="Expected response"
+{
+  "id": "ca123456xxxxx",
+  "endedReason": "assistant-forwarded-call",
+  "status": "ended",
+  "destination": {
+    "type": "number",
+    "number": "+1234567890"
+  },
+  "phoneCallProviderId": "twilio_call_abc123"
+}
+```
+
+**What the `endedReason` tells you:**
+
+- `"assistant-forwarded-call"` → Vapi forwarded successfully, continue to Step 2
+- Any other value → Forwarding wasn't initiated, check your assistant configuration
+
+</Step>
+
+<Step title="Verify server message configuration">
+
+If you're handling call control through server messages, this can prevent Vapi from managing transfers.
+
+Check your assistant's `serverMessages` configuration:
+
+<CodeBlocks>
+```json title="Problematic configuration"
+{
+  "assistant": {
+    "serverMessages": ["phone-call-control", "status-update"]
+  }
+}
+```
+
+```json title="Correct configuration"
+{
+  "assistant": {
+    "serverMessages": ["status-update"]
+  }
+}
+```
+
+</CodeBlocks>
+
+<Warning>
+  If `"phone-call-control"` is present, your server is overriding Vapi's call
+  control. Remove it unless you're implementing custom transfer logic.
+</Warning>
+
+</Step>
+
+<Step title="Check phone call provider bypass">
+
+The `phoneCallProviderBypassEnabled` flag determines whether Vapi handles call control directly.
+
+**Recommended configuration:**
+
+```json title="Standard Vapi forwarding"
+{
+  "phoneCallProviderBypassEnabled": false
+}
+```
+
+<Tip>
+  Only set this to `true` if you're implementing custom call control through
+  your telephony provider.
+</Tip>
+
+</Step>
+
+<Step title="Validate transfer scenario compatibility">
+
+Not all transfer scenarios are supported. Verify your use case:
+
+| From       | To           | Supported           |
+| ---------- | ------------ | ------------------- |
+| Phone call | Phone number | ✅ Yes              |
+| Web call   | Phone number | ❌ No               |
+| Phone call | SIP number   | ❌ No (PSTN to SIP) |
+| SIP call   | SIP number   | ✅ Yes              |
+| SIP call   | Phone number | ✅ Yes              |
+
+<Error>
+  Web-to-phone transfers are not supported. The call will always drop in this
+  scenario.
+</Error>
+
+</Step>
+
+<Step title="Analyze telephony provider logs">
+
+If the call shows `"assistant-forwarded-call"` but still drops, the issue is likely with your telephony provider.
+
+**Get your telephony call ID** from the Vapi call object:
+
+```json title="Extract telephony call ID"
+{
+  "id": "ca123456xxxxx",
+  "endedReason": "assistant-forwarded-call",
+  "phoneCallProviderId": "CAabc123"
+}
+```
+
+**Check your provider's dashboard:**
+
+<Tabs>
+<Tab title="Twilio">
+1. Go to [Twilio Console > Call Logs](https://console.twilio.com/us1/monitor/logs/calls)
+2. Search using `phoneCallProviderId` (e.g., `CAabc123`)
+3. Look for transfer-related errors in the call timeline
+4. Check TwiML execution logs for failed transfers
+</Tab>
+
+<Tab title="Vonage">
+  1. Access [Vonage API Dashboard](https://dashboard.nexmo.com/) 2. Navigate to
+  Call Logs 3. Search using the telephony call ID and timestamp 4. Review call
+  flow details for transfer failures
+</Tab>
+
+<Tab title="Telnyx">  
+1. Open [Telnyx Mission Control Portal](https://portal.telnyx.com/)
+2. Go to Call Detail Records
+3. Search using the telephony call ID
+4. Examine call records for forwarding errors
+</Tab>
+</Tabs>
+
+</Step>
+
+<Step title="Analyze SIP packets (SIP calls only)">
+
+For SIP trunking or bring-your-own-number setups, analyze the SIP signaling.
+
+**Download the packet capture:**
+
+```bash title="Get PCAP file"
+curl -X GET "https://api.vapi.ai/call/{call_id}" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+The response includes a `pcapUrl` field. Download this file and open it in Wireshark.
+
+**Filter for transfer packets:**
+
+```text title="Wireshark filter"
+sip.Method == "REFER"
+```
+
+**What to look for:**
+
+- **REFER packet present** → Vapi sent the transfer request to your SIP provider
+- **REFER packet missing** → Transfer wasn't initiated by Vapi
+- **202 Accepted response** → SIP provider accepted the transfer
+- **Error responses (4xx, 5xx)** → SIP provider rejected the transfer
+
+<Info>
+  **Important:** SIP transfers are handled by your telephony provider, not Vapi.
+  Once Vapi sends the REFER packet, your SIP provider manages the actual
+  transfer process.
+</Info>
+
+For more details on SIP configuration, see our [SIP trunk documentation](https://docs.vapi.ai/advanced/sip/sip-trunk#inbound-call-test).
+
+</Step>
+</Steps>
+
+## Common solutions
+
+Based on your findings, here are the most frequent fixes:
+
+### Call shows successful forwarding but still drops
+
+**Root cause:** Telephony provider couldn't complete the transfer
+
+**Solution:** Check destination number format and availability
+
+- Verify the destination number includes country code
+- Test calling the destination directly outside of Vapi
+- Check if destination has call blocking enabled
+
+### endedReason is not 'assistant-forwarded-call'
+
+**Root cause:** Transfer wasn't initiated due to configuration
+
+**Solution:** Review assistant settings
+
+- Remove `"phone-call-control"` from `serverMessages`
+- Set `phoneCallProviderBypassEnabled` to `false`
+- Verify your transfer function is properly configured
+
+### SIP REFER packets missing in PCAP
+
+**Root cause:** Vapi didn't send transfer request to SIP provider
+
+**Solution:** Check Vapi configuration
+
+- Verify SIP endpoint configuration
+- Ensure destination format matches SIP addressing
+- Check for conflicting call control settings
+
+## Limitations
+
+### Transfer scenario limitations
+
+- **Web calls** cannot be transferred to phone numbers
+- **PSTN-to-SIP** transfers are not supported
+- Cross-provider transfers may have compatibility issues
+
+### Configuration dependencies
+
+- `phoneCallProviderBypassEnabled` must be `false` for Vapi-managed transfers
+- `serverMessages` with `"phone-call-control"` overrides default behavior
+- SIP configuration requires proper endpoint setup
+
+## When to contact support
+
+Escalate to support when you've completed all troubleshooting steps and:
+
+- Provider logs show successful transfers but calls consistently fail
+- SIP packet analysis indicates Vapi-side transfer issues
+- Multiple destinations fail with the same configuration
+- Configuration changes don't resolve recurring failures
+
+**Include in your support request:**
+
+- Call ID and timestamp
+- Complete troubleshooting results from this guide
+- Telephony provider error codes and logs
+- Screenshots of configuration settings
+
+## Next steps
+
+Now that you can debug call forwarding drops:
+
+- **Monitor call patterns:** Set up alerts for calls with unexpected `endedReason` values
+- **Test systematically:** Verify transfers work across different destination types before production
+- **Review SIP setup:** Ensure your SIP configuration follows our [advanced SIP guide](https://docs.vapi.ai/advanced/sip/sip-trunk)
+
+---
+
+title: Call ended reasons
+subtitle: All possible call ended reason codes and what they mean.
+slug: calls/call-ended-reason
+
+---
+
+This guide will discuss all possible `endedReason` codes for a call.
+
+<Note>
+For the full list of possible `endedReason` values, see the [API reference](/api-reference/calls/list#response.body.endedReason).
+</Note>
+
+You can find these under the **"Ended Reason"** section of your [call logs](https://dashboard.vapi.ai/calls) (or under the `endedReason` field on the [Call Object](/api-reference/calls/get-call)).
+
+#### Assistant-Related
+
+- `assistant-ended-call`: The assistant intentionally ended the call based on the user's response.
+- `assistant-ended-call-after-message-spoken`: The assistant intentionally ended the call after speaking a pre-defined message.
+- `assistant-ended-call-with-hangup-task`: The assistant ended the call using a hangup task.
+- `assistant-error`: This general error occurs within the assistant's logic or processing due to bugs, misconfigurations, or unexpected inputs.
+- `assistant-forwarded-call`: The assistant successfully transferred the call to another number or service.
+- `assistant-join-timed-out`: The assistant failed to join the call within the expected timeframe.
+- `assistant-not-found`: The specified assistant cannot be located or accessed, possibly due to an incorrect assistant ID or configuration issue.
+- `assistant-not-valid`: The assistant ID provided is not valid or recognized by the system.
+- `assistant-not-provided`: No assistant ID was specified in the request, causing the system to fail.
+- `assistant-request-failed`: The request to the assistant failed to complete successfully.
+- `assistant-request-returned-error`: Communicating with the assistant resulted in an error, possibly due to network issues or problems with the assistant itself.
+- `assistant-request-returned-forwarding-phone-number`: The assistant triggered a call forwarding action, ending the current call.
+- `assistant-request-returned-invalid-assistant`: The assistant returned an invalid response or failed to fulfill the request properly.
+- `assistant-request-returned-no-assistant`: The assistant didn't provide any response or action to the request.
+- `assistant-request-returned-unspeakable-error`: The assistant returned an error that cannot be spoken to the user.
+- `assistant-said-end-call-phrase`: The assistant recognized a phrase or keyword triggering call termination.
+
+#### Pipeline and LLM
+
+These relate to issues within the AI processing pipeline or the Large Language Models (LLMs) used for understanding and generating text:
+
+- `call.in-progress.error-vapifault-*`: Various error codes indicate specific failures within the processing pipeline, such as function execution, LLM responses, or external service integration. Examples include OpenAI, Azure OpenAI, Together AI, and several other LLMs or voice providers.
+- `call.in-progress.error-providerfault-*`: Similar to `call.in-progress.error-vapifault-*`. However, these error codes are surfaced when Vapi receives an error that has occured on the provider's side. Examples include internal server errors, or service unavailability.
+- `pipeline-error-*`: Similar to `call.in-progress.error-vapifault-*`. However, these error codes are surfaced when you are using your own provider keys.
+- `pipeline-no-available-llm-model`: No suitable LLM was available to process the request. Previously `pipeline-no-available-model`.
+- `call.in-progress.error-pipeline-no-available-llm-model`: No suitable LLM was available to process the request during the call.
+
+#### Phone Calls and Connectivity
+
+- `customer-busy`: The customer's line was busy.
+- `customer-ended-call`: The customer (end human user) ended the call for both inbound and outbound calls.
+- `customer-did-not-answer`: The customer didn't answer the call. If you're looking to build a use case where you need the bot to talk to automated IVRs, set `assistant.voicemailDetectionEnabled=false`.
+- `customer-did-not-give-microphone-permission`: The user didn't grant the necessary microphone access for the call.
+- `call.in-progress.error-assistant-did-not-receive-customer-audio`: Similar to `customer-did-not-give-microphone-permission`, but more generalized to situations where no customer audio was received.
+- `phone-call-provider-closed-websocket`: The connection with the call provider was unexpectedly closed.
+- `phone-call-provider-bypass-enabled-but-no-call-received`: The phone call provider bypass was enabled but no call was received.
+- `twilio-failed-to-connect-call`: The Twilio service, responsible for managing calls, failed to establish a connection.
+- `twilio-reported-customer-misdialed`: Twilio reported that the customer dialed an invalid or incomplete number.
+- `vonage-disconnected`: The call was disconnected by Vonage, another call management service.
+- `vonage-failed-to-connect-call`: Vonage failed to establish the call connection.
+- `vonage-rejected`: The call was rejected by Vonage due to an issue or configuration problem.
+- `vonage-completed`: The call was completed successfully by Vonage.
+- `call.in-progress.error-sip-telephony-provider-failed-to-connect-call`: The SIP telephony provider failed to establish the call connection.
+
+#### Call Start Errors
+
+- `call-start-error-neither-assistant-nor-server-set`: Neither an assistant nor server was configured for the call.
+- `call.start.error-get-org`: Error retrieving organization information during call start.
+- `call.start.error-get-subscription`: Error retrieving subscription information during call start.
+- `call.start.error-get-assistant`: Error retrieving assistant information during call start.
+- `call.start.error-get-phone-number`: Error retrieving phone number information during call start.
+- `call.start.error-get-customer`: Error retrieving customer information during call start.
+- `call.start.error-get-resources-validation`: Error validating resources during call start.
+- `call.start.error-vapi-number-international`: Error with international Vapi number during call start.
+- `call.start.error-vapi-number-outbound-daily-limit`: Outbound daily limit reached for Vapi number.
+- `call.start.error-get-transport`: Error retrieving transport information during call start.
+
+#### Call Forwarding and Hooks
+
+- `call.forwarding.operator-busy`: The operator was busy during call forwarding.
+- `call.ringing.hook-executed-say`: A say hook was executed during the ringing phase.
+- `call.ringing.hook-executed-transfer`: A transfer hook was executed during the ringing phase.
+
+#### Other Reasons
+
+- `database-error`: A database error occurred during the call.
+- `exceeded-max-duration`: The call reached its maximum allowed duration and was automatically terminated.
+- `manually-canceled`: The call was manually canceled.
+- `silence-timed-out`: The call was ended due to prolonged silence, indicating inactivity.
+- `voicemail`: The call was diverted to voicemail.
+- `worker-shutdown`: The worker handling the call was shut down.
+
+#### Unknown
+
+- `unknown-error`: An unexpected error occurred, and the cause is unknown. For this, please [contact support](/support) with your `call_id` and account email address, & we will investigate.
+
+---
+
+title: Call analysis
+subtitle: Summarize and evaluate calls automatically
+slug: assistants/call-analysis
+
+---
+
+## Overview
+
+Call analysis automatically summarizes and evaluates every call for insights and quality control. As soon as a call ends, analysis is triggered in the background and typically completes within a few seconds. The system uses the latest version of Anthropic's Claude Sonnet (with OpenAI GPT-4o as fallback) to:
+
+- Summarize the call
+- Extract structured data
+- Evaluate call success
+
+Results are attached to the call record and can be viewed in the call instance dashboard or retrieved via the API. You can customize the analysis using prompts and schemas in your assistant's `analysisPlan`.
+
+## Customization
+
+You can customize the following properties in your assistant's `analysisPlan`:
+
+### Summary prompt
+
+- Used to create a concise summary of the call, stored in `call.analysis.summary`.
+- **Default prompt:**
+  ```text
+  You are an expert note-taker. You will be given a transcript of a call. Summarize the call in 2-3 sentences, if applicable.
+  ```
+- **Customize:**
+  ```json
+  {
+    "summaryPrompt": "Custom summary prompt text"
+  }
+  ```
+- **Disable:**
+  ```json
+  {
+    "summaryPrompt": ""
+  }
+  ```
+
+### Structured data prompt
+
+- Extracts specific data from the call, stored in `call.analysis.structuredData`.
+- **Default prompt:**
+  ```text
+  You are an expert data extractor. You will be given a transcript of a call. Extract structured data per the JSON Schema.
+  ```
+- **Customize:**
+  ```json
+  {
+    "structuredDataPrompt": "Custom structured data prompt text"
+  }
+  ```
+
+### Structured data schema
+
+- Defines the format of extracted data using JSON Schema.
+- **Customize:**
+  ```json
+  {
+    "structuredDataSchema": {
+      "type": "object",
+      "properties": {
+        "field1": { "type": "string" },
+        "field2": { "type": "number" }
+      },
+      "required": ["field1", "field2"]
+    }
+  }
+  ```
+
+### Success evaluation prompt
+
+- Used to determine if the call was successful, stored in `call.analysis.successEvaluation`.
+- **Default prompt:**
+  ```text
+  You are an expert call evaluator. You will be given a transcript of a call and the system prompt of the AI participant. Determine if the call was successful based on the objectives inferred from the system prompt.
+  ```
+- **Customize:**
+  ```json
+  {
+    "successEvaluationPrompt": "Custom success evaluation prompt text"
+  }
+  ```
+- **Disable:**
+  ```json
+  {
+    "successEvaluationPrompt": ""
+  }
+  ```
+
+### Success evaluation rubric
+
+- Defines the criteria for evaluating call success. Options:
+  - `NumericScale`: 1 to 10
+  - `DescriptiveScale`: Excellent, Good, Fair, Poor
+  - `Checklist`: List of criteria
+  - `Matrix`: Grid of criteria and performance
+  - `PercentageScale`: 0% to 100%
+  - `LikertScale`: Strongly Agree to Strongly Disagree
+  - `AutomaticRubric`: Auto breakdown by criteria
+  - `PassFail`: true/false
+- **Customize:**
+  ```json
+  {
+    "successEvaluationRubric": "NumericScale"
+  }
+  ```
+
+### Combine prompts and rubrics
+
+- You can combine prompts and rubrics for detailed instructions:
+  ```json
+  {
+    "successEvaluationPrompt": "Evaluate the call based on these criteria:...",
+    "successEvaluationRubric": "Checklist"
+  }
+  ```
+
+## Results
+
+- Once analysis is complete, results are attached to the call record.
+- View results in the call instance dashboard or retrieve them via the API.
+- Results include:
+  - Call summary
+  - Structured data
+  - Success evaluation and rubric
+
+By customizing these properties, you can tailor call analysis to your needs and gain valuable insights from every call.
+
+---
+
+title: Call recording
+subtitle: Record and store calls for analysis and training
+slug: assistants/call-recording
+description: Learn how to record calls and store them for quality assurance and analysis
+
+---
+
+## Overview
+
+Vapi provides comprehensive call recording capabilities that allow you to capture, store, and analyze voice conversations for quality assurance, training, and compliance purposes.
+
+**Call recording enables you to:**
+
+- Monitor conversation quality and assistant performance
+- Train and improve your voice AI models
+- Ensure compliance with regulatory requirements
+- Analyze customer interactions for insights
+
+## Recording Configuration
+
+### Enable Recording
+
+You can enable call recording at the assistant level or per individual call:
+
+<CodeBlocks>
+```json title="Assistant Configuration"
+{
+  "name": "Customer Support Assistant",
+  "recordingEnabled": true,
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4"
+  },
+  "voice": {
+    "provider": "11labs",
+    "voiceId": "harry"
+  }
+}
+```
+
+```json title="Per-Call Configuration"
+{
+  "assistant": {
+    "name": "Support Agent"
+  },
+  "recordingEnabled": true,
+  "phoneNumberId": "your-phone-number-id"
+}
+```
+
+</CodeBlocks>
+
+### Recording Options
+
+Configure recording behavior with these options:
+
+- **`recordingEnabled`**: Enable or disable recording for this assistant/call
+- **`recordingChannelCount`**: Number of audio channels to record (1 for mono, 2 for stereo)
+- **`recordingFormat`**: Audio format for recordings (mp3, wav, etc.)
+
+## Storage Options
+
+### Default Storage
+
+By default, Vapi stores recordings securely in the cloud:
+
+- Recordings are encrypted at rest and in transit
+- Access is controlled through your API credentials
+- Recordings are automatically cleaned up based on your retention policy
+
+### Custom Storage
+
+For advanced use cases, you can configure custom storage:
+
+<CodeBlocks>
+```json title="S3 Storage Configuration"
+{
+  "recordingEnabled": true,
+  "recordingPath": "https://your-bucket.s3.amazonaws.com/recordings/",
+  "recordingCredentials": {
+    "provider": "aws",
+    "region": "us-east-1",
+    "accessKeyId": "your-access-key",
+    "secretAccessKey": "your-secret-key"
+  }
+}
+```
+
+```json title="Google Cloud Storage"
+{
+  "recordingEnabled": true,
+  "recordingPath": "gs://your-bucket/recordings/",
+  "recordingCredentials": {
+    "provider": "gcp",
+    "serviceAccountKey": "your-service-account-json"
+  }
+}
+```
+
+</CodeBlocks>
+
+## Accessing Recordings
+
+### Via Dashboard
+
+1. Navigate to **Calls** in your Vapi dashboard
+2. Select a specific call from the list
+3. Click on the **Recording** tab to play or download the audio
+
+### Via API
+
+Retrieve recording URLs programmatically:
+
+```typescript
+import { VapiClient } from "@vapi-ai/server-sdk";
+
+const client = new VapiClient({ token: "your-api-key" });
+
+// Get call details including recording URL
+const call = await client.calls.get("call-id");
+console.log("Recording URL:", call.recordingUrl);
+```
+
+## Privacy and Compliance
+
+### Legal Considerations
+
+**Important**: Call recording laws vary by jurisdiction. Ensure compliance with:
+
+- **Consent requirements** - Inform participants about recording
+- **Data protection** regulations (GDPR, CCPA, etc.)
+- **Industry standards** (PCI DSS, HIPAA, etc.)
+
+### Best Practices
+
+- **Inform callers** about recording at the start of conversations
+- **Secure storage** with encryption and access controls
+- **Retention policies** to automatically delete old recordings
+- **Access logs** to track who accesses recordings
+
+<Warning>
+  Always comply with local laws regarding call recording. Some jurisdictions require explicit consent from all parties before recording.
+</Warning>
+
+## Recording Analysis
+
+### Transcription
+
+Recorded calls are automatically transcribed for analysis:
+
+```json
+{
+  "callId": "call-123",
+  "transcript": [
+    {
+      "role": "assistant",
+      "message": "Hello! How can I help you today?",
+      "time": 0.5
+    },
+    {
+      "role": "user",
+      "message": "I need help with my account",
+      "time": 3.2
+    }
+  ],
+  "recordingUrl": "https://api.vapi.ai/recordings/call-123.mp3"
+}
+```
+
+### Call Analysis
+
+Use recorded data for insights:
+
+- **Conversation flow** analysis
+- **Response quality** evaluation
+- **Customer satisfaction** metrics
+- **Assistant performance** tracking
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Are recordings automatically transcribed?">
+    Yes, all recordings are automatically transcribed and available through the API and dashboard.
+  </Accordion>
+  
+  <Accordion title="How long are recordings stored?">
+    Default retention is 30 days. You can configure custom retention policies for your account.
+  </Accordion>
+  
+  <Accordion title="Can I disable recording for specific calls?">
+    Yes, you can enable/disable recording at both the assistant level and per individual call.
+  </Accordion>
+  
+  <Accordion title="Is recording available in all regions?">
+    Call recording is available in all supported Vapi regions with local data residency options.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+- **[Call Analysis](/assistants/call-analysis)** - Analyze recorded conversations for insights
+- **[Privacy Compliance](/security-and-privacy/GDPR)** - Ensure GDPR and privacy compliance
+- **[API Reference](/api-reference/calls/create)** - Explore recording configuration options
+
+---
+
+title: Introduction to Squads (Multi-Assistant Conversations)
+subtitle: Use Squads to handle complex workflows and tasks.
+slug: squads
+
+---
+
+Sometimes, complex workflows are easier to manage with multiple assistants.
+You can think of each assistant in a Squad as a leg of a conversation tree.
+For example, you might have one assistant for lead qualification, which transfers to another for booking an appointment if they’re qualified.
+
+Prior to Squads you would put all functionality in one assistant, but Squads were added to break up the complexity of larger prompts into smaller specialized assistants with specific tools and fewer goals.
+Squads enable calls to transfer assistants mid-conversation, while maintaining full conversation context.
+
+<Info>
+  View all configurable properties in the [API Reference](/api-reference/squads/create-squad).
+</Info>
+
+## Usage
+
+To use Squads, you can create a `squad` when starting a call and specify `members` as a list of assistants and destinations.
+The first member is the assistant that will start the call, and assistants can be either persistent or transient.
+
+Each assistant should be assigned the relevant assistant transfer destinations.
+Transfers are specified by assistant name and are used when the model recognizes a specific trigger.
+
+```json
+{
+    "squad": {
+        "members": [
+            {
+                "assistantId": "information-gathering-assistant-id",
+                "assistantDestinations": [{
+                    "type": "assistant",
+                    "assistantName": "Appointment Booking",
+                    "message": "Please hold on while I transfer you to our appointment booking assistant.",
+                    "description": "Transfer the user to the appointment booking assistant after they say their name."
+                }],
+            },
+            {
+                "assistant": {
+                    "name": "Appointment Booking",
+                    ...
+                },
+            }
+        ]
+    }
+}
+```
+
+## Best Practices
+
+The following are some best practices for using Squads to reduce errors:
+
+- Group assistants by closely related tasks
+- Create as few assistants as possible to reduce complexity
+- Make sure descriptions for transfers are clear and concise
+
+---
+
+title: Configuring Inbound and Outbound Calls for Squads
+subtitle: Configuring assistants for inbound/outbound calls.
+slug: squads-example
+
+---
+
+This guide details how to set up and manage inbound and outbound call functionality within Squads, leveraging AI assistants.
+
+### Key Concepts
+
+- **Transient Assistant:** A temporary assistant configuration passed directly in the request payload.
+- **Assistant ID:** A unique identifier referring to a pre-existing assistant configuration.
+
+<Note>When using Assistant IDs, ensure the `name` property in the payload matches the associated assistant's name accurately.</Note>
+
+### Inbound Call Configuration
+
+When your server receives a request of type `assistant-request`, respond with a JSON payload structured as follows:
+
+```json
+{
+  "squad": {
+    "members": [
+      {
+        "assistant": {
+          "name": "Emma",
+          "model": { "model": "gpt-4o", "provider": "openai" },
+          "voice": { "voiceId": "emma", "provider": "azure" },
+          "transcriber": { "provider": "deepgram" },
+          "firstMessage": "Hi, I am Emma, what is your name?",
+          "firstMessageMode": "assistant-speaks-first"
+        },
+        "assistantDestinations": [
+          {
+            "type": "assistant",
+            "assistantName": "Mary",
+            "message": "Please hold on while I transfer you to our appointment booking assistant Mary.",
+            "description": "Transfer the user to the appointment booking assistant."
+          }
+        ]
+      },
+      {
+        "assistantId": "your-assistant-id"
+      }
+    ]
+  }
+}
+```
+
+**In this example:**
+
+- The first `members` entry is a **transient assistant** (full configuration provided).
+- The second `members` entry uses an **Assistant ID**.
+- `assistantDestinations` defines how to **transfer the call** to another assistant.
+
+### Outbound Call Configuration
+
+To initiate an outbound call, send a POST request to the API endpoint /call/phone with a JSON payload structured as follows:
+
+```json
+{
+  "squad": {
+    "members": [
+      {
+        "assistant": {
+          "name": "Emma",
+          "model": { "model": "gpt-4o", "provider": "openai" },
+          "voice": { "voiceId": "emma", "provider": "azure" },
+          "transcriber": { "provider": "deepgram" },
+          "firstMessage": "Hi, I am Emma, what is your name?",
+          "firstMessageMode": "assistant-speaks-first"
+        },
+        "assistantDestinations": [
+          {
+            "type": "assistant",
+            "assistantName": "Mary",
+            "message": "Please hold on while I transfer you to our appointment booking assistant Mary.",
+            "description": "Transfer the user to the appointment booking assistant."
+          }
+        ]
+      },
+      {
+        "assistantId": "your-assistant-id"
+      }
+    ]
+  },
+  "customer": {
+    "number": "your-phone-number"
+  },
+  "phoneNumberId": "your-phone-number-id"
+}
+```
+
+**Key points:**
+
+- `customer.number` is the phone number to call.
+- `phoneNumberId` is a unique identifier for the phone number (obtain this from your provider).
+
+---
+
+title: Silent Transfers
+slug: squads/silent-transfers
+
+---
+
+- **The Problem**: In traditional AI call flows, when transferring from one agent to another, announcing the transfer verbally can confuse or annoy callers and disrupt the conversation's flow.
+- **The Solution**: Silent transfers keep the call experience _uninterrupted_, so the user doesn’t know multiple assistants are involved. The conversation flows more naturally, boosting customer satisfaction.
+
+If you want to allow your call flow to move seamlessly from one assistant to another _without_ the caller hearing `Please hold while we transfer you` here’s what to do:
+
+1. **Update the Destination Assistant’s First Message**
+
+   - Set the assistant's `firstMessage` to an _empty string_.
+   - Set the assistant's `firstMessageMode` to `assistant-speaks-first-with-model-generated-message`.
+
+2. **Update the Squad's assistant destinations messages**
+
+   - For every `members[*].assistantDestinations[*]`, set the `message` property to an _empty string_.
+
+3. **Trigger the Transfer from the Source Assistant**
+
+   - In that assistant’s prompt, include a line instructing it to transfer to the desired assistant:
+
+   ```json
+   trigger the transferCall tool with 'assistantName' Assistant.
+   ```
+
+   - Replace `'assistantName'` with the exact name of the next assistant.
+
+4. **Direct the Destination Assistant’s Behavior**
+   - In that assistant’s prompt, include a line instructing it to _`Proceed directly to the Task section without any greetings or small talk.`_
+   - This ensures there’s no awkward greeting or “Hello!” when the next assistant begins speaking.
+
+### **Example Usage Scenario**
+
+- **HPMA (Main Assistant)** is talking to the customer. They confirm the order details and then quietly passes the conversation to **HPPA (Payment Assistant)**.
+- **HPPA** collects payment details without the customer ever hearing, `We’re now transferring you to the Payment Assistant.` It feels like one continuous conversation.
+- Once payment is done, **HPPA** transfers the call again—this time to **HPMA-SA (Main Sub Assistant)**—which takes over final shipping arrangements.
+
+Everything happens smoothly behind the scenes!
+
+## **Squad and Assistant Configurations**
+
+Below are the key JSON examples you’ll need. These show how to structure your assistants and squads so they work together for silent transfers.
+
+### **HP Payment Squad With SubAgent**
+
+<Warning>
+  Make sure the `members[*].assistantDestinations[*].message` properties are set to an _empty string_.
+</Warning>
+
+```json
+{
+  "members": [
+    {
+      "assistantId": "2d8e0d13-1b3c-4358-aa72-cf6204d6244e",
+      "assistantDestinations": [
+        {
+          "message": " ",
+          "description": "Transfer call to the payment agent",
+          "type": "assistant",
+          "assistantName": "HPPA"
+        }
+      ]
+    },
+    {
+      "assistantId": "ad1c5347-bc32-4b31-8bb7-6ff5fcb131f4",
+      "assistantDestinations": [
+        {
+          "message": " ",
+          "description": "Transfer call to the main sub agent",
+          "type": "assistant",
+          "assistantName": "HPMA-SA"
+        }
+      ]
+    },
+    {
+      "assistantId": "f1c258bc-4c8b-4c51-9b44-883ab5e40b2f",
+      "assistantDestinations": []
+    }
+  ],
+  "name": "HP Payment Squad With SubAgent"
+}
+```
+
+### **HPMA Assistant (Main Assistant)**
+
+```json
+{
+  "name": "HPMA",
+  "voice": {
+    "voiceId": "248be419-c632-4f23-adf1-5324ed7dbf1d",
+    "provider": "cartesia",
+    "fillerInjectionEnabled": false
+  },
+  "createdAt": "2024-11-04T17:15:08.980Z",
+  "updatedAt": "2024-11-30T13:04:58.401Z",
+  "model": {
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "system",
+        "content": "[Identity]\nYou are the Main Assistant..."
+      }
+    ],
+    "provider": "openai",
+    "maxTokens": 50,
+    "temperature": 0.3
+  },
+  "firstMessage": "",
+  "firstMessageMode": "assistant-speaks-first-with-model-generated-message",
+  "transcriber": {
+    "model": "nova-2",
+    "language": "en",
+    "provider": "deepgram"
+  },
+  "backchannelingEnabled": false,
+  "backgroundDenoisingEnabled": false,
+  "isServerUrlSecretSet": false
+}
+```
+
+(Similar JSON information for the HPPA and HPMA-SA assistants can follow, just like in the original text.)
+
+## **Assistant Prompts (In Plain Text)**
+
+Each assistant has its own system prompt outlining identity, context, style, and tasks. These prompts ensure the conversation is smooth, customer-centric, and aligned with your call flow needs. Here’s a streamlined version for reference:
+
+### **HPMA (Main Assistant Prompt)**
+
+```
+[Identity]
+You are the Main Assistant, a friendly and helpful agent assisting customers
+in purchasing widgets over the phone.
+
+[Context]
+You're engaged with the customer to book an appointment.
+Stay focused on this context and provide relevant information.
+Once connected to a customer, proceed to the Task section.
+Do not invent information not drawn from the context.
+Answer only questions related to the context.
+
+[Style]
+- Be polite and professional.
+- Use a conversational and engaging tone.
+- Keep responses concise and clear.
+
+[Response Guidelines]
+- Ask one question at a time and wait for the customer's response before
+  proceeding.
+- Confirm the customer's responses when appropriate.
+- Use simple language that is easy to understand.
+- Never say the word 'function' nor 'tools' nor the name of the
+  Available functions.
+- Never say ending the call.
+- Never say transferring.
+
+[Task]
+1.Greet the customer and ask if they are interested in purchasing widgets.
+   - Wait for the customer's response.
+2. If the customer is interested, ask for their name.
+   - Wait for the customer's response.
+3.Ask how many widgets the customer would like to purchase.
+   - Wait for the customer's response.
+4.Confirm the order details with the customer.
+   - trigger the transferCall tool with Payment `HPPA` Assistant.
+```
+
+### **HPPA (Payment Assistant Prompt)**
+
+```
+[Identity]
+You are the Payment Assistant, operating in secure mode to collect payment information from customers safely and confidentially.
+
+[Context]
+You're engaged with the customer to collect payment details. Stay focused
+on this context and provide relevant information.
+Do not invent information not drawn from the context.
+Answer only questions related to the context.
+Once connected to a customer, proceed to the Task section without
+any greetings or small talk.
+
+[Style]
+- Be professional and reassuring.
+- Maintain confidentiality at all times.
+- Speak clearly and calmly.
+
+[Response Guidelines]
+- Collect the customer's credit card number, expiration date, and CVV.
+- Confirm each piece of information after it is provided.
+- Ensure the customer feels secure during the transaction.
+- Do not record or log any information.
+- Never say the word 'function' nor 'tools' nor the name of the
+  Available functions.
+- Never say ending the call.
+- Never say transferring.
+
+[Task]
+1. Ask for the credit card number.
+   - Wait for the customer's response.
+2. Ask for the expiration date of the card.
+   - Wait for the customer's response.
+3. Ask for the CVV number.
+   - Wait for the customer's response.
+4. Confirm that the payment has been processed successfully.
+   - trigger the transferCall tool with Payment `HPMA-SA` Assistant.
+```
+
+### **HPMA-SA (Main Sub Assistant Prompt)**
+
+```
+[Identity]
+You are the Main Assistant, a friendly and helpful agent assisting customers
+in purchasing widgets over the phone.
+
+[Context]
+You're engaged with the customer to book an appointment.
+Stay focused on this context and provide relevant information.
+Do not invent information not drawn from the context.
+Answer only questions related to the context.
+Once connected to a customer, proceed to the Task section without any greetings
+or small talk.
+
+[Style]
+- Be professional and reassuring.
+- Maintain confidentiality at all times.
+- Speak clearly and calmly.
+
+[Response Guidelines]
+- Collect the customer's credit card number, expiration date, and CVV.
+- Confirm each piece of information after it is provided.
+- Ensure the customer feels secure during the transaction.
+- Do not record or log any information.
+- Never say the word 'function' nor 'tools' nor the name of the
+  Available functions.
+- Never say ending the call.
+- Never say transferring.
+
+[Task]
+1.Ask for the customer's shipping address to deliver the widgets.
+   - Wait for the customer's response.
+2.Confirm the shipping address and provide an estimated delivery date.
+3.Ask if the customer has any additional questions or needs further assistance.
+    - Wait for the customer's response.
+4.Provide any additional information or assistance as needed.
+5.Thank the customer for their purchase and end the call politely.
+```
+
+## **Conclusion**
+
+By following these steps and examples, you can configure your call system to conduct **silent transfers** ensuring that callers experience a single, uninterrupted conversation. Each assistant does its job smoothly, whether it’s capturing payment, finalizing a shipping address, or collecting basic info.
+
+Enjoy setting up your silent transfers!
+
+---
+
+title: Outbound campaigns quickstart
+subtitle: >-
+Build a simple personalized outbound campaign that conducts post-service
+feedback and follow-up calls to improve customer experience
+slug: outbound-campaigns/quickstart
+description: >-
+Build a simple personalized outbound campaign that conducts post-service
+feedback and follow-up calls to improve customer experience
+
+---
+
+## Overview
+
+Build a simple personalized outbound campaign using Vapi that conducts post-service feedback and follow-up calls to improve customer experience and gather valuable insights from your customers.
+
+<Frame>
+  <img src="file:f88ee75f-2a0d-4804-b01f-64801bd220a8" alt="Vapi Campaigns" />
+</Frame>
+
+**In this quickstart, you'll learn to:**
+
+- Set up an outbound campaign with customer data
+- Configure personalized feedback collection calls
+- Launch and monitor campaign performance
+- Access detailed call outcomes and analytics
+
+## Prerequisites
+
+- A [Vapi account](https://dashboard.vapi.ai)
+- Phone number set up in your organization with a provider like Twilio (Vapi free numbers do not work for Outbound Campaigns)
+- Recipient information ready in CSV format
+- An existing Assistant configured in your account
+
+---
+
+## 1. Launch a Campaign
+
+<Steps>
+  <Step title="Open the Vapi Dashboard">
+    Go to [dashboard.vapi.ai](https://dashboard.vapi.ai) and log in to your account.
+  </Step>
+  
+  <Step title="Navigate to Outbound Campaigns">
+    Click `Outbound Campaigns` in the left sidebar to access the campaigns section.
+  </Step>
+  
+  <Step title="Create a new campaign">
+    - Click **Create Campaign**
+    - Enter a **Campaign Name** (e.g., "Post-Service Feedback Campaign")
+    - Select **Campaign Type** based on your feedback collection needs
+  </Step>
+  
+  <Step title="Configure phone number">
+    Select a phone number from your available numbers. This must be a number from your phone provider (like Twilio), not a Vapi free number.
+  </Step>
+  
+  <Step title="Manage recipients">
+    Upload your customer list:
+    - Click **Manage Recipients**
+    - Upload your CSV file with customer information
+    - Review the recipient list for accuracy
+    - Follow [best practices](/outbound-campaigns/overview#required-information) on how to format your CSV file
+  </Step>
+  
+  <Step title="Select assistant">
+    Choose the Assistant that will conduct the feedback calls:
+    - Select from your existing Assistants
+  </Step>
+  
+  <Step title="Review and execute">
+    - Review all campaign settings
+    - Verify recipient count and Assistant configuration
+    - Click **Launch Campaign** to start the outbound calls
+  </Step>
+</Steps>
+
+---
+
+## 2. Monitor Your Campaign
+
+<Steps>
+  <Step title="Access campaign dashboard">
+    Once launched, monitor your campaign performance in real-time through the Campaign Dashboard.
+  </Step>
+  
+  <Step title="Review campaign outcomes">
+    - View completion rates and call statuses
+    - Track progress of scheduled campaigns
+    - Cancel campaigns you no longer want to run
+  </Step>
+  
+  <Step title="Track individual calls">
+    See call logs for each customer contact, including:
+    - Call duration and outcome
+    - Transcript and recordings
+  </Step>
+</Steps>
+
+---
+
+title: Outbound campaigns overview
+subtitle: >-
+Create, execute, and manage outbound phone campaigns directly within the Vapi
+Dashboard
+slug: outbound-campaigns/overview
+description: >-
+Learn how to efficiently schedule calls, manage recipients, analyze
+performance metrics, and review detailed call logs and transcripts with Vapi's
+Outbound Call Campaigns
+
+---
+
+## Overview
+
+Outbound Call Campaigns allow users to efficiently create, execute, and manage outbound phone campaigns directly within the Vapi Dashboard. It enables users to efficiently schedule calls, manage recipients, analyze performance metrics, and review detailed call logs and transcripts.
+
+<Frame>
+  <img src="file:d43ff031-7bbd-469a-a0c5-9d503e079aec" alt="Vapi Setup Campaign" />
+</Frame>
+
+## Key benefits
+
+- **Intuitive UI**: Quickly set up campaigns in an easy-to-follow setup page
+- **Personalized**: Use dynamic variables to personalized outreach
+- **Analytics**: Get real-time monitoring and detailed analysis of call performance and outcomes
+
+## Common use cases
+
+- **Conversion Optimization**: Re-engage potential customers via targeted follow-up calls for abandoned carts
+- **Appointment Reminders**: Reduce missed appointments with timely reminder calls
+- **Customer Satisfaction**: Conduct post-service feedback and follow-up calls to enhance customer experiences
+- **Subscription Renewals**: Facilitate timely renewals with proactive call reminders
+- **Insurance Updates**: Verify and update policy details through targeted calls
+
+## Campaign setup process
+
+Outbound Call Campaigns follow a structured process:
+
+<Steps>
+  <Step title="Campaign Configuration">
+    Set campaign name and type.
+  </Step>
+  
+  <Step title="Phone Number Selection">
+    Choose outbound phone numbers (recommend Twilio).
+  </Step>
+  
+  <Step title="Recipient Management">
+    Upload recipients via CSV, supported with dynamic variables.
+  </Step>
+  
+  <Step title="Assistant Selection">
+    Select an existing assistant to handle the call.
+  </Step>
+  
+  <Step title="Review & Execute">
+    Review campaign and initiate or schedule calls for later.
+  </Step>
+</Steps>
+
+## Campaign analytics
+
+The Campaign Dashboard provides comprehensive insights:
+
+- **Campaign Overview**: Monitor status, completed calls, pick up rate, and voicemail
+- **Detailed Call Reports**: Access individual call details, customer information, call duration, outcome statuses, and transcripts
+
+## Required information
+
+Outbound Campaigns only require a number to work. `number` column is required and needs to be spelled in lowercase.
+
+| number       |     |
+| ------------ | --- |
+| +14151231234 |     |
+| +14153455678 |     |
+
+<Note>
+Phone numbers must be formatted in E.164 format: [+] [country code] [subscriber number including area code]
+- Example: +14151234567
+- Maximum 15 digits total
+- No spaces or special characters
+</Note>
+
+## Tips for Clean Data
+
+- Use UTF-8 encoding when saving your CSV.
+- Avoid blank rows or duplicated headers.
+- Double-check that your column names match the variables used in your assistant.
+
+## Avoiding Spam
+
+To maximize call answer rates and establish trust with recipients, you should implement proper caller identification and trusted calling standards. This involves several key components that work together to verify your identity and build caller reputation.
+Learn more about [Trusted Calling](/calls/outbound-calling#trusted-calling-and-caller-id)
+
+## Dynamic variables
+
+Outbound Campaigns allows users to specify dynamic variables to pass to Assistants via additional columns in the CSV file. Outbound Campaigns can take one more additional columns.
+
+| number       | name | customer_issue |
+| ------------ | ---- | -------------- |
+| +14151231234 | John | password reset |
+| +14153455678 | Mary | address update |
+
+`{{name}}` and `{{customer_issue}}` can be used in the Assistant prompt as dynamic variables, based on this CSV file.
+
+<Note>
+- Column names cannot have spaces. Use `{{customer_issue}}` instead of `{{customer issue}}`
+- Column names must start with a letter
+- Users can use the same [Default Variables](/assistants/dynamic-variables#default-variables) as they can within Assistants
+</Note>
+
+## Concurrency
+
+Check concurrency limits in your Vapi organization. If your org has a concurrency limit of 10, a maximum of 10 calls will be started at a single time. The rest of the calls will be queued and retried a few minutes later as your concurrency slots become available. To increase call rate, you need you increase your Vapi org concurrency limit.
+
+Note that concurrency limits are on the Vapi side. Your telephony provider (e.g. Twilio) may have other rate limits.
+
+---
+
+title: Chat quickstart
+subtitle: Build your first text-based conversation with a Vapi assistant in 5 minutes
+slug: chat/quickstart
+
+---
+
+## Overview
+
+Build a customer service chat bot that can handle text-based conversations through your application. Perfect for adding AI chat to websites, mobile apps, or messaging platforms.
+
+**What You'll Build:**
+
+- A working chat integration that responds to user messages
+- Context-aware conversations that remember previous messages
+- Both one-shot and multi-turn conversation patterns
+
+**Agent Capabilities:**
+
+- Instant text responses without voice processing
+- Maintains conversation context across multiple messages
+- Compatible with existing OpenAI workflows
+
+## Prerequisites
+
+- A [Vapi account](https://dashboard.vapi.ai/)
+- An existing assistant or willingness to create one
+- Basic knowledge of making API requests
+
+## Scenario
+
+We'll create a customer support chat for "TechFlow", a software company that wants to handle common questions via text chat before escalating to human agents.
+
+---
+
+## 1. Get Your API Credentials
+
+<Steps>
+  <Step title="Open the Vapi Dashboard">
+    Go to [dashboard.vapi.ai](https://dashboard.vapi.ai) and log in to your account.
+  </Step>
+  <Step title="Navigate to API Keys">
+    Click on your profile in the top right, then select `Vapi API Keys`.
+  </Step>
+  <Step title="Copy your API key">
+    Copy your Private API Key. You'll need this for all chat requests.
+    
+    <Warning>
+    Keep this key secure - never expose it in client-side code.
+    </Warning>
+  </Step>
+</Steps>
+
+---
+
+## 2. Create or Select an Assistant
+
+<Steps>
+  <Step title="Navigate to Assistants">
+    In your Vapi dashboard, click `Assistants` in the left sidebar.
+  </Step>
+  <Step title="Create a new assistant (or use existing)">
+    - Click `Create Assistant` if you need a new one
+    - Select `Blank Template` as your starting point
+    - Name it `TechFlow Support`
+    - Set the first message to: `Hello! I'm here to help with TechFlow questions. What can I assist you with today?`
+  </Step>
+  <Step title="Configure the system prompt">
+    Update the system prompt to:
+
+    ```txt title="System Prompt" maxLines=8
+    You are a helpful customer support agent for TechFlow, a software company.
+
+    Your role:
+    - Answer common questions about our products
+    - Help troubleshoot basic issues
+    - Escalate complex problems to human agents
+
+    Keep responses concise and helpful. Always maintain a friendly, professional tone.
+    ```
+
+  </Step>
+  <Step title="Copy the Assistant ID">
+    After publishing, copy the Assistant ID from the URL or assistant details. You'll need this for API calls.
+  </Step>
+</Steps>
+
+---
+
+## 3. Send Your First Chat Message
+
+<Steps>
+  <Step title="Test with curl">
+    Replace `YOUR_API_KEY` and `your-assistant-id` with your actual values:
+    
+    ```bash title="First Chat Request"
+    curl -X POST https://api.vapi.ai/chat \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "assistantId": "your-assistant-id",
+        "input": "Hi, I need help with my TechFlow account"
+      }'
+    ```
+  </Step>
+  <Step title="Verify the response">
+    You should receive a JSON response like:
+    
+    ```json title="Chat Response"
+    {
+      "id": "chat_abc123",
+      "assistantId": "your-assistant-id",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hi, I need help with my TechFlow account"
+        }
+      ],
+      "output": [
+        {
+          "role": "assistant",
+          "content": "I'd be happy to help with your TechFlow account! What specific issue are you experiencing?"
+        }
+      ],
+      "createdAt": "2024-01-15T09:30:00Z",
+      "updatedAt": "2024-01-15T09:30:00Z"
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 4. Build a Multi-Turn Conversation
+
+<Steps>
+  <Step title="Continue the conversation">
+    Use the `previousChatId` from the first response to maintain context:
+    
+    ```bash title="Follow-up Message"
+    curl -X POST https://api.vapi.ai/chat \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "assistantId": "your-assistant-id",
+        "previousChatId": "chat_abc123",
+        "input": "I forgot my password and can't log in"
+      }'
+    ```
+  </Step>
+  <Step title="Test context awareness">
+    Send another message to verify the assistant remembers the conversation:
+    
+    ```bash title="Context Test"
+    curl -X POST https://api.vapi.ai/chat \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "assistantId": "your-assistant-id", 
+        "previousChatId": "chat_abc123",
+        "input": "What was my original question?"
+      }'
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 5. Pass Dynamic Variables
+
+<Steps>
+  <Step title="Configure variables in your assistant">
+    In your assistant's system prompt, you can reference dynamic variables using `{{variableName}}` syntax:
+    
+    ```txt title="System Prompt with Variables"
+    You are a helpful customer support agent for {{companyName}}.
+    
+    Your role:
+    - Answer questions about {{companyName}}'s products
+    - Help customers with their {{serviceType}} needs
+    - Escalate to human agents when needed
+    
+    Current customer tier: {{customerTier}}
+    ```
+  </Step>
+  <Step title="Pass variables in your chat request">
+    Use `assistantOverrides.variableValues` to pass dynamic data:
+    
+    ```bash title="Chat Request with Variables"
+    curl -X POST https://api.vapi.ai/chat \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "assistantId": "your-assistant-id",
+        "input": "I need help with my account",
+        "assistantOverrides": {
+          "variableValues": {
+            "companyName": "TechFlow Solutions",
+            "serviceType": "software",
+            "customerTier": "Premium"
+          }
+        }
+      }'
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 6. Integrate with TypeScript
+
+<Steps>
+  <Step title="Create a simple chat function">
+    Here's a TypeScript function you can use in your application:
+    
+    ```typescript title="chat.ts"
+    interface ChatMessage {
+      role: 'user' | 'assistant';
+      content: string;
+    }
+
+    interface ChatApiResponse {
+      id: string;
+      assistantId: string;
+      messages: ChatMessage[];
+      output: ChatMessage[];
+      createdAt: string;
+      updatedAt: string;
+      orgId?: string;
+      sessionId?: string;
+      name?: string;
+    }
+
+    interface ChatResponse {
+      chatId: string;
+      response: string;
+      fullData: ChatApiResponse;
+    }
+
+    async function sendChatMessage(
+      message: string,
+      previousChatId?: string
+    ): Promise<ChatResponse> {
+      const response = await fetch('https://api.vapi.ai/chat', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer YOUR_API_KEY',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          assistantId: 'your-assistant-id',
+          input: message,
+          ...(previousChatId && { previousChatId })
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const chat: ChatApiResponse = await response.json();
+      return {
+        chatId: chat.id,
+        response: chat.output[0].content,
+        fullData: chat
+      };
+    }
+
+    // Usage example
+    const firstMessage = await sendChatMessage("Hello, I need help");
+    console.log(firstMessage.response);
+
+    const followUp = await sendChatMessage("Tell me more", firstMessage.chatId);
+    console.log(followUp.response);
+    ```
+
+  </Step>
+  <Step title="Test your integration">
+    Run your TypeScript code to verify the chat integration works correctly.
+  </Step>
+</Steps>
+
+---
+
+## 7. Test Your Chat Bot
+
+<Steps>
+  <Step title="Test various scenarios">
+    Try these test cases to ensure your chat bot works correctly:
+    
+    ```bash title="Test Case 1: General Question"
+    curl -X POST https://api.vapi.ai/chat \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "assistantId": "your-assistant-id",
+        "input": "What are your business hours?"
+      }'
+    ```
+    
+    ```bash title="Test Case 2: Technical Issue"
+    curl -X POST https://api.vapi.ai/chat \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "assistantId": "your-assistant-id",
+        "input": "My app keeps crashing when I try to export data"
+      }'
+    ```
+  </Step>
+  <Step title="Verify conversation memory">
+    Send follow-up messages using `previousChatId` to ensure context is maintained.
+  </Step>
+</Steps>
+
+## Limitations
+
+<Note>
+**Current chat functionality limitations:**
+- "Query" tool for knowledge-base searches is not yet supported
+- Server webhook events (status updates, end-of-call reports, etc.) are not supported
+</Note>
+
+## Webhook Support
+
+<Note>
+The chat API supports the following webhook events through server messaging:
+- **`chat.created`** - Triggered when a new chat conversation is initiated
+- **`chat.deleted`** - Triggered when a chat conversation is deleted
+
+To receive these webhooks, go to your Assistant page in the Dashboard and navigate to "Server Messaging" and select the events you want to receive.
+
+These webhooks are useful for tracking conversation analytics, maintaining conversation history in your own database, and triggering follow-up actions.
+</Note>
+
+## Next Steps
+
+Take your chat bot to the next level:
+
+- **[Streaming responses](/chat/streaming)** - Add real-time typing indicators and progressive responses
+- **[Non-streaming responses](/chat/non-streaming)** - Learn about sessions and complex conversation flows
+- **[Session management](/chat/session-management)** - Learn advanced context management with sessions and previousChatId
+- **[OpenAI compatibility](/chat/openai-compatibility)** - Integrate with existing OpenAI workflows
+
+<Callout>
+Need help? Chat with the team on our [Discord](https://discord.com/invite/pUFNcf2WmH) or mention us on [X/Twitter](https://x.com/Vapi_AI).
+</Callout>
+
+---
+
+title: Streaming chat
+subtitle: Build real-time chat experiences with token-by-token responses like ChatGPT
+slug: chat/streaming
+
+---
+
+## Overview
+
+Build a real-time chat interface that displays responses as they're generated, creating an engaging user experience similar to ChatGPT. Perfect for interactive applications where users expect immediate visual feedback.
+
+**What You'll Build:**
+
+- Real-time streaming chat interface with progressive text display
+- Context management across multiple messages
+- Basic TypeScript implementation ready for production use
+
+## Prerequisites
+
+- Completed [Chat quickstart](/chat/quickstart) tutorial
+- Basic knowledge of TypeScript/JavaScript and async/await
+
+## Scenario
+
+We'll enhance the TechFlow support chat from the quickstart to provide real-time streaming responses. Users will see text appear progressively as the AI generates it.
+
+---
+
+## 1. Enable Streaming in Your Requests
+
+<Steps>
+  <Step title="Add the stream parameter">
+    Modify your chat request to enable streaming by adding `"stream": true`:
+    
+    ```bash title="Streaming Chat Request"
+    curl -X POST https://api.vapi.ai/chat \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "assistantId": "your-assistant-id",
+        "input": "Explain how to set up API authentication in detail",
+        "stream": true
+      }'
+    ```
+  </Step>
+  <Step title="Understand the streaming response format">
+    Instead of a single JSON response, you'll receive Server-Sent Events (SSE):
+    
+    ```typescript title="SSE Event Format"
+    // Example SSE events received:
+    data: {"id":"stream_123","path":"chat.output[0].content","delta":"Hello"}
+    data: {"id":"stream_123","path":"chat.output[0].content","delta":" there!"}
+    data: {"id":"stream_123","path":"chat.output[0].content","delta":" How can"}
+    data: {"id":"stream_123","path":"chat.output[0].content","delta":" I help?"}
+
+    // TypeScript interface for SSE events:
+    interface SSEEvent {
+      id: string;
+      path: string;
+      delta: string;
+    }
+    ```
+
+  </Step>
+</Steps>
+
+---
+
+## 2. Basic TypeScript Streaming Implementation
+
+<Steps>
+  <Step title="Create a simple streaming function">
+    Here's a basic streaming implementation:
+    
+    ```typescript title="streaming-chat.ts"
+    async function streamChatMessage(
+      message: string, 
+      previousChatId?: string
+    ): Promise<string> {
+      const response = await fetch('https://api.vapi.ai/chat', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer YOUR_API_KEY',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          assistantId: 'your-assistant-id',
+          input: message,
+          stream: true,
+          ...(previousChatId && { previousChatId })
+        })
+      });
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No reader available');
+
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim());
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6));
+            if (data.path && data.delta) {
+              fullResponse += data.delta;
+              process.stdout.write(data.delta);
+            }
+          }
+        }
+      }
+
+      return fullResponse;
+    }
+    ```
+
+  </Step>
+  <Step title="Test the streaming function">
+    Try it out:
+    
+    ```typescript title="Test Streaming"
+    const response = await streamChatMessage("Explain API rate limiting in detail");
+    console.log('\nComplete response:', response);
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 3. Streaming with Context Management
+
+<Steps>
+  <Step title="Handle conversation context">
+    Maintain context across multiple streaming messages:
+    
+    ```typescript title="context-streaming.ts"
+    async function createStreamingConversation() {
+      let lastChatId: string | undefined;
+
+      async function sendMessage(input: string): Promise<string> {
+        const response = await fetch('https://api.vapi.ai/chat', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer YOUR_API_KEY',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            assistantId: 'your-assistant-id',
+            input: input,
+            stream: true,
+            ...(lastChatId && { previousChatId: lastChatId })
+          })
+        });
+
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('No reader available');
+
+        const decoder = new TextDecoder();
+        let fullContent = '';
+        let currentChatId: string | undefined;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n').filter(line => line.trim());
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const event = JSON.parse(line.slice(6));
+
+              if (event.id && !currentChatId) {
+                currentChatId = event.id;
+              }
+
+              if (event.path && event.delta) {
+                fullContent += event.delta;
+                process.stdout.write(event.delta);
+              }
+            }
+          }
+        }
+
+        if (currentChatId) {
+          lastChatId = currentChatId;
+        }
+
+        return fullContent;
+      }
+
+      return { sendMessage };
+    }
+    ```
+
+  </Step>
+  <Step title="Use the conversation manager">
+    ```typescript title="Test Context"
+    const conversation = await createStreamingConversation();
+
+    await conversation.sendMessage("My name is Alice");
+    console.log('\n---');
+    await conversation.sendMessage("What's my name?"); // Should remember Alice
+    ```
+
+  </Step>
+</Steps>
+
+---
+
+## Next Steps
+
+Enhance your streaming chat further:
+
+- **[OpenAI compatibility](/chat/openai-compatibility)** - Use OpenAI SDK for streaming with familiar syntax
+- **[Non-streaming patterns](/chat/non-streaming)** - Learn about sessions and complex conversation management
+- **[Session management](/chat/session-management)** - Learn about context management with sessions and previousChatId in streaming
+- **[Add tools](/tools)** - Enable your assistant to call external APIs while streaming
+
+<Callout>
+Need help? Chat with the team on our [Discord](https://discord.com/invite/pUFNcf2WmH) or mention us on [X/Twitter](https://x.com/Vapi_AI).
+</Callout>
+
+---
+
+title: Non-streaming chat
+subtitle: >-
+Build reliable chat integrations with complete response patterns for batch
+processing and simple UIs
+slug: chat/non-streaming
+
+---
+
+## Overview
+
+Build a chat integration that receives complete responses after processing, perfect for batch processing, simple UIs, or when you need the full response before proceeding. Ideal for integrations where real-time display isn't essential.
+
+**What You'll Build:**
+
+- Simple request-response chat patterns with immediate complete responses
+- Context management using `previousChatId` for linked conversations
+- Basic integration with predictable response timing
+
+<Note>
+For comprehensive context management options including sessions, see **[Session management](/chat/session-management)**.
+</Note>
+
+## Prerequisites
+
+- Completed [Chat quickstart](/chat/quickstart) tutorial
+- Understanding of basic HTTP requests and JSON handling
+- Familiarity with JavaScript/TypeScript promises or async/await
+
+## Scenario
+
+We'll build a help desk system for "TechFlow" that processes support messages through text chat and maintains conversation history using `previousChatId`.
+
+---
+
+## 1. Basic Non-Streaming Implementation
+
+<Steps>
+  <Step title="Create a simple chat function">
+    Start with a basic non-streaming chat implementation:
+    
+    ```bash title="Basic Non-Streaming Request"
+    curl -X POST https://api.vapi.ai/chat \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "assistantId": "your-assistant-id",
+        "input": "I need help resetting my password"
+      }'
+    ```
+  </Step>
+  <Step title="Understand the response structure">
+    Non-streaming responses come back as complete JSON objects:
+    
+    ```json title="Complete Chat Response"
+    {
+      "id": "chat_123456",
+      "orgId": "org_789012",
+      "assistantId": "assistant_345678",
+      "name": "Password Reset Help",
+      "sessionId": "session_901234",
+      "messages": [
+        {
+          "role": "user",
+          "content": "I need help resetting my password"
+        }
+      ],
+      "output": [
+        {
+          "role": "assistant",
+          "content": "I can help you reset your password. First, let me verify your account information..."
+        }
+      ],
+      "createdAt": "2024-01-15T09:30:00Z",
+      "updatedAt": "2024-01-15T09:30:01Z"
+    }
+    ```
+  </Step>
+  <Step title="Implement in TypeScript">
+    Create a reusable function for non-streaming chat:
+    
+    ```typescript title="non-streaming-chat.ts"
+    async function sendChatMessage(
+      message: string, 
+      previousChatId?: string
+    ): Promise<{ chatId: string; response: string }> {
+      const response = await fetch('https://api.vapi.ai/chat', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer YOUR_API_KEY',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          assistantId: 'your-assistant-id',
+          input: message,
+          ...(previousChatId && { previousChatId })
+        })
+      });
+
+      const chat = await response.json();
+      return {
+        chatId: chat.id,
+        response: chat.output[0].content
+      };
+    }
+    ```
+
+  </Step>
+</Steps>
+
+---
+
+## 2. Context Management with previousChatId
+
+<Steps>
+  <Step title="Link chats for conversation context">
+    Use `previousChatId` to maintain context across multiple chats:
+    
+    ```typescript title="conversation-chain.ts"
+    async function createConversation() {
+      let lastChatId: string | undefined;
+
+      async function sendMessage(input: string): Promise<string> {
+        const response = await fetch('https://api.vapi.ai/chat', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer YOUR_API_KEY',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            assistantId: 'your-assistant-id',
+            input: input,
+            ...(lastChatId && { previousChatId: lastChatId })
+          })
+        });
+
+        const chat = await response.json();
+        lastChatId = chat.id;
+        return chat.output[0].content;
+      }
+
+      return { sendMessage };
+    }
+
+    // Usage
+    const conversation = await createConversation();
+
+    const response1 = await conversation.sendMessage("Hello, I'm Alice");
+    console.log(response1);
+
+    const response2 = await conversation.sendMessage("What's my name?");
+    console.log(response2); // Should remember "Alice"
+    ```
+
+  </Step>
+</Steps>
+
+---
+
+## 3. Custom Assistant Configuration
+
+<Steps>
+  <Step title="Use inline assistant configuration">
+    Instead of pre-created assistants, define configuration per request:
+    
+    ```bash title="Custom Assistant Request"
+    curl -X POST https://api.vapi.ai/chat \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "input": "I need help with enterprise features",
+        "assistant": {
+          "model": {
+            "provider": "openai",
+            "model": "gpt-4o",
+            "temperature": 0.7,
+            "messages": [
+              {
+                "role": "system",
+                "content": "You are a helpful technical support agent specializing in enterprise features."
+              }
+            ]
+          }
+        }
+      }'
+    ```
+  </Step>
+  <Step title="Create specialized chat handlers">
+    Build different chat handlers for different types of requests:
+    
+    ```typescript title="specialized-handlers.ts"
+    async function createSpecializedChat(systemPrompt: string) {
+      return async function(userInput: string): Promise<string> {
+        const response = await fetch('https://api.vapi.ai/chat', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer YOUR_API_KEY',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            input: userInput,
+            assistant: {
+              model: {
+                provider: 'openai',
+                model: 'gpt-4o',
+                temperature: 0.3,
+                messages: [{ role: 'system', content: systemPrompt }]
+              }
+            }
+          })
+        });
+
+        const chat = await response.json();
+        return chat.output[0].content;
+      };
+    }
+
+    const technicalSupport = await createSpecializedChat(
+      "You are a technical support specialist. Ask clarifying questions and provide step-by-step troubleshooting."
+    );
+
+    const billingSupport = await createSpecializedChat(
+      "You are a billing support specialist. Be precise about billing terms and always verify account information."
+    );
+
+    // Usage
+    const techResponse = await technicalSupport("My API requests are returning 500 errors");
+    const billingResponse = await billingSupport("I was charged twice this month");
+    ```
+
+  </Step>
+</Steps>
+
+---
+
+## Next Steps
+
+Enhance your non-streaming chat system further:
+
+- **[Add streaming capabilities](/chat/streaming)** - Upgrade to real-time responses for better UX
+- **[OpenAI compatibility](/chat/openai-compatibility)** - Use familiar OpenAI SDK patterns
+- **[Integrate tools](/tools)** - Enable your assistant to call external APIs and databases
+- **[Session management](/chat/session-management)** - Learn about advanced context management with sessions
+- **[Add voice capabilities](/calls/outbound-calling)** - Extend your text chat to voice interactions
+
+<Callout>
+Need help? Chat with the team on our [Discord](https://discord.com/invite/pUFNcf2WmH) or mention us on [X/Twitter](https://x.com/Vapi_AI).
+</Callout>
+
+---
+
+title: OpenAI compatibility
+subtitle: Seamlessly migrate existing OpenAI integrations to Vapi with zero code changes
+slug: chat/openai-compatibility
+
+---
+
+## Overview
+
+Migrate your existing OpenAI chat applications to Vapi without changing a single line of code. Perfect for teams already using OpenAI SDKs, third-party tools expecting OpenAI API format, or developers who want to leverage existing OpenAI workflows.
+
+**What You'll Build:**
+
+- Drop-in replacement for OpenAI chat endpoints using Vapi assistants
+- Migration path from OpenAI to Vapi with existing codebases
+- Integration with popular frameworks like LangChain and Vercel AI SDK
+- Production-ready server implementations with both streaming and non-streaming
+
+## Prerequisites
+
+- Completed [Chat quickstart](/chat/quickstart) tutorial
+- Existing OpenAI integration or familiarity with OpenAI SDK
+
+## Scenario
+
+We'll migrate "TechFlow's" existing OpenAI-powered customer support chat to use Vapi assistants, maintaining all existing functionality while gaining access to Vapi's advanced features like custom voices and tools.
+
+---
+
+## 1. Quick Migration Test
+
+<Steps>
+  <Step title="Install the OpenAI SDK">
+    If you don't already have it, install the OpenAI SDK:
+    
+    <CodeBlocks>
+    ```bash title="npm"
+    npm install openai
+    ```
+
+    ```bash title="yarn"
+    yarn add openai
+    ```
+
+    ```bash title="pnpm"
+    pnpm add openai
+    ```
+
+    ```bash title="bun"
+    bun add openai
+    ```
+    </CodeBlocks>
+
+  </Step>
+  <Step title="Test with OpenAI-compatible endpoint">
+    Use your existing OpenAI code with minimal changes:
+    
+    ```bash title="Test OpenAI Compatibility"
+    curl -X POST https://api.vapi.ai/chat/responses \
+      -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "gpt-4o",
+        "input": "Hello, I need help with my account",
+        "stream": false,
+        "assistantId": "your-assistant-id"
+      }'
+    ```
+  </Step>
+  <Step title="Verify response format">
+    The response follows OpenAI's structure with Vapi enhancements:
+    
+    ```json title="OpenAI-Compatible Response"
+    {
+      "id": "response_abc123",
+      "object": "chat.response",
+      "created": 1642678392,
+      "model": "gpt-4o",
+      "output": [
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "Hello! I'd be happy to help with your account. What specific issue are you experiencing?"
+            }
+          ]
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 12,
+        "completion_tokens": 23,
+        "total_tokens": 35
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 2. Migrate Existing OpenAI Code
+
+<Steps>
+  <Step title="Update your OpenAI client configuration">
+    Change only the base URL and API key in your existing code:
+    
+    ```typescript title="Before (OpenAI)"
+    import OpenAI from 'openai';
+
+    const openai = new OpenAI({
+      apiKey: 'your-openai-api-key'
+    });
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: 'Hello!' }],
+      stream: true
+    });
+    ```
+
+    ### With Vapi (No Code Changes)
+
+    ```typescript title="After (Vapi)"
+    import OpenAI from 'openai';
+
+    const openai = new OpenAI({
+      apiKey: 'YOUR_VAPI_API_KEY',
+      baseURL: 'https://api.vapi.ai/chat',
+    });
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: 'Hello!' }],
+      stream: true
+    });
+    ```
+
+  </Step>
+  <Step title="Update your function calls">
+    Change `chat.completions.create` to `responses.create` and add `assistantId`:
+    
+    ```typescript title="Before (OpenAI Chat Completions)"
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'user', content: 'What is the capital of France?' }
+      ],
+      stream: false
+    });
+    
+    console.log(response.choices[0].message.content);
+    ```
+    
+    ```typescript title="After (Vapi Compatibility)"
+    const response = await openai.responses.create({
+      model: 'gpt-4o',
+      input: 'What is the capital of France?',
+      stream: false,
+      assistantId: 'your-assistant-id'
+    });
+    
+    console.log(response.output[0].content[0].text);
+    ```
+  </Step>
+  <Step title="Test your migrated code">
+    Run your updated code to verify the migration works:
+    
+    ```typescript title="migration-test.ts"
+    import OpenAI from 'openai';
+    
+    const openai = new OpenAI({
+      apiKey: 'YOUR_VAPI_API_KEY',
+      baseURL: 'https://api.vapi.ai/chat'
+    });
+    
+    async function testMigration() {
+      try {
+        const response = await openai.responses.create({
+          model: 'gpt-4o',
+          input: 'Hello, can you help me troubleshoot an API issue?',
+          stream: false,
+          assistantId: 'your-assistant-id'
+        });
+        
+        console.log('Migration successful!');
+        console.log('Response:', response.output[0].content[0].text);
+      } catch (error) {
+        console.error('Migration test failed:', error);
+      }
+    }
+    
+    testMigration();
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 3. Implement Streaming with OpenAI SDK
+
+<Steps>
+  <Step title="Migrate streaming chat completions">
+    Update your streaming code to use Vapi's streaming format:
+    
+    ```bash title="Streaming via curl"
+    curl -X POST https://api.vapi.ai/chat/responses \
+      -H "Authorization: Bearer YOUR_VAPI_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "gpt-4o",
+        "input": "Explain how machine learning works in detail",
+        "stream": true,
+        "assistantId": "your-assistant-id"
+      }'
+    ```
+  </Step>
+  <Step title="Update streaming JavaScript code">
+    Adapt your existing streaming implementation:
+    
+    ```typescript title="streaming-migration.ts"
+    async function streamWithVapi(userInput: string): Promise<string> {
+      const stream = await openai.responses.create({
+        model: 'gpt-4o',
+        input: userInput,
+        stream: true,
+        assistantId: 'your-assistant-id'
+      });
+
+      let fullResponse = '';
+
+      const reader = stream.body?.getReader();
+      if (!reader) return fullResponse;
+
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+
+        // Parse and process SSE events
+        const lines = chunk.split('\n').filter(line => line.trim());
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const event = JSON.parse(line.slice(6));
+              if (event.path && event.delta) {
+                process.stdout.write(event.delta);
+                fullResponse += event.delta;
+              }
+            } catch (e) {
+              console.error('Invalid JSON line:', line);
+              continue;
+            }
+          }
+        }
+      }
+
+      console.log('\n\nComplete response received.');
+      return fullResponse;
+    }
+
+    streamWithVapi('Write a detailed explanation of REST APIs');
+    ```
+
+  </Step>
+  <Step title="Handle conversation context">
+    Implement context management using Vapi's approach:
+    
+    ```typescript title="context-management.ts"
+    function createContextualChatSession(apiKey: string, assistantId: string) {
+      const openai = new OpenAI({
+        apiKey: apiKey,
+        baseURL: 'https://api.vapi.ai/chat'
+      });
+      let lastChatId: string | null = null;
+
+      async function sendMessage(input: string, stream: boolean = false) {
+        const requestParams = {
+          model: 'gpt-4o',
+          input: input,
+          stream: stream,
+          assistantId: assistantId,
+          ...(lastChatId && { previousChatId: lastChatId })
+        };
+
+        const response = await openai.responses.create(requestParams);
+
+        if (!stream) {
+          lastChatId = response.id;
+          return response.output[0].content[0].text;
+        }
+
+        return response;
+      }
+
+      return { sendMessage };
+    }
+
+    // Usage example
+    const session = createContextualChatSession('YOUR_VAPI_API_KEY', 'your-assistant-id');
+
+    const response1 = await session.sendMessage("My name is Sarah and I'm having login issues");
+    console.log('Response 1:', response1);
+
+    const response2 = await session.sendMessage("What was my name again?");
+    console.log('Response 2:', response2); // Should remember "Sarah"
+    ```
+
+  </Step>
+</Steps>
+
+---
+
+## 4. Framework Integrations
+
+<Steps>
+  <Step title="Integrate with LangChain">
+    Use Vapi with LangChain's OpenAI integration:
+    
+    ```typescript title="langchain-integration.ts"
+    import { ChatOpenAI } from "langchain/chat_models/openai";
+    import { HumanMessage } from "langchain/schema";
+
+    const chat = new ChatOpenAI({
+      openAIApiKey: "YOUR_VAPI_API_KEY",
+      configuration: {
+        baseURL: "https://api.vapi.ai/chat"
+      },
+      modelName: "gpt-4o",
+      streaming: false
+    });
+
+    async function chatWithVapi(message: string, assistantId: string): Promise<string> {
+      const response = await fetch('https://api.vapi.ai/chat/responses', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer YOUR_VAPI_API_KEY`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          input: message,
+          assistantId: assistantId,
+          stream: false
+        })
+      });
+
+      const data = await response.json();
+      return data.output[0].content[0].text;
+    }
+
+    // Usage
+    const response = await chatWithVapi(
+      "What are the best practices for API design?",
+      "your-assistant-id"
+    );
+    console.log(response);
+    ```
+
+  </Step>
+  <Step title="Integrate with Vercel AI SDK">
+    Use Vapi with Vercel's AI SDK:
+    
+    ```typescript title="vercel-ai-integration.ts"
+    import { openai } from '@ai-sdk/openai';
+    import { generateText, streamText } from 'ai';
+
+    const vapiOpenAI = openai({
+      apiKey: 'YOUR_VAPI_API_KEY',
+      baseURL: 'https://api.vapi.ai/chat'
+    });
+
+    // Non-streaming text generation
+    async function generateWithVapi(prompt: string, assistantId: string): Promise<string> {
+      const response = await fetch('https://api.vapi.ai/chat/responses', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer YOUR_VAPI_API_KEY`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          input: prompt,
+          assistantId: assistantId,
+          stream: false
+        })
+      });
+
+      const data = await response.json();
+      return data.output[0].content[0].text;
+    }
+
+    // Streaming implementation
+    async function streamWithVapi(prompt: string, assistantId: string): Promise<void> {
+      const response = await fetch('https://api.vapi.ai/chat/responses', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer YOUR_VAPI_API_KEY`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          input: prompt,
+          assistantId: assistantId,
+          stream: true
+        })
+      });
+
+      const reader = response.body?.getReader();
+      if (!reader) return;
+
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+
+        // Parse and process SSE events
+        const lines = chunk.split('\n').filter(line => line.trim());
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const event = JSON.parse(line.slice(6));
+              if (event.path && event.delta) {
+                process.stdout.write(event.delta);
+              }
+            } catch (e) {
+              console.error('Invalid JSON line:', line);
+              continue;
+            }
+          }
+        }
+      }
+    }
+
+    // Usage examples
+    const text = await generateWithVapi(
+      "Explain the benefits of microservices architecture",
+      "your-assistant-id"
+    );
+    console.log(text);
+    ```
+
+  </Step>
+  <Step title="Create a production server">
+    Build a simple server that exposes Vapi through OpenAI-compatible endpoints:
+    
+    ```typescript title="simple-server.ts"
+    import express from 'express';
+
+    const app = express();
+    app.use(express.json());
+
+    app.post('/v1/chat/completions', async (req, res) => {
+      const { messages, model, stream = false, assistant_id } = req.body;
+
+      if (!assistant_id) {
+        return res.status(400).json({
+          error: 'assistant_id is required for Vapi compatibility'
+        });
+      }
+
+      const lastMessage = messages[messages.length - 1];
+      const input = lastMessage.content;
+
+      const response = await fetch('https://api.vapi.ai/chat', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.VAPI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          assistantId: assistant_id,
+          input: input,
+          stream: stream
+        })
+      });
+
+      if (stream) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          return res.status(500).json({ error: 'Failed to get stream reader' });
+        }
+
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            res.write('data: [DONE]\n\n');
+            res.end();
+            break;
+          }
+
+          const chunk = decoder.decode(value);
+          res.write(chunk);
+        }
+      } else {
+        const chat = await response.json();
+        const openaiResponse = {
+          id: chat.id,
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: model || 'gpt-4o',
+          choices: [{
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: chat.output[0].content
+            },
+            finish_reason: 'stop'
+          }]
+        };
+        res.json(openaiResponse);
+      }
+    });
+
+    app.listen(3000, () => {
+      console.log('Vapi-OpenAI compatibility server running on port 3000');
+    });
+    ```
+
+  </Step>
+</Steps>
+
+---
+
+## Next Steps
+
+Enhance your migrated system:
+
+- **[Explore Vapi-specific features](/chat/quickstart)** - Leverage advanced assistant capabilities
+- **[Add voice capabilities](/calls/outbound-calling)** - Extend beyond text to voice interactions
+- **[Integrate tools](/tools/custom-tools)** - Give your assistant access to external APIs
+- **[Optimize for streaming](/chat/streaming)** - Improve real-time user experience
+
+<Callout>
+Need help? Chat with the team on our [Discord](https://discord.com/invite/pUFNcf2WmH) or mention us on [X/Twitter](https://x.com/Vapi_AI).
+</Callout>
+
+---
+
+title: Session management
+subtitle: Maintain conversation context using previousChatId vs sessionId
+slug: chat/session-management
+
+---
+
+## Overview
+
+Vapi provides two approaches for maintaining conversation context across multiple chat interactions.
+
+**Two Context Management Methods:**
+
+- **`previousChatId`** - Links individual chats in sequence
+- **`sessionId`** - Groups multiple chats under a persistent session
+
+<Warning>
+`previousChatId` and `sessionId` are **mutually exclusive**. You cannot use both in the same request.
+</Warning>
+
+## Prerequisites
+
+- Completed [Chat quickstart](/chat/quickstart) tutorial
+- Basic understanding of chat requests and responses
+
+---
+
+## Method 1: Using previousChatId
+
+Link chats together by referencing the ID of the previous chat.
+
+<Steps>
+  <Step title="Send first message">
+    ```bash title="Initial Chat"
+    curl -X POST https://api.vapi.ai/chat \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "assistantId": "your-assistant-id",
+        "input": "Hello, my name is Sarah"
+      }'
+    ```
+  </Step>
+  <Step title="Get the chat ID from response">
+    ```json title="Response"
+    {
+      "id": "chat_abc123",
+      "output": [{"role": "assistant", "content": "Hello Sarah!"}]
+    }
+    ```
+  </Step>
+  <Step title="Reference previous chat in next request">
+    ```bash title="Follow-up Chat"
+    curl -X POST https://api.vapi.ai/chat \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "assistantId": "your-assistant-id",
+        "previousChatId": "chat_abc123",
+        "input": "What was my name again?"
+      }'
+    ```
+  </Step>
+</Steps>
+
+Here's a TypeScript implementation of the conversation chain:
+
+```typescript title="conversation-chain.ts"
+function createConversationChain() {
+  let lastChatId: string | null = null;
+
+  return async function sendMessage(
+    assistantId: string,
+    input: string
+  ) {
+    const requestBody = {
+      assistantId,
+      input,
+      ...(lastChatId && { previousChatId: lastChatId }),
+    };
+
+    const response = await fetch("https://api.vapi.ai/chat", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.VAPI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const chat = await response.json();
+    lastChatId = chat.id;
+
+    return chat.output[0].content;
+  };
+}
+
+// Usage
+const sendMessage = createConversationChain();
+await sendMessage("asst_123", "Hi, I'm Alice");
+await sendMessage("asst_123", "What's my name?"); // Remembers Alice
+```
+
+---
+
+## Method 2: Using sessionId
+
+Create a persistent session that groups multiple chats.
+
+<Steps>
+  <Step title="Create a session">
+    ```bash title="Create Session"
+    curl -X POST https://api.vapi.ai/session \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"assistantId": "your-assistant-id"}'
+    ```
+  </Step>
+  <Step title="Get session ID from response">
+    ```json title="Session Response"
+    {
+      "id": "session_xyz789",
+      "assistantId": "your-assistant-id"
+    }
+    ```
+  </Step>
+  <Step title="Use session ID in all related chats">
+    ```bash title="First Chat in Session"
+    curl -X POST https://api.vapi.ai/chat \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "sessionId": "session_xyz789",
+        "input": "Hello, I need help with billing"
+      }'
+    ```
+  </Step>
+</Steps>
+
+<Note>
+- Sessions expire automatically after 24 hours by default. After expiration, you'll need to create a new session to continue conversations.
+- Web chat widget and SMS conversations automatically manage session creation and expiration. You don't need to manually create or manage sessions when using these channels.
+</Note>
+
+Here's a TypeScript implementation of the session manager:
+
+```typescript title="session-manager.ts"
+async function createSession(assistantId: string) {
+  const response = await fetch("https://api.vapi.ai/session", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.VAPI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ assistantId }),
+  });
+
+  const session = await response.json();
+
+  return function sendMessage(input: string) {
+    return fetch("https://api.vapi.ai/chat", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.VAPI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ sessionId: session.id, input }),
+    })
+      .then((response) => response.json())
+      .then((chat) => chat.output[0].content);
+  };
+}
+
+// Usage
+const sendMessage = await createSession("asst_123");
+await sendMessage("I need help with my account");
+await sendMessage("What was my first question?"); // Remembers context
+```
+
+---
+
+## When to use each approach
+
+Use `previousChatId` when:
+
+- Dealing with simple back-and-forth conversations
+- Looking for a minimal setup
+
+Use `sessionId` when:
+
+- Building complex multi-step workflows
+- Long-running conversations
+- Error resilience needed
+
+<Note>
+Sessions are tied to one assistant. You cannot specify `assistantId` when using `sessionId`.
+</Note>
+
+---
+
+## Multi-Assistant Workflows
+
+For workflows with multiple assistants, create separate sessions for each assistant.
+
+```typescript title="multi-assistant-workflow.ts"
+function createMultiAssistantWorkflow() {
+  const sessions = new Map<string, string>();
+
+  return async function sendToAssistant(
+    assistantId: string,
+    input: string
+  ) {
+    let sessionId = sessions.get(assistantId);
+
+    if (!sessionId) {
+      const response = await fetch("https://api.vapi.ai/session", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.VAPI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ assistantId }),
+      });
+
+      const session = await response.json();
+      sessionId = session.id;
+      sessions.set(assistantId, sessionId);
+    }
+
+    const response = await fetch("https://api.vapi.ai/chat", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.VAPI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ sessionId, input }),
+    });
+
+    const chat = await response.json();
+    return chat.output[0].content;
+  };
+}
+
+// Usage
+const sendToAssistant = createMultiAssistantWorkflow();
+await sendToAssistant("support_agent", "I have a billing issue");
+await sendToAssistant("billing_agent", "Can you help with this?");
+```
+
+---
+
+## Webhook Support
+
+<Note>
+Sessions support the following webhook events through server messaging:
+- **`session.created`** - Triggered when a new session is created
+- **`session.updated`** - Triggered when a session is updated
+- **`session.deleted`** - Triggered when a session is deleted
+
+To receive these webhooks, go to your Assistant page in the Dashboard and navigate to "Server Messaging" and select the events you want to receive.
+
+These webhooks are useful for tracking session lifecycle, managing session state in your own database, and triggering workflows based on session changes.
+</Note>
+
+---
+
+## Next Steps
+
+- **[Streaming responses](/chat/streaming)** - Add real-time responses to session-managed chats
+- **[OpenAI compatibility](/chat/openai-compatibility)** - Use familiar OpenAI patterns with sessions
+- **[Custom tools](/tools/custom-tools)** - Give assistants access to external APIs within sessions
+
+<Callout>
+Need help? Chat with the team on our [Discord](https://discord.com/invite/pUFNcf2WmH) or mention us on [X/Twitter](https://x.com/Vapi_AI).
+</Callout>
+
+---
+
+title: Web widget
+subtitle: >-
+Add AI chat and voice capabilities to any website with a simple embeddable
+widget
+slug: chat/web-widget
+
+---
+
+## Overview
+
+Add a complete AI chat and voice interface to your website with a single line of code. The Vapi Web Widget provides a customizable, floating chat interface that supports both text chat and voice conversations.
+
+**What You'll Build:**
+
+- Embeddable chat widget with voice and text capabilities
+- Customizable themes, colors, and positioning
+- Real-time conversations with context management
+- Cross-platform compatibility with minimal setup
+
+**Widget Features:**
+
+- **Voice Mode** - Full voice conversations with transcription
+- **Chat Mode** - Text-based conversations like ChatGPT
+- **Custom Styling** - Match your website's design
+
+<Note>
+View the complete source code and examples on [GitHub](https://github.com/VapiAI/client-sdk-react).
+</Note>
+
+## Prerequisites
+
+- A [Vapi account](https://dashboard.vapi.ai/) with a public API key
+- An existing assistant or willingness to create one
+- A website where you want to embed the widget
+
+## Scenario
+
+We'll add a customer support widget to "TechFlow's" website that allows visitors to get help through both voice and text conversations.
+
+---
+
+## 1. Get Your Public API Key
+
+<Steps>
+  <Step title="Open the Vapi Dashboard">
+    Go to [dashboard.vapi.ai](https://dashboard.vapi.ai) and log in to your account.
+  </Step>
+  <Step title="Navigate to API Keys">
+    Click on your profile in the top right, then select `Vapi API Keys`.
+  </Step>
+  <Step title="Copy your Public API Key">
+    Copy your **Public API Key**. This is safe to use in client-side code.
+    
+    <Note>
+    Unlike private keys, public keys are safe to expose in your website code.
+    </Note>
+  </Step>
+  <Step title="Get your Assistant ID">
+    Navigate to `Assistants` in the left sidebar and copy the ID of the assistant you want to use.
+  </Step>
+</Steps>
+
+---
+
+## 2. Install the Widget
+
+<Tabs>
+  <Tab title="CDN Script">
+    Add the widget script to your HTML page:
+    
+    ```html title="index.html"
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Your Website</title>
+    </head>
+    <body>
+        <!-- Your website content -->
+        
+        <!-- Add Vapi Widget -->
+        <script src="https://unpkg.com/@vapi-ai/client-sdk-react/dist/embed/widget.umd.js" async type="text/javascript"></script>
+        
+        <vapi-widget
+          public-key="your-public-key"
+          assistant-id="your-assistant-id"
+          mode="chat"
+          theme="light"
+        ></vapi-widget>
+    </body>
+    </html>
+    ```
+  </Tab>
+  <Tab title="React Component">
+    Install the React package and use it as a component:
+    
+    <CodeBlocks>
+    ```bash title="npm"
+    npm install @vapi-ai/client-sdk-react
+    ```
+    
+    ```bash title="yarn"
+    yarn add @vapi-ai/client-sdk-react
+    ```
+    
+    ```bash title="pnpm"
+    pnpm add @vapi-ai/client-sdk-react
+    ```
+    </CodeBlocks>
+    
+    ```tsx title="App.tsx"
+    import { VapiWidget } from '@vapi-ai/client-sdk-react';
+    
+    function App() {
+      return (
+        <div>
+          {/* Your app content */}
+          
+          <VapiWidget
+            publicKey="your-public-key"
+            assistantId="your-assistant-id"
+            mode="chat"
+            theme="light"
+          />
+        </div>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## 3. Configure Widget Modes
+
+<Steps>
+  <Step title="Choose the right mode for your use case">
+    The widget supports two interaction modes:
+    
+    **Voice Mode** - Voice-only conversations
+    ```html
+    <vapi-widget
+      public-key="your-public-key"
+      assistant-id="your-assistant-id"
+      mode="voice"
+      size="compact"
+    ></vapi-widget>
+    ```
+    
+    **Chat Mode** - Text-only conversations
+    ```html
+    <vapi-widget
+      public-key="your-public-key"
+      assistant-id="your-assistant-id"
+      mode="chat"
+      size="full"
+    ></vapi-widget>
+    ```
+    
+  </Step>
+  <Step title="Test the widget">
+    Open your website and click the floating widget button to test the integration.
+  </Step>
+</Steps>
+
+---
+
+## 4. Customize Appearance
+
+<Steps>
+  <Step title="Choose theme and colors">
+    Customize the widget to match your website's design:
+    
+    ```html title="Custom Styling"
+    <vapi-widget
+      public-key="your-public-key"
+      assistant-id="your-assistant-id"
+      mode="chat"
+      theme="dark"
+      size="full"
+      radius="large"
+      base-color="#1a1a1a"
+      accent-color="#3B82F6"
+      button-base-color="#000000"
+      button-accent-color="#FFFFFF"
+    ></vapi-widget>
+    ```
+  </Step>
+  <Step title="Customize labels and messages">
+    Set custom text for better user experience:
+    
+    ```html title="Custom Labels"
+    <vapi-widget
+      public-key="your-public-key"
+      assistant-id="your-assistant-id"
+      mode="chat"
+      main-label="Chat with Support"
+      start-button-text="Start Voice Chat"
+      end-button-text="End Call"
+      empty-chat-message="Hi! How can I help you today?"
+      empty-voice-message="Click to start a voice conversation"
+    ></vapi-widget>
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 5. Handle Events and Callbacks
+
+<Steps>
+  <Step title="Add event listeners for the widget">
+    Handle widget events to integrate with your application:
+    
+    ```html title="Event Handling"
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const widget = document.querySelector('vapi-widget');
+        
+        // Listen for call events
+        widget.addEventListener('call-start', function(event) {
+          console.log('Voice call started');
+          // Track analytics, update UI, etc.
+        });
+        
+        widget.addEventListener('call-end', function(event) {
+          console.log('Voice call ended');
+          // Update UI, save conversation, etc.
+        });
+        
+        widget.addEventListener('message', function(event) {
+          console.log('Message received:', event.detail);
+          // Process message, update state, etc.
+        });
+        
+        widget.addEventListener('error', function(event) {
+          console.error('Widget error:', event.detail);
+          // Handle errors, show fallback UI, etc.
+        });
+      });
+    </script>
+    ```
+  </Step>
+  <Step title="React event handling">
+    Handle events in React components:
+    
+    ```tsx title="React Events"
+    import { VapiWidget } from '@vapi-ai/client-sdk-react';
+    
+    function App() {
+      const handleCallStart = () => {
+        console.log('Voice call started');
+        // Update state, track analytics, etc.
+      };
+      
+      const handleCallEnd = () => {
+        console.log('Voice call ended');
+        // Update state, save conversation, etc.
+      };
+      
+      const handleMessage = (message: any) => {
+        console.log('Message received:', message);
+        // Process message, update state, etc.
+      };
+      
+      const handleError = (error: Error) => {
+        console.error('Widget error:', error);
+        // Handle errors, show fallback UI, etc.
+      };
+      
+      return (
+        <VapiWidget
+          publicKey="your-public-key"
+          assistantId="your-assistant-id"
+          mode="voice"
+          onCallStart={handleCallStart}
+          onCallEnd={handleCallEnd}
+          onMessage={handleMessage}
+          onError={handleError}
+        />
+      );
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 6. Advanced Configuration
+
+<Steps>
+  <Step title="Use dynamic assistant configuration">
+    Configure the assistant directly without pre-creating it:
+    
+    <Note>
+    The `assistant` configuration is only supported in **voice mode**. For chat mode, use `assistant-id` with optional `assistant-overrides`.
+    </Note>
+    
+    ```html title="Inline Assistant Configuration"
+    <vapi-widget
+      public-key="your-public-key"
+      mode="voice"
+      assistant='{
+        "model": {
+          "provider": "openai",
+          "model": "gpt-4.1-mini",
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are a helpful customer support agent for TechFlow. Be friendly and helpful."
+            }
+          ]
+        }
+      }'
+    ></vapi-widget>
+    ```
+  </Step>
+  <Step title="Override assistant settings">
+    Modify existing assistant behavior with overrides:
+    
+    ```html title="Assistant Overrides"
+    <vapi-widget
+      public-key="your-public-key"
+      assistant-id="your-assistant-id"
+      mode="chat"
+      assistant-overrides='{
+        "variableValues": {
+          "customerName": "John Doe",
+          "customerTier": "Premium"
+        }
+      }'
+    ></vapi-widget>
+    ```
+  </Step>
+  <Step title="Add consent management">
+    Implement consent requirements for compliance:
+    
+    ```html title="Consent Management"
+    <vapi-widget
+      public-key="your-public-key"
+      assistant-id="your-assistant-id"
+      mode="chat"
+      require-consent="true"
+      terms-content="By using this chat widget, you agree to our privacy policy and terms of service. Your conversations may be recorded for quality assurance."
+      local-storage-key="techflow_widget_consent"
+    ></vapi-widget>
+    ```
+  </Step>
+</Steps>
+
+---
+
+## 7. Production Considerations
+
+<Steps>
+  <Step title="Optimize for performance">
+    Consider these optimizations for production:
+    
+    ```html title="Performance Optimizations"
+    <vapi-widget
+      public-key="your-public-key"
+      assistant-id="your-assistant-id"
+      mode="chat"
+      size="compact"
+      show-transcript="false"
+    ></vapi-widget>
+    ```
+  </Step>
+  <Step title="Handle errors gracefully">
+    Implement proper error handling:
+    
+    ```javascript title="Error Handling"
+    document.addEventListener('DOMContentLoaded', function() {
+      const widget = document.querySelector('vapi-widget');
+      
+      widget.addEventListener('error', function(event) {
+        const error = event.detail;
+        
+        // Log error for debugging
+        console.error('Widget error:', error);
+        
+        // Show user-friendly message
+        if (error.message.includes('microphone')) {
+          alert('Please allow microphone access to use voice features.');
+        } else if (error.message.includes('network')) {
+          alert('Connection error. Please check your internet connection.');
+        } else {
+          alert('Something went wrong. Please try again.');
+        }
+      });
+    });
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Configuration Reference
+
+### Required Props
+
+| Prop         | Type   | Description              |
+| ------------ | ------ | ------------------------ |
+| `public-key` | string | Your Vapi public API key |
+
+### Assistant Configuration
+
+| Prop                  | Type   | Description                                                      |
+| --------------------- | ------ | ---------------------------------------------------------------- |
+| `assistant-id`        | string | ID of your Vapi assistant                                        |
+| `assistant`           | object | Full assistant configuration (JSON string) - **Voice mode only** |
+| `assistant-overrides` | object | Override existing assistant settings (JSON string)               |
+
+<Note>
+You must provide either `assistant-id`, `assistant`, or both `assistant-id` and `assistant-overrides`. The `assistant` prop is only supported in voice mode.
+</Note>
+
+### Appearance Options
+
+| Prop       | Type                                                         | Default        | Description             |
+| ---------- | ------------------------------------------------------------ | -------------- | ----------------------- |
+| `mode`     | `voice` \| `chat`                                            | `chat`         | Widget interaction mode |
+| `theme`    | `light` \| `dark`                                            | `light`        | Color theme             |
+| `position` | `bottom-right` \| `bottom-left` \| `top-right` \| `top-left` | `bottom-right` | Screen position         |
+| `size`     | `tiny` \| `compact` \| `full`                                | `full`         | Widget size             |
+| `radius`   | `none` \| `small` \| `medium` \| `large`                     | `medium`       | Border radius           |
+
+### Styling Options
+
+| Prop                  | Type   | Default   | Description                     |
+| --------------------- | ------ | --------- | ------------------------------- |
+| `base-color`          | string | -         | Main background color           |
+| `accent-color`        | string | `#14B8A6` | Primary accent color            |
+| `button-base-color`   | string | `#000000` | Floating button background      |
+| `button-accent-color` | string | `#FFFFFF` | Floating button text/icon color |
+
+### Text Customization
+
+| Prop                  | Type   | Default        | Description                      |
+| --------------------- | ------ | -------------- | -------------------------------- |
+| `main-label`          | string | `Talk with AI` | Widget header text               |
+| `start-button-text`   | string | `Start`        | Voice call start button text     |
+| `end-button-text`     | string | `End Call`     | Voice call end button text       |
+| `empty-chat-message`  | string | -              | Message when chat is empty       |
+| `empty-voice-message` | string | -              | Message when voice mode is empty |
+
+### Advanced Options
+
+| Prop                | Type    | Default               | Description                        |
+| ------------------- | ------- | --------------------- | ---------------------------------- |
+| `require-consent`   | boolean | `false`               | Show consent form before first use |
+| `terms-content`     | string  | -                     | Custom consent form text           |
+| `local-storage-key` | string  | `vapi_widget_consent` | Key for storing consent            |
+| `show-transcript`   | boolean | `true`                | Show/hide voice transcript         |
+
+## Browser Support
+
+- Chrome/Edge 79+
+- Firefox 86+
+- Safari 14.1+
+- Mobile browsers with WebRTC support
+
+## Requirements
+
+- Microphone access for voice mode
+- HTTPS required in production
+- Vapi account and API key
+
+## Next Steps
+
+Enhance your widget integration:
+
+- **[Chat API](/chat/quickstart)** - Build custom chat interfaces using the API directly
+- **[Voice calls](/calls/outbound-calling)** - Add programmatic voice calling capabilities
+- **[Custom tools](/tools/custom-tools)** - Give your assistant access to external APIs
+- **[Assistant customization](/assistants)** - Fine-tune your assistant's behavior
+
+<Tip>
+The widget automatically handles microphone permissions, audio processing, and cross-browser compatibility. For custom implementations, consider using the [Web SDK](/sdk/web) directly.
+</Tip>
+
+<Callout>
+Need help? Chat with the team on our [Discord](https://discord.com/invite/pUFNcf2WmH) or mention us on [X/Twitter](https://x.com/Vapi_AI).
+</Callout>
+
+---
+
+title: Server URLs
+subtitle: Learn how to set up your server to receive and respond to messages from Vapi.
+slug: server-url
+
+---
+
+<Frame caption="Server URLs give Vapi a location to send real-time conversation data (as well as query for data Vapi needs).">
+  <img src="file:c2d6d9bb-eeac-4410-8898-436bdffff5d4" />
+</Frame>
+
+Server URLs allow your application to **receive data** & **communicate with Vapi** during conversations. Conversation events can include:
+
+- **Status Updates:** updates on the status of a call
+- **Transcript Updates**: call transcripts
+- **Function Calls:** payloads delivered when your assistant wants certain actions executed
+- **Assistant Requests:** in certain circumstances, Vapi may ping your server to get dynamic configuration for an assistant handling a specific call
+- **End of Call Report:** call summary data at the end of a call
+- **Hang Notifications:** get notified when your assistant fails to reply for a certain amount of time
+
+In our [quickstart guides](/quickstart) we learned how to setup a basic back-and-forth conversation with a Vapi assistant.
+
+To build more complex & custom applications, we're going to need to get real-time conversation data to our backend. **This is where server URLs come in.**
+
+<Info>
+  If you're familiar with functional programming, Server URLs are like callback functions. But
+  instead of specifying a function to get data back on, we specify a URL to a server (to POST data
+  back to).
+</Info>
+
+## Get Started
+
+To get started using server URLs, read our guides:
+
+<CardGroup cols={2}>
+  <Card
+    title="Setting Server URLs"
+    icon="link"
+    iconType="duotone"
+    href="/server-url/setting-server-urls"
+  >
+    Server URLs can be set in multiple places. Learn where here.
+  </Card>
+  <Card title="Events" icon="bell-on" iconType="solid" href="/server-url/events">
+    Read about the different types of events Vapi can send to your server.
+  </Card>
+  <Card
+    title="Developing Locally"
+    icon="laptop-arrow-down"
+    iconType="solid"
+    href="/server-url/developing-locally"
+  >
+    Learn about receiving server events in your local development environment.
+  </Card>
+  <Card
+    title="CLI Webhook Testing"
+    icon="terminal"
+    iconType="solid"
+    href="/cli/webhook"
+  >
+    Forward webhooks to your local server with the Vapi CLI.
+  </Card>
+</CardGroup>
+
+<Tip>
+**Quick local testing with Vapi CLI + tunneling:**
+```bash
+# Terminal 1: Create tunnel
+ngrok http 4242
+
+# Terminal 2: Start webhook forwarder
+
+vapi listen --forward-to localhost:3000/webhook
+
+````
+This setup forwards webhook events to your local server. Remember to update your Vapi webhook URLs to use the ngrok public URL.
+</Tip>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Where can the server be located?">
+    The server URL can be any publicly accessible URL pointing to an HTTP endpoint. This can be a:
+    - **Cloud Server:** your application might be deployed on a cloud platform like [Railway](https://railway.app), [AWS](https://aws.com), [GCP](https://cloud.google.com/gcp), etc — as a persistent web server.
+    - **Serverless Function:** services like [Vercel](https://vercel.com/docs/functions), [AWS Lambda](https://aws.amazon.com/lambda/), [Google Cloud Functions](https://cloud.google.com/functions), [Cloudflare](https://developers.cloudflare.com/workers/), etc — allow you to host on-demand cloud functions.
+    - **Workflow Orchestrator:** platforms like [Pipedream](https://pipedream.com) & [Make](https://www.make.com) allow you to program workflows (often without code) that can receive events via HTTP triggers.
+
+    The main idea is that Vapi needs a location on the Internet that it can drop data to & converse with your application.
+
+  </Accordion>
+  <Accordion title="Why not just call them webhooks?">
+    [Webhooks](/glossary#webhook) are traditionally unidirectional & stateless, with the target endpoint usually only replying with a status code to acknowledge message reception. Certain server URL events (like assistant requests) may require a meaningful reply from your server.
+
+    "Server URL" is a more general term that encompasses both webhooks & bidirectional communication.
+
+  </Accordion>
+</AccordionGroup>
+
+---
+title: Setting server URLs
+subtitle: Learn about where you can set server URLs to handle call events.
+slug: server-url/setting-server-urls
+---
+
+
+<Frame caption="Server URLs can be set at multiple levels in Vapi.">
+  <img src="file:4259646d-b6db-4cc6-a45f-ce848e532cde" />
+</Frame>
+
+Server URLs can be set in multiple places in Vapi. Each level has a different priority.
+
+The server URL with the highest priority for a relevant event will be the one that Vapi uses to send the event to.
+
+Server URLs can be set at **4 levels** in Vapi:
+
+- **Account-wide:** you can set a server URL for your broader account
+- **Phone Number:** server URLs can be attached to phone numbers themselves
+- **Assistant:** assistants can be configured with a server URL
+- **Function:** function calls themselves (under an assistant) can have a corresponding server URL
+
+## Setting Server URLs
+
+Here's a breakdown of where you can set server URLs in Vapi:
+
+<AccordionGroup>
+  <Accordion title="Organization" icon="table-columns" iconType="solid">
+    You can set an organization-wide server URL in the [organization section](https://dashboard.vapi.ai/vapi-api) of your dashboard.
+
+    <Frame caption="Setting your organization-wide server URL.">
+      <img src="file:e3ea5f18-f34d-4e18-8349-ae7fad3b72d5" />
+    </Frame>
+
+    If no other server URL is set, Vapi will use this one.
+
+  </Accordion>
+  <Accordion title="Phone Number" icon="phone-volume" iconType="solid">
+    Phone numbers can have a server URL attached to them via the [phone number API](/api-reference/phone-numbers).
+
+    The server URL for phone numbers can be set **3 ways**:
+    - **At Time of Creation:** when you [create a free number](/api-reference/phone-numbers/create) through Vapi
+    - **At Import:** when you [import from Twilio](/api-reference/phone-numbers/import-twilio-number) or [Vonage](/api-reference/phone-numbers/import-vonage-number)
+    - **Via Update:** you can [update a number](/api-reference/phone-numbers/update-phone-number) already in your account
+
+    The field `phoneNumber.serverUrl` will contain the server URL for the phone number.
+
+  </Accordion>
+  <Accordion title="Assistant" icon="robot" iconType="solid">
+    Assistants themselves can have a server URL attached to them.
+
+    There are **2 ways** this can be done:
+
+    <AccordionGroup>
+      <Accordion title="In the Dashboard" icon="browsers" iconType="solid">
+        If you go to the [assistant section](https://dashboard.vapi.ai/assistants) of your dashboard, in the **"Advanced"** tab you will see a setting to set the assistant's server URL:
+
+        <Frame caption="Setting server URL at the assistant level.">
+          <img src="file:a142c43a-fd88-420c-9b5f-73e38f3879ad" />
+        </Frame>
+      </Accordion>
+      <Accordion title="Via the API" icon="code" iconType="solid">
+        At [assistant creation](/api-reference/assistants/create-assistant) (or via an [update](/api-reference/assistants/update-assistant)) you can set the assistant's server URL.
+
+        The server URL for an assistant is stored in the `assistant.serverUrl` field.
+      </Accordion>
+    </AccordionGroup>
+
+  </Accordion>
+  <Accordion title="Function Call" icon="function" iconType="solid">
+    The most granular level server URLs can be set is at the function call level. This can also be done either in the dashboard, or via code.
+
+    <AccordionGroup>
+      <Accordion title="In the Dashboard" icon="browsers" iconType="solid">
+        In the [assistant section](https://dashboard.vapi.ai/assistants) of your dashboard, in the **"Functions"** tab you can add function calls & optionally give each a specific server URL:
+
+        <Frame caption="Setting server URL at the function call level.">
+          <img src="file:8d64462b-0820-4ae6-8f8e-acac2205c023" />
+        </Frame>
+      </Accordion>
+      <Accordion title="Via the API" icon="code" iconType="solid">
+        The server URL for a function call can be found on an assistant at `assistant.model.functions[].serverUrl`.
+
+        You can either set the URL for a function call at [assistant creation](/api-reference/assistants/create-assistant), or in an [assistant update](/api-reference/assistants/update-assistant).
+      </Accordion>
+    </AccordionGroup>
+
+  </Accordion>
+</AccordionGroup>
+
+## URL Priority
+
+Events are only sent/assigned to 1 server URL in the priority stack. Here's the order of priority:
+
+1. **Function:** if a function call has a server URL, the function call event will be sent to that URL
+2. **Assistant:** assistant server URLs are the next highest priority
+3. **Phone Number:** if a phone number has a server URL, it will be used over the account-wide URL
+4. **Account-wide:** Default / "lowest" importance. It will be used if no other server URL is set.
+
+You will most commonly set a server URL on your account, and/or on specific assistants.
+
+---
+title: Server events
+subtitle: Learn about different events that can be sent to a Server URL.
+slug: server-url/events
+---
+
+
+All messages sent to your Server URL will be `POST` requests with the following body:
+
+```json
+{
+  "message": {
+    "type": "function-call",
+    "call": { Call Object },
+    ...other message properties
+  }
+}
+````
+
+They include the type of message, the call object, and any other properties that are relevant to the message type. Below are the different types of messages that can be sent to your Server URL.
+
+### Function Calling
+
+<Info>
+  Vapi fully supports [OpenAI's function calling
+  API](https://platform.openai.com/docs/guides/gpt/function-calling), so you can have assistants
+  ping your server to perform actions like sending emails, retrieve information, and more.
+</Info>
+
+With each response, the assistant will automatically determine what functions to call based on the directions provided in the system message in `messages`. Here's an example of what the assistant might look like:
+
+```json
+{
+  "name": "Ryan's Assistant",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "functions": [
+      {
+        "name": "sendEmail",
+        "description": "Used to send an email to a client.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "color": { "type": "string" }
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+Once a function is triggered, the assistant will send a message to your Server URL with the following body:
+
+```json
+{
+  "message": {
+    "type": "function-call",
+    "call": { Call Object },
+    "functionCall": {
+      "name": "sendEmail",
+      "parameters": "{ \"emailAddress\": \"john@example.com\"}"
+    }
+  }
+}
+```
+
+Your server should respond with a JSON object containing the function's response, like so:
+
+```json
+{ "result": "Your email has been sent." }
+```
+
+Or if it's an object:
+
+```json
+{
+  "result": "{ \"message\": \"Your email has been sent.\", \"email\": \"test@email.com\" }"
+}
+```
+
+The result will be appended to the conversation, and the assistant will decide what to do with the response based on its system prompt.
+
+<Note>
+  If you don't need to return a response, you can use the `async: true` parameter in your assitant's
+  function configuration. This will prevent the assistant from waiting for a response from your
+  server.
+</Note>
+
+### Retrieving Assistants
+
+For inbound phone calls, you may want to specify the assistant based on the caller's phone number. If a PhoneNumber doesn't have an `assistantId`, Vapi will attempt to retrieve the assistant from your server.
+
+```json
+{
+  "message": {
+    "type": "assistant-request",
+    "call": { Call Object },
+  }
+}
+```
+
+If you want to use an existing saved assistant instead of creating a transient assistant for each request, you can respond with the assistant's ID:
+
+```json
+{
+  "assistantId": "your-saved-assistant-id"
+}
+```
+
+Alternatively, if you prefer to define a transient assistant dynamically, your server should respond with the [assistant](/api-reference/webhooks/server-message#response.body.messageResponse.Server%20Message%20Response%20Assistant%20Request.assistant) object directly:
+
+```json
+{
+  "assistant": {
+    "firstMessage": "Hey Ryan, how are you?",
+    "model": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You're Ryan's assistant..."
+        }
+      ]
+    }
+  }
+}
+```
+
+If you'd like to play an error message instead, you can respond with:
+
+```json
+{
+  "error": "Sorry, not enough credits on your account, please refill."
+}
+```
+
+### Call Status Updates
+
+During the call, the assistant will make multiple `POST` requests to the Server URL with the following body:
+
+```json
+{
+  "message": {
+    "type": "status-update",
+    "call": { Call Object },
+    "status": "ended",
+  }
+}
+```
+
+<Card title="Status Events">
+  - `in-progress`: The call has started. - `forwarding`: The call is about to be forwarded to
+  `forwardingPhoneNumber`. - `ended`: The call has ended.
+</Card>
+
+### End of Call Report
+
+When a call ends, the assistant will make a `POST` request to the Server URL with the following body:
+
+```json
+{
+  "message": {
+    "type": "end-of-call-report",
+    "endedReason": "hangup",
+    "call": { Call Object },
+    "recordingUrl": "https://vapi-public.s3.amazonaws.com/recordings/1234.wav",
+    "summary": "The user picked up the phone then asked about the weather...",
+    "transcript": "AI: How can I help? User: What's the weather? ...",
+    "messages":[
+      {
+        "role": "assistant",
+        "message": "How can I help?",
+      },
+      {
+        "role": "user",
+        "message": "What's the weather?"
+      },
+      ...
+    ]
+  }
+}
+```
+
+`endedReason` can be any of the options defined on the [Call Object](/api-reference/calls/get-call).
+
+### Hang Notifications
+
+Whenever the assistant fails to respond for 5+ seconds, the assistant will make a `POST` requests to the Server URL with the following body:
+
+```json
+{
+  "message": {
+    "type": "hang",
+    "call": { Call Object },
+  }
+}
+```
+
+You can use this to display an error message to the user, or to send a notification to your team.
+
+---
+
+title: Developing locally
+subtitle: Learn how to receive server events in your local development environment.
+slug: server-url/developing-locally
+
+---
+
+<Frame caption="Routing server URL payloads to a public reverse proxy, which tunnels to our local development server.">
+  <img src="file:4fdac8ba-53ce-47f9-a8c7-3250b5408619" />
+</Frame>
+
+## Quick solution: Vapi CLI + Tunneling
+
+Use the Vapi CLI webhook forwarder along with a tunneling service to test webhooks locally:
+
+```bash
+# Terminal 1: Set up tunnel (example with ngrok)
+ngrok http 4242
+
+# Terminal 2: Install and run Vapi CLI
+curl -sSL https://vapi.ai/install.sh | bash
+vapi listen --forward-to localhost:3000/webhook
+```
+
+<Note>
+**Important:** The `vapi listen` command is a local forwarder only - it does NOT provide a public URL or tunnel. You must use a separate tunneling service (like ngrok) to expose the CLI's port (default 4242) to the internet, then configure your Vapi webhook URLs to use the tunnel's public URL.
+</Note>
+
+[Learn more about the Vapi CLI →](/cli/webhook)
+
+## Manual setup with ngrok
+
+If you prefer to skip the CLI and connect ngrok directly to your application, follow the guide below.
+
+## The Problem
+
+When Vapi dispatches events to a server, it must be able to reach the server via the open Internet.
+
+If your API is already live in production, it will be accessible via a publicly known URL. But, during development, your server will often be running locally on your machine.
+
+<Info>
+  `localhost` is an alias for the IP address `127.0.0.1`. This address is called the "loopback"
+  address and forwards the network request within the machine itself.
+</Info>
+
+To receive server events locally, we will need a public address on the Internet that can receive traffic and forward it to our local machine.
+
+## Tunneling Traffic
+
+We will be using a service called [ngrok](https://ngrok.com/) to create a secure tunnel to our local machine. The flow will look like the following:
+
+<Steps>
+  <Step title="Start Our API Locally">
+    We will start our server locally so it is listening for http traffic. We will take note of the port our server is running on.
+  </Step>
+  <Step title="Start Ngrok Agent">
+    We will use the `ngrok` command to start the [ngrok agent](https://ngrok.com/docs/agent) on our
+    machine. This will establish a connection from your local machine to ngrok's servers.
+  </Step>
+  <Step title="Copy Ngrok Forwarding URL">
+    Ngrok will give us a public forwarding URL that can receive traffic. We will use this as a server URL
+    during development.
+  </Step>
+  <Step title="Trigger Call Events">
+    We will conduct normal calls on Vapi to trigger events. These events will go to the Ngrok URL & get tunnelled to our local machine.
+
+    We will see the event payloads come through locally & log them in our terminal.
+
+  </Step>
+</Steps>
+
+#### Starting Our API Locally
+
+First, ensure that your API is running locally. This could be a Node.js server, a Python server, or any other server that can receive HTTP requests.
+
+Take note of the port that your server is running on. For example, if your server is running on port `8080`, you should be able to access it at `http://localhost:8080` in your browser.
+
+#### Starting Ngrok Agent
+
+Next we will install & run Ngrok agent to establish the forwarding pathway for Internet traffic:
+
+<Steps>
+  <Step title="Install Ngrok Agent CLI">
+    Install the Ngrok agent by following Ngrok's [quickstart
+    guide](https://ngrok.com/docs/getting-started). Once complete, we will have the `ngrok` command
+    available in our terminal.
+  </Step>
+  <Step title="Start Ngrok Agent">
+    Run the command `ngrok http 8080`, this will create the tunnel with Ngrok's servers.
+    <Note>Replace `8080` with the port your server is running on.</Note>
+  </Step>
+</Steps>
+
+#### Copy Ngrok Forwarding URL
+
+You will see an output from the Ngrok Agent CLI that looks like the following:
+
+<Frame caption="Terminal after running the 'ngrok' command forwarding to localhost:8080 — the 'Forwarding' URL is what we want.">
+  <img src="file:4304bf50-57b7-4daf-a5e0-d1a92476db0c" />
+</Frame>
+
+Copy this public URL that Ngrok provides. This URL will be accessible from the open Internet and will forward traffic to your local machine.
+
+You can now use this as a server URL in the various places you can [set server URLs](/server-url/setting-server-urls) in Vapi.
+
+<Note>
+  This URL will change every time that you run the `ngrok` command. If you'd like this URL to be the
+  same every Ngrok session, look into [static domains on
+  Ngrok](https://ngrok.com/docs/getting-started#step-4-always-use-the-same-domain).
+</Note>
+
+#### Trigger Call Events
+
+We will now be able to see call events come through as `POST` requests, & can log payloads to our terminal.
+
+<Frame caption="Logging call events routed to our local environment.">
+  <img src="file:8b6742c0-697f-4942-877b-40552f2696f5" />
+</Frame>
+
+Feel free to follow any of our [quickstart](/quickstart) guides to get started with building assistants & conducting calls.
+
+## Troubleshooting
+
+Here's a list of a few things to recheck if you face issues seeing payloads:
+
+- Ensure that your local server is running on the port you expect
+- Ensure that you input the correct port to the `ngrok http {your_port}` command
+- Ensure your route handling server URL events is a `POST` endpoint
+- Ensure your path on top of the base forwarding url is set correctly (ex: `/callbacks/vapi`)
+
+---
+
+title: Server authentication
+slug: server-url/server-authentication
+
+---
+
+When configuring webhooks for your assistant, you can authenticate your server endpoints using either a secret token, custom headers, or OAuth2. This ensures that only authorized requests from Vapi are processed by your server.
+
+## Credential Configuration
+
+Credentials can be configured at multiple levels:
+
+1. **Tool Call Level**: Create individual credentials for each tool call
+2. **Assistant Level**: Set credentials directly in the assistant configuration
+3. **Phone Number Level**: Configure credentials for specific phone numbers
+4. **Organization Level**: Manage credentials in the [API Keys page](https://dashboard.vapi.ai/keys)
+
+The order of precedence is:
+
+1. Tool call-level credentials
+2. Assistant-level credentials
+3. Phone number-level credentials
+4. Organization-level credentials from the API Keys page
+
+## Authentication Methods
+
+### Secret Token Authentication
+
+The simplest way to authenticate webhook requests is using a secret token. Vapi will include this token in the `X-Vapi-Signature` header of each request.
+
+#### Configuration
+
+```json
+{
+  "server": {
+    "url": "https://your-server.com/webhook",
+    "secret": "your-secret-token"
+  }
+}
+```
+
+### Custom Headers Authentication
+
+For more complex authentication scenarios, you can configure custom headers that Vapi will include with each webhook request.
+
+This could include short lived JWTs/API Keys passed along via the Authorization header, or any other header that your server checks for.
+
+#### Configuration
+
+```json
+{
+  "server": {
+    "url": "https://your-server.com/webhook",
+    "headers": {
+      "Authorization": "Bearer your-api-key",
+      "Custom-Header": "custom-value"
+    }
+  }
+}
+```
+
+### OAuth2 Authentication
+
+For OAuth2-protected webhook endpoints, you can configure OAuth2 credentials that Vapi will use to obtain and refresh access tokens.
+
+#### Configuration (at the assistant-level)
+
+```json
+{
+  "server": {
+    "url": "https://your-server.com/webhook"
+  },
+  "credentials": [
+    {
+      "provider": "webhook",
+      "authenticationPlan": {
+        "type": "oauth2",
+        "url": "https://your-server.com/oauth/token",
+        "clientId": "your-client-id",
+        "clientSecret": "your-client-secret",
+        "scope": "optional, only needed to specify which scopes to request access for"
+      }
+    }
+  ]
+}
+```
+
+#### Configuration (via our Dashboard)
+
+<Steps>
+  <Step title="Visit the API Keys page">
+    Go to [https://dashboard.vapi.ai/keys](https://dashboard.vapi.ai/keys) to manage your OAuth2 credentials.
+  </Step>
+</Steps>
+
+<Frame caption="OAuth2 configuration in the Vapi dashboard">
+  <img src="file:fc711850-2ee5-4ce3-b63f-770d2155a195" />
+</Frame>
+
+#### OAuth2 Flow
+
+1. Vapi makes a request to your token endpoint with client credentials (Content-Type `application/x-www-form-urlencoded`)
+2. Your server validates the credentials and returns an access token
+3. Vapi includes the access token in the Authorization header for webhook requests
+4. Your server validates the access token before processing the webhook
+5. When the token expires, Vapi automatically requests a new one
+
+#### OAuth2 Token Response Format
+
+Your server should return a JSON response with the following format:
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "Bearer",
+  "expires_in": 3600
+}
+```
+
+Example error response:
+
+```json
+{
+  "error": "invalid_client",
+  "error_description": "Invalid client credentials"
+}
+```
+
+Common error types:
+
+- `invalid_client`: Invalid client credentials
+- `invalid_grant`: Invalid or expired refresh token
+- `invalid_scope`: Invalid scope requested
+- `unauthorized_client`: Client not authorized for this grant type
+
+<Note> If using the OAuth2 flow for authenticating tool calls, make sure the server for the tool is the URL that should be hit _after_ we have completed the token exchange. </Note>
+
+### Personal Notes
+
+📚 ESSENTIAL READING ORDER:
+
+1. Quickstart Basics (15 minutes)
+
+- Section: "Introduction" and "Quick Start"
+- Why: Understand what Vapi does and basic concepts
+- Key concepts: Assistants, outbound calls, phone numbers
+
+2. Making Your First Call (20 minutes)
+
+- Section: "Server-side call management"
+- Why: Learn the API structure for outbound calls
+- Key code: vapi.calls.create() examples in Python
+
+3. Assistant Configuration (25 minutes)
+
+- Section: "Assistant creation" and "System prompts"
+- Why: Understand how to configure Ava's personality for voice
+- Key concepts: firstMessage, systemPrompt, voice settings
+
+4. Context Passing (20 minutes)
+
+- Section: "Dynamic Variables" (variableValues)
+- Why: How to pass WhatsApp context to voice calls
+- Key concept: assistantOverrides.variableValues
+
+5. Webhooks (15 minutes)
+
+- Section: "Webhook handling"
+- Why: How Vapi talks back to our system after calls
+- Key concept: Receiving call events and transcripts
+
+- VAPI API KEY: your_vapi_api_key_here
+- VAPI PUBLIC KEY: 2135c0dc-11f7-4b74-9535-d44161ad24aa
+- Phone Number: +1 (650) 681 2449
+- Phone Number ID: 94d2b444-1f6a-4c38-bc22-f2203f80c129

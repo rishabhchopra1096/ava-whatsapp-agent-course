@@ -109,6 +109,11 @@ from fastapi import FastAPI
 # that process messages, download images, send responses, etc.
 from ai_companion.interfaces.whatsapp.whatsapp_response import whatsapp_router
 
+# vapi_router: The voice calling endpoints that handle phone conversations  
+# This is defined in vapi_endpoints.py - it contains all the functions
+# that process voice calls, create voice assistants, handle call webhooks, etc.
+from ai_companion.interfaces.vapi.vapi_endpoints import vapi_router
+
 
 # STEP 1: Create the web server
 # FastAPI() creates a new web server instance - like opening a new restaurant
@@ -130,3 +135,17 @@ app = FastAPI()
 # After this line, when WhatsApp sends a request to /whatsapp_response,
 # it will automatically go to the right function in whatsapp_response.py
 app.include_router(whatsapp_router)
+
+# STEP 3: Add voice calling support via Vapi
+# app.include_router(vapi_router) connects voice call processing to this web server
+# This adds new endpoints like /vapi/chat/completions and /vapi/webhook
+# 
+# What vapi_router contains:
+# - /vapi/chat/completions: OpenAI-compatible endpoint that connects Vapi to Ava's Groq LLM
+# - /vapi/webhook: Receives call events (call started, ended, transcripts)
+# - /vapi/health: Health check for the voice calling system
+# - /vapi/test-chat: Testing endpoint for development
+#
+# After this line, when Vapi sends voice conversations to /vapi/chat/completions,
+# they will be processed through Ava's existing LangGraph + Groq LLM workflow
+app.include_router(vapi_router)

@@ -34,6 +34,7 @@
 6. Switch to pure Supabase
 7. The current personality is super rude. Doesn't analyse images, etc. Always busy. Don't like this behavior. Not smart, doesnt' understand context.
 8. It needs to be able to take in youtube links, pdf, locations, links, etc and be able to analyse them easily.
+9. The memory is not working. It doesn't know my name after me telling him my name. Weird.
 
 # LEARN
 

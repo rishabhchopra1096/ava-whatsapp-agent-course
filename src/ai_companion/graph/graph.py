@@ -80,8 +80,9 @@ from ai_companion.graph.nodes import (
     image_node,                    # Generates image + caption
     memory_extraction_node,        # Stores facts about you
     memory_injection_node,         # Retrieves what Ava remembers about you
-    router_node,                   # Decides response type (text/image/audio)
+    router_node,                   # Decides response type (text/image/audio/voice_call)
     summarize_conversation_node,   # Compresses long conversations
+    voice_calling_node,            # NEW: Handles phone call requests
 )
 # The shared state (clipboard) that flows through all nodes
 from ai_companion.graph.state import AICompanionState
@@ -152,6 +153,7 @@ def create_workflow_graph():
     graph_builder.add_node("conversation_node", conversation_node)             # Generate text responses
     graph_builder.add_node("image_node", image_node)                           # Generate image + caption
     graph_builder.add_node("audio_node", audio_node)                           # Generate voice responses
+    graph_builder.add_node("voice_calling_node", voice_calling_node)           # NEW: Handle phone call requests
 
     # STEP 3: Define the execution flow (the "roads" between "cities")
     # Two types of connections:
@@ -188,6 +190,10 @@ def create_workflow_graph():
     graph_builder.add_conditional_edges("conversation_node", should_summarize_conversation)
     graph_builder.add_conditional_edges("image_node", should_summarize_conversation)  
     graph_builder.add_conditional_edges("audio_node", should_summarize_conversation)
+    
+    # NEW: Voice calling always ends conversation (call is initiated, WhatsApp message sent)
+    # No summarization needed since voice_calling_node sends confirmation and ends WhatsApp flow
+    graph_builder.add_edge("voice_calling_node", END)
     
     # Final cleanup: after summarization, always end
     graph_builder.add_edge("summarize_conversation_node", END)

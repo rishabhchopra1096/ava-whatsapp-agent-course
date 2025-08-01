@@ -91,7 +91,7 @@ def should_summarize_conversation(
 
 def select_workflow(
     state: AICompanionState,
-) -> Literal["conversation_node", "image_node", "audio_node"]:
+) -> Literal["conversation_node", "image_node", "audio_node", "voice_calling_node"]:
     """
     🎯 RESPONSE TYPE ROUTER - Directs to the appropriate response generator
     
@@ -144,6 +144,16 @@ def select_workflow(
         # 1. Generate text response (like conversation_node)
         # 2. Convert text to speech using ElevenLabs
         return "audio_node"
+    
+    # NEW: Voice call requested
+    elif workflow == "voice_call":
+        # Route to voice_calling_node which will:
+        # 1. Extract user's phone number from WhatsApp
+        # 2. Prepare conversation context for voice call
+        # 3. Create Vapi assistant with user's context
+        # 4. Initiate outbound phone call
+        # 5. Send WhatsApp confirmation message
+        return "voice_calling_node"
 
     # Default to text response (includes "conversation" and any unexpected values)
     else:

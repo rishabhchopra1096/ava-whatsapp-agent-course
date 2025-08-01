@@ -93,7 +93,52 @@ async def router_node(state: AICompanionState):
     # settings.ROUTER_MESSAGES_TO_ANALYZE = probably 3-5 recent messages
     recent_messages = state["messages"][-settings.ROUTER_MESSAGES_TO_ANALYZE :]
     
-    # STEP 3: Ask the LLM to make the decision
+    # STEP 2.5: NEW - Check for voice calling requests BEFORE LLM routing
+    # This is faster and more reliable than asking LLM to detect calling requests
+    # We check the latest user message for "call me" patterns
+    if recent_messages:
+        latest_message = recent_messages[-1]
+        # Only check user messages (HumanMessage), not Ava's responses (AIMessage)
+        if hasattr(latest_message, 'content') and hasattr(latest_message, 'type'):
+            if latest_message.type == "human":  # This is a user message
+                message_content = latest_message.content.lower()
+                
+                # VOICE CALLING DETECTION - Check for various ways users request calls
+                call_triggers = [
+                    "call me", "phone me", "give me a call", "can you call me",
+                    "i want a call", "let's talk on phone", "ring me",
+                    "call me back", "please call", "need to talk",
+                    "can we talk", "voice call", "phone call"
+                ]
+                
+                # Check if any trigger phrase exists in the message
+                if any(trigger in message_content for trigger in call_triggers):
+                    # VOICE CALL REQUEST DETECTED!
+                    # Skip LLM routing and go directly to voice calling
+                    
+                    # Extract calling reason for better context
+                    calling_reason = extract_calling_reason_from_message(latest_message.content)
+                    
+                    # 📊 LOG COMPREHENSIVE VOICE CALL DETECTION
+                    import logging
+                    logging.info(f"🎙️ VOICE CALL REQUEST DETECTED:")
+                    logging.info(f"   📝 Message: {message_content[:100]}{'...' if len(message_content) > 100 else ''}")
+                    logging.info(f"   🎯 Trigger: {next(trigger for trigger in call_triggers if trigger in message_content)}")
+                    logging.info(f"   📋 Reason: {calling_reason}")
+                    logging.info(f"   👤 Message type: {latest_message.type}")
+                    
+                    # Import datetime for timestamp
+                    from datetime import datetime
+                    logging.info(f"   ⏰ Detection time: {datetime.now().isoformat()}")
+                    
+                    # Return voice_call workflow instead of asking LLM
+                    return {
+                        "workflow": "voice_call",
+                        "calling_reason": calling_reason,
+                        "detected_trigger": next(trigger for trigger in call_triggers if trigger in message_content)
+                    }
+    
+    # STEP 3: Ask the LLM to make the decision (for non-voice-call messages)
     # What is await? Python keyword for waiting for async operations
     # What is ainvoke? LangChain method to call the LLM asynchronously  
     # What gets sent? Recent messages + router prompt (stored in chains.py)
@@ -354,4 +399,224 @@ def memory_injection_node(state: AICompanionState):
     memory_context = memory_manager.format_memories_for_prompt(memories)
 
     # Updates state with your memories
-    return {"memory_context": memory_context} 
+    return {"memory_context": memory_context}
+
+
+async def voice_calling_node(state: AICompanionState):
+    """
+    📞 VOICE CALLING NODE - Handles "call me" requests from WhatsApp users
+    
+    🎯 PURPOSE: When users say "call me" in WhatsApp, this node initiates
+    an actual phone call using Vapi's voice calling infrastructure
+    
+    🔗 REAL-WORLD ANALOGY: Like a personal assistant who:
+    1. Gets the caller's phone number from their WhatsApp contact
+    2. Prepares a briefing about recent conversations
+    3. Calls the person and introduces them to voice-Ava
+    4. Confirms the call was initiated successfully
+    
+    📞 TECHNICAL PROCESS:
+    1. Extract user's phone number from WhatsApp message metadata
+    2. Prepare voice context from recent WhatsApp messages
+    3. Create Vapi assistant with user-specific context
+    4. Initiate outbound call via Vapi API
+    5. Send WhatsApp confirmation that call is coming
+    
+    🌐 INTEGRATION: This node is triggered when router_node detects "call me" requests
+    It bridges WhatsApp conversations with voice calls while maintaining context continuity
+    
+    WHY THIS NODE EXISTS:
+    - Makes Ava truly multi-modal (text + voice)
+    - Maintains conversation continuity between WhatsApp and phone calls
+    - Provides immediate callback functionality for urgent matters
+    - Creates natural escalation from text to voice when needed
+    """
+    try:
+        # STEP 1: EXTRACT USER'S PHONE NUMBER FROM WHATSAPP
+        # Get phone number from WhatsApp message metadata
+        # In WhatsApp webhook, the sender's number is stored in state
+        user_phone = state.get("user_phone_number")
+        
+        if not user_phone:
+            # LOG PHONE NUMBER EXTRACTION FAILURE
+            import logging
+            logging.warning(f"⚠️ PHONE NUMBER NOT AVAILABLE:")
+            logging.warning(f"   🗺 State keys: {list(state.keys())}")
+            logging.warning(f"   📱 user_phone_number: {state.get('user_phone_number')}")
+            logging.warning(f"   🆔 user_id: {state.get('user_id')}")
+            logging.warning(f"   🌐 interface: {state.get('interface', 'unknown')}")
+            
+            # FALLBACK: Ask user for phone number if not available
+            # This might happen if phone number extraction failed
+            fallback_message = """📞 I'd love to call you! However, I need your phone number to make the call.
+            
+Could you share your phone number? Please reply with your number in this format: +1-555-123-4567
+
+Once you provide it, I'll call you right away! 📱"""
+            
+            return {"messages": [AIMessage(content=fallback_message)]}
+        
+        # STEP 2: PREPARE CONTEXT FOR VOICE CALL
+        # Gather recent WhatsApp conversation to brief voice-Ava
+        # Import here to avoid circular dependencies during module loading
+        from ai_companion.interfaces.vapi.voice_context_manager import prepare_voice_context_simple
+        
+        # Create comprehensive context from WhatsApp messages
+        voice_context = prepare_voice_context_simple(
+            messages=state["messages"],
+            user_id=state.get("user_id", user_phone)  # Use phone as user ID if no specific ID
+        )
+        
+        # STEP 3: INITIATE PHONE CALL VIA VAPI
+        # Import Vapi client (import here to handle cases where Vapi isn't available)
+        try:
+            from ai_companion.interfaces.vapi.vapi_client import vapi_client
+            
+            if vapi_client is None:
+                # LOG VAPI CLIENT INITIALIZATION FAILURE
+                import logging
+                logging.error(f"❌ VAPI CLIENT NOT AVAILABLE:")
+                logging.error(f"   📞 Phone: {user_phone}")
+                logging.error(f"   👤 User: {state.get('user_id', 'Unknown')}")
+                logging.error(f"   ⚙️ Possible causes: Missing API keys, network issues, service down")
+                
+                # Vapi client failed to initialize (missing API keys or connection issues)
+                error_message = """❌ Sorry, voice calling is temporarily unavailable.
+                
+This could be due to:
+- Voice service configuration issues
+- Network connectivity problems
+
+You can:
+- Try again in a few minutes
+- Continue our conversation here in WhatsApp
+- Contact support if the issue persists
+
+I'm still here to help via messages! 💬"""
+                
+                return {"messages": [AIMessage(content=error_message)]}
+            
+            # MAKE THE ACTUAL PHONE CALL
+            # This creates a Vapi assistant and initiates the outbound call
+            call_details = await vapi_client.make_outbound_call(
+                to_number=user_phone,
+                context=voice_context
+            )
+            
+        except Exception as vapi_error:
+            # HANDLE VAPI-SPECIFIC ERRORS
+            import logging
+            logging.error(f"🚨 VAPI CALL ERROR: {str(vapi_error)}")
+            logging.error(f"   📱 Target phone: {user_phone}")
+            logging.error(f"   👤 User context: {voice_context.get('userName', 'Unknown') if 'voice_context' in locals() else 'Context not created'}")
+            logging.error(f"   📏 Context size: {len(str(voice_context)) if 'voice_context' in locals() else 0} characters")
+            # Include full exception details for debugging
+            import traceback
+            logging.error(f"   📚 Full traceback: {traceback.format_exc()}")
+            
+            vapi_error_message = f"""❌ I encountered an issue while setting up your call.
+            
+Error details: {str(vapi_error)}
+
+You can:
+- Try saying "call me" again in a few minutes
+- Continue our conversation here in WhatsApp
+- Let me know if you need immediate assistance via messages
+
+I'm working to resolve this! 💬"""
+            
+            return {"messages": [AIMessage(content=vapi_error_message)]}
+        
+        # STEP 4: CONFIRM CALL INITIATION IN WHATSAPP
+        # Send detailed confirmation with call information
+        confirmation_message = f"""📞 Calling you now at {user_phone}!
+
+🔔 Your phone should ring in the next 10-15 seconds
+🎙️ When you answer, you'll be talking to voice-Ava
+📋 I have all our recent conversation context ready
+⏱️ Call ID: {call_details['call_id']}
+
+If the call doesn't come through:
+- Check that your phone can receive calls from {call_details.get('expected_caller_id', 'unknown number')}
+- Try again by saying "call me" 
+- Continue here if you prefer messaging
+
+Looking forward to talking with you! 📱✨"""
+        
+        # STEP 5: STORE CALL DETAILS FOR TRACKING
+        # Add call information to state for potential follow-up processing
+        updated_state = {
+            "messages": [AIMessage(content=confirmation_message)],
+            "active_call": call_details,
+            "call_initiated_at": call_details.get("timestamp"),
+            "voice_context_used": voice_context
+        }
+        
+        # 🎉 LOG COMPREHENSIVE SUCCESS DETAILS
+        import logging
+        from datetime import datetime
+        logging.info(f"✅ VOICE CALL SUCCESSFULLY INITIATED:")
+        logging.info(f"   📞 Call ID: {call_details['call_id']}")
+        logging.info(f"   📱 To: {user_phone}")
+        logging.info(f"   👤 User: {voice_context.get('userName', 'Unknown')}")
+        logging.info(f"   💬 Topic: {voice_context.get('conversationTopic', 'General')}")
+        logging.info(f"   ⏰ Initiated at: {call_details.get('timestamp')}")
+        logging.info(f"   📏 Context size: {len(str(voice_context))} characters")
+        logging.info(f"   📞 Expected caller ID: {call_details.get('expected_caller_id', 'unknown')}")
+        logging.info(f"   ⏱️ Estimated ring time: {call_details.get('estimated_ring_time', 'unknown')}")
+        
+        return updated_state
+        
+    except Exception as e:
+        # GENERAL ERROR HANDLING - If anything unexpected goes wrong
+        import logging
+        logging.error(f"🚨 VOICE CALLING NODE ERROR: {str(e)}")
+        logging.error(f"   📱 Phone number: {state.get('user_phone_number', 'Not provided')}")
+        logging.error(f"   🆔 User ID: {state.get('user_id', 'Not provided')}")
+        logging.error(f"   💬 Messages count: {len(state.get('messages', []))}")
+        logging.error(f"   🗺 State keys: {list(state.keys())}")
+        # Include full exception details for debugging
+        import traceback
+        logging.error(f"   📚 Full traceback: {traceback.format_exc()}")
+        
+        # Provide helpful WhatsApp response even if call fails
+        error_message = f"""❌ I had trouble setting up your phone call.
+
+Technical details: {str(e)}
+
+Don't worry! You can:
+- Try saying "call me" again
+- Continue our conversation here in WhatsApp  
+- Ask me anything you need help with via messages
+
+I'm here either way! Let me know how I can assist you. 💬"""
+        
+        return {"messages": [AIMessage(content=error_message)]}
+
+
+def extract_calling_reason_from_message(message_content: str) -> str:
+    """
+    EXTRACT CALLING REASON - Determine why user wants a phone call
+    
+    🔗 REAL-WORLD ANALOGY: Like reading a message that says 
+    "Can you call me about the project?" and extracting "about the project"
+    
+    📞 PURPOSE: Helps voice-Ava understand the context for the call
+    """
+    content_lower = message_content.lower()
+    
+    # Look for specific calling reasons in the message
+    if "urgent" in content_lower or "emergency" in content_lower:
+        return "Urgent matter - user requested immediate callback"
+    elif "discuss" in content_lower:
+        return "User wants to discuss something in detail"  
+    elif "explain" in content_lower:
+        return "User needs detailed explanation"
+    elif "help" in content_lower:
+        return "User needs assistance with something"
+    elif "talk" in content_lower:
+        return "User prefers to talk rather than type"
+    elif "private" in content_lower or "personal" in content_lower:
+        return "User wants private conversation"
+    else:
+        return "User requested callback from WhatsApp" 

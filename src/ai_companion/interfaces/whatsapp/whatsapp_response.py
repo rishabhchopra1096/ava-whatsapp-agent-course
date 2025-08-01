@@ -431,7 +431,11 @@ async def whatsapp_handler(request: Request) -> Response:
                 # graph.ainvoke() = run the message through Ava's complete LangGraph workflow
                 await graph.ainvoke(
                     # FIRST PARAMETER: The message data to process
-                    {"messages": [HumanMessage(content=content)]},  # Wrap user's text in LangChain message format
+                    {
+                        "messages": [HumanMessage(content=content)],  # Wrap user's text in LangChain message format
+                        "user_phone_number": from_number,             # NEW: Pass phone number for voice calling
+                        "user_id": from_number,                       # NEW: Use phone as user ID
+                    },
                     
                     # SECOND PARAMETER: Configuration for this processing run
                     {"configurable": {"thread_id": session_id}},    # Use phone number to isolate conversations
