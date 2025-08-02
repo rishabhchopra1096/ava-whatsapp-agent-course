@@ -244,19 +244,14 @@ class VapiClient:
                 # NOTE: System prompt is handled by our LangGraph workflow in /vapi/chat/completions endpoint
                 # Vapi just handles voice infrastructure, our endpoint handles conversation logic
                 
-                # CALL SETTINGS
+                # CALL SETTINGS - Only parameters supported by Vapi SDK
                 "end_call_message": "Thanks for calling! I'll send you a summary on WhatsApp. Talk to you soon!",
-                "recording_enabled": True,  # Record for transcript processing
-                "hipaa_enabled": False,  # Not handling medical data
-                "client_messages": ["conversation-update", "function-call", "hang", "speech-update"],
-                "server_messages": ["conversation-update", "end-of-call-report", "function-call"],
                 
-                # SILENCE DETECTION - Prevent awkward pauses
-                "silence_timeout_seconds": 30,  # End call if silent for 30 seconds
-                "max_duration_seconds": 600,  # Max 10-minute calls to control costs
-                
-                # BACKGROUND SOUND HANDLING
-                "background_sound": "office",  # Subtle background to feel natural
+                # NOTE: The following settings are handled at the account/phone number level in Vapi:
+                # - Recording (configured in Vapi dashboard)
+                # - Silence timeouts (handled by Vapi's default settings)
+                # - Background sound (managed by Vapi)
+                # - Client/server messages (configured via Vapi dashboard)
             }
             
             # CREATE ASSISTANT VIA VAPI API
