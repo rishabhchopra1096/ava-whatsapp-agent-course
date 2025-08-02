@@ -223,41 +223,41 @@ class VapiClient:
                     "model": "groq-llama-3.3-70b-versatile",  # Our actual model name
                     "url": f"{self.railway_url}/vapi/chat/completions",  # Our endpoint
                     "temperature": 0.7,  # Conversational but not too random
-                    "maxTokens": 150,  # Keep responses concise for voice (people don't like long speeches)
+                    "max_tokens": 150,  # Keep responses concise for voice (people don't like long speeches)
                 },
                 
                 # VOICE CONFIGURATION - Use same voice as WhatsApp voice messages
                 # This ensures Ava sounds the same whether on WhatsApp or phone calls
                 "voice": {
                     "provider": "elevenlabs",
-                    "voiceId": self.voice_id,  # Same voice for consistency
+                    "voice_id": self.voice_id,  # Same voice for consistency
                     "stability": 0.5,  # Balanced voice stability
-                    "similarityBoost": 0.8,  # High similarity to original voice
+                    "similarity_boost": 0.8,  # High similarity to original voice
                     "style": 0.0,  # Natural style, not overly dramatic
-                    "useSpeakerBoost": True,  # Enhance voice quality
+                    "use_speaker_boost": True,  # Enhance voice quality
                 },
                 
                 # CONVERSATION SETUP
                 # First thing Ava says when the call connects
-                "firstMessage": self._create_first_message(context),
+                "first_message": self._create_first_message(context),
                 
                 # SYSTEM PROMPT - Same personality as WhatsApp Ava
                 # This is like giving Ava her "job description" for phone calls
-                "systemPrompt": self._create_system_prompt(context),
+                "system_prompt": self._create_system_prompt(context),
                 
                 # CALL SETTINGS
-                "endCallMessage": "Thanks for calling! I'll send you a summary on WhatsApp. Talk to you soon!",
-                "recordingEnabled": True,  # Record for transcript processing
-                "hipaaEnabled": False,  # Not handling medical data
-                "clientMessages": ["conversation-update", "function-call", "hang", "speech-update"],
-                "serverMessages": ["conversation-update", "end-of-call-report", "function-call"],
+                "end_call_message": "Thanks for calling! I'll send you a summary on WhatsApp. Talk to you soon!",
+                "recording_enabled": True,  # Record for transcript processing
+                "hipaa_enabled": False,  # Not handling medical data
+                "client_messages": ["conversation-update", "function-call", "hang", "speech-update"],
+                "server_messages": ["conversation-update", "end-of-call-report", "function-call"],
                 
                 # SILENCE DETECTION - Prevent awkward pauses
-                "silenceTimeoutSeconds": 30,  # End call if silent for 30 seconds
-                "maxDurationSeconds": 600,  # Max 10-minute calls to control costs
+                "silence_timeout_seconds": 30,  # End call if silent for 30 seconds
+                "max_duration_seconds": 600,  # Max 10-minute calls to control costs
                 
                 # BACKGROUND SOUND HANDLING
-                "backgroundSound": "office",  # Subtle background to feel natural
+                "background_sound": "office",  # Subtle background to feel natural
             }
             
             # CREATE ASSISTANT VIA VAPI API
@@ -402,14 +402,14 @@ REMEMBER: This is a continuation of your WhatsApp relationship with this user. T
             # STEP 3: PREPARE CALL CONFIGURATION
             # This tells Vapi who to call, which assistant to use, and what context to provide
             call_config = {
-                "phoneNumberId": self.phone_number_id,  # Your Vapi phone number (caller ID)
+                "phone_number_id": self.phone_number_id,  # Your Vapi phone number (caller ID)
                 "customer": {"number": to_number},       # Who to call
-                "assistantId": assistant_id,             # Voice Ava configuration
+                "assistant_id": assistant_id,             # Voice Ava configuration
                 
                 # ASSISTANT OVERRIDES - Pass WhatsApp context to voice call
                 # This is like giving Ava a "cheat sheet" before the call
-                "assistantOverrides": {
-                    "variableValues": {
+                "assistant_overrides": {
+                    "variable_values": {
                         "userName": context.get("userName", ""),
                         "recentContext": context.get("recentContext", ""),
                         "conversationTopic": context.get("conversationTopic", ""),
@@ -546,7 +546,7 @@ except ValueError as e:
 except ImportError as e:
     # MISSING VAPI SDK
     logging.error(f"❌ Vapi SDK not installed: {str(e)}")
-    logging.error("   → Run: pip install vapi-python")
+    logging.error("   → Run: pip install vapi_server_sdk")
     logging.error("   → Voice calling will be disabled")
     vapi_client = None
     
