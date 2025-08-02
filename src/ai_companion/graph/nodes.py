@@ -84,16 +84,15 @@ async def router_node(state: AICompanionState):
     """
     
     # 🔍 DEBUG: LOG ROUTER STATE FOR DEBUGGING
-    import logging
-    logging.info(f"🤖 ROUTER NODE STATE:")
-    logging.info(f"   🗺 State keys: {list(state.keys())}")
-    logging.info(f"   📱 user_phone_number: {state.get('user_phone_number')}")
-    logging.info(f"   🆔 user_id: {state.get('user_id')}")
-    logging.info(f"   🌐 interface: {state.get('interface', 'unknown')}")
-    logging.info(f"   💬 Messages count: {len(state.get('messages', []))}")
+    print(f"🤖 ROUTER NODE STATE:")
+    print(f"   🗺 State keys: {list(state.keys())}")
+    print(f"   📱 user_phone_number: {state.get('user_phone_number')}")
+    print(f"   🆔 user_id: {state.get('user_id')}")
+    print(f"   🌐 interface: {state.get('interface', 'unknown')}")
+    print(f"   💬 Messages count: {len(state.get('messages', []))}")
     if state.get('messages'):
         latest_message = state['messages'][-1].content if hasattr(state['messages'][-1], 'content') else str(state['messages'][-1])
-        logging.info(f"   📝 Latest message: {latest_message[:100]}{'...' if len(latest_message) > 100 else ''}")
+        print(f"   📝 Latest message: {latest_message[:100]}{'...' if len(latest_message) > 100 else ''}")
     
     # STEP 1: Get the "router chain" - this is a pre-configured LLM setup
     # What is a "chain"? It's: prompt + LLM model + output format
@@ -113,7 +112,7 @@ async def router_node(state: AICompanionState):
     response = await chain.ainvoke({"messages": recent_messages})
     
     # 🔍 DEBUG: LOG ROUTER DECISION
-    logging.info(f"🤖 ROUTER DECISION: {response.response_type}")
+    print(f"🤖 ROUTER DECISION: {response.response_type}")
     
     # STEP 4: Update the state (the "clipboard") with the decision
     # This tells the graph: "execute the conversation/image/audio node next"
@@ -409,12 +408,11 @@ async def voice_calling_node(state: AICompanionState):
         
         if not user_phone:
             # LOG PHONE NUMBER EXTRACTION FAILURE
-            import logging
-            logging.warning(f"⚠️ PHONE NUMBER NOT AVAILABLE:")
-            logging.warning(f"   🗺 State keys: {list(state.keys())}")
-            logging.warning(f"   📱 user_phone_number: {state.get('user_phone_number')}")
-            logging.warning(f"   🆔 user_id: {state.get('user_id')}")
-            logging.warning(f"   🌐 interface: {state.get('interface', 'unknown')}")
+            print(f"⚠️ PHONE NUMBER NOT AVAILABLE:")
+            print(f"   🗺 State keys: {list(state.keys())}")
+            print(f"   📱 user_phone_number: {state.get('user_phone_number')}")
+            print(f"   🆔 user_id: {state.get('user_id')}")
+            print(f"   🌐 interface: {state.get('interface', 'unknown')}")
             
             # FALLBACK: Ask user for phone number if not available
             # This might happen if phone number extraction failed

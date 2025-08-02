@@ -23,12 +23,12 @@ import logging
 from typing import Dict, Optional, Any, List
 from datetime import datetime
 
-# Import Vapi SDK (we tested this works in Phase 1)
-# Note: The import name is vapi_python, not just vapi
+# Import Vapi SDK (server SDK for outbound calls)
+# Note: The import name is from vapi import Vapi (from vapi_server_sdk package)
 try:
     from vapi import Vapi
 except ImportError:
-    logging.error("❌ Vapi SDK not installed. Run: pip install vapi-python")
+    logging.error("❌ Vapi SDK not installed. Run: pip install vapi_server_sdk")
     raise
 
 # Import Ava's settings (for API keys and configuration)
