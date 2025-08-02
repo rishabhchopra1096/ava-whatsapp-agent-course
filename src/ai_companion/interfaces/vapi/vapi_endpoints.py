@@ -338,14 +338,18 @@ async def handle_voice_chat(request: VapiChatRequest):
             
             # INVOKE AVA'S BRAIN (same as WhatsApp processing!)
             # This is like asking the company expert to handle a phone call
+            print(f"🚀 CALLING LANGGRAPH WITH: {graph_input}")
             response = await graph.ainvoke(graph_input)
+            print(f"📥 LANGGRAPH RESPONSE: {response}")
             
             # EXTRACT AVA'S RESPONSE
             # Get the response message that Ava generated
             if response and response.get("messages"):
                 ava_response = response["messages"][-1].content
+                print(f"✅ EXTRACTED AVA RESPONSE: {ava_response}")
             else:
                 ava_response = "I'm sorry, I couldn't process that right now. Could you try again?"
+                print(f"⚠️ NO MESSAGES IN RESPONSE, USING FALLBACK: {ava_response}")
         
         # STEP 4: FORMAT FOR VAPI (OpenAI-compatible format)
         # Convert Ava's response into the format Vapi expects
@@ -372,11 +376,11 @@ async def handle_voice_chat(request: VapiChatRequest):
         )
         
         # LOG SUCCESS FOR DEBUGGING
-        logging.info(f"✅ VOICE RESPONSE SENT: {ava_response[:100]}...")
+        print(f"✅ VOICE RESPONSE SENT: {ava_response[:100]}...")
         
         # DEBUG: Log the complete response being sent to Vapi
         response_dict = vapi_response.model_dump()
-        logging.info(f"🔍 COMPLETE VAPI RESPONSE: {response_dict}")
+        print(f"🔍 COMPLETE VAPI RESPONSE: {response_dict}")
         
         # Return as dictionary (FastAPI automatically converts to JSON)
         return response_dict
