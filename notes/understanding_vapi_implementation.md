@@ -103,3 +103,133 @@ For complete understanding, follow this order:
    - `vapi_endpoints.py:handle_voice_chat()` (the brain)
 4. **Read "Phone calls"** to understand the full calling flow
 5. **Read "Debugging voice agents"** to understand what we're doing now
+
+Total Time: ~2.5 hours
+
+---
+
+📚 Phase 1: Documentation (45 minutes)
+
+⏰ 20 minutes: "Introduction" section
+
+- What: Understanding Vapi's role, core concepts,
+  architecture
+- Why: Foundation - need to understand what Vapi does
+  before diving into code
+- Outcome: Clear mental model of speech-to-text → LLM →
+  text-to-speech flow
+
+⏰ 15 minutes: "Custom LLMs > Bring your own server"
+section
+
+- What: How to make Vapi call your custom endpoint
+  instead of OpenAI
+- Why: This is EXACTLY what we implemented - critical
+  to understand the pattern
+- Outcome: Understand OpenAI compatibility
+  requirements, request/response format
+
+⏰ 10 minutes: "Phone calls" section
+
+- What: How outbound calling works, phone number setup,
+  call flow
+- Why: Understanding the complete call lifecycle
+- Outcome: Know how calls are initiated, managed, and
+  terminated
+
+---
+
+💻 Phase 2: Code Deep Dive (75 minutes)
+
+⏰ 20 minutes: nodes.py:voice_calling_node() (the
+trigger)
+
+- File: src/ai_companion/graph/nodes.py (around line
+
+469.
+
+- Focus: How "call me" triggers voice calls, context
+  preparation, error handling
+- Key Understanding: Integration point between WhatsApp
+  and voice calling
+
+⏰ 25 minutes: vapi_client.py:make_outbound_call() (the
+call maker)
+
+- Files: Both make_outbound_call() and
+  create_voice_assistant() functions
+- Focus: Vapi SDK usage, assistant creation, call
+  configuration, authentication
+- Key Understanding: How we actually make phone calls
+  through Vapi's API
+
+⏰ 30 minutes: vapi_endpoints.py:handle_voice_chat()
+(the brain)
+
+- File:
+  src/ai_companion/interfaces/vapi/vapi_endpoints.py
+  (line 258+)
+- Focus: OpenAI compatibility, LangGraph integration,
+  response formatting
+- Key Understanding: How voice conversations are
+  processed through our existing AI
+
+---
+
+🔧 Phase 3: Troubleshooting Context (30 minutes)
+
+⏰ 15 minutes: "Debugging voice agents" section
+
+- What: Common issues, logging, debugging techniques,
+  call analytics
+- Why: Understanding current problem (streaming vs
+  complete responses)
+- Outcome: Know how to debug voice calling issues
+  systematically
+
+⏰ 15 minutes: Cross-reference with current issue
+
+- What: Connect documentation to our specific streaming
+  problem
+- Why: Apply debugging knowledge to solve the current
+  issue
+- Outcome: Clear action plan for fixing streaming
+  response format
+
+---
+
+📋 Phase 4: Integration Understanding (20 minutes)
+
+⏰ 20 minutes: Trace complete flow end-to-end
+
+- What: Follow a "call me" message from WhatsApp →
+  voice call → conversation → response
+- Why: Ensure complete understanding of all components
+  working together
+- Outcome: Mental model of entire voice calling system
+
+---
+
+💡 Learning Tips:
+
+- Take notes while reading - the system has many moving
+  parts
+- Keep code files open while reading documentation
+- Focus on the big picture first, then dive into
+  details
+- Test your understanding by explaining the flow out
+  loud
+
+🎯 Success Metrics:
+
+After this time investment, you should be able to:
+
+1. Explain how voice calling works end-to-end
+2. Identify where issues might occur in the pipeline
+3. Understand why streaming vs complete responses
+   matter
+4. Debug voice calling problems systematically
+5. Modify or extend the voice calling functionality
+
+This is a solid investment for understanding a complex
+multi-service integration!

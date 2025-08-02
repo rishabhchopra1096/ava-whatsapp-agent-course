@@ -16,12 +16,14 @@
 # We just change the input/output format, but the AI processing stays identical.
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import asyncio
 import logging
 from datetime import datetime
 import os
+import json
 
 # Import Ava's existing brain components (no changes to these!)
 # This is like importing the "department experts" who will handle the actual work
@@ -84,6 +86,59 @@ class VapiChatResponse(BaseModel):
     model: str                        # Model used (we'll say "groq-llama-3.3-70b-versatile")
     choices: List[VapiChatChoice]     # Response options (usually just one)
     usage: Optional[Dict] = None      # Token usage info (optional)
+
+def stream_response_chunks(response_text: str):
+    """
+    STREAMING RESPONSE GENERATOR - Converts complete response to OpenAI streaming format
+    
+    🎯 PURPOSE: Vapi expects Server-Sent Events when stream=True, not complete JSON
+    
+    🔗 REAL-WORLD ANALOGY: Instead of saying the whole sentence at once,
+    we break it into words and send them one by one, like a teleprompter
+    """
+    import time
+    
+    # Split response into words for streaming
+    words = response_text.split()
+    
+    # Stream each word as a chunk
+    for i, word in enumerate(words):
+        chunk_data = {
+            "id": f"chatcmpl-{int(time.time())}", 
+            "object": "chat.completion.chunk",
+            "created": int(time.time()),
+            "model": "groq-llama-3.3-70b-versatile",
+            "choices": [{
+                "index": 0,
+                "delta": {
+                    "content": word + (" " if i < len(words) - 1 else "")
+                },
+                "finish_reason": None
+            }]
+        }
+        
+        # Send chunk in SSE format
+        yield f"data: {json.dumps(chunk_data)}\n\n"
+        
+        # Small delay to simulate realistic streaming
+        # time.sleep(0.05)  # Uncomment for slower streaming
+    
+    # Send final chunk with finish_reason
+    final_chunk = {
+        "id": f"chatcmpl-{int(time.time())}", 
+        "object": "chat.completion.chunk",
+        "created": int(time.time()),
+        "model": "groq-llama-3.3-70b-versatile",
+        "choices": [{
+            "index": 0,
+            "delta": {},
+            "finish_reason": "stop"
+        }]
+    }
+    yield f"data: {json.dumps(final_chunk)}\n\n"
+    
+    # Send termination signal
+    yield "data: [DONE]\n\n"
 
 # CREATE ROUTER FOR VAPI ENDPOINTS
 # This is like creating a "phone department" within Ava's office
@@ -384,12 +439,23 @@ async def handle_voice_chat(request: VapiChatRequest):
         # LOG SUCCESS FOR DEBUGGING
         print(f"✅ VOICE RESPONSE SENT: {ava_response[:100]}...")
         
-        # DEBUG: Log the complete response being sent to Vapi
-        response_dict = vapi_response.model_dump()
-        print(f"🔍 COMPLETE VAPI RESPONSE: {response_dict}")
-        
-        # Return as dictionary (FastAPI automatically converts to JSON)
-        return response_dict
+        # CHECK IF VAPI WANTS STREAMING RESPONSE
+        if request.stream:
+            print(f"🔄 STREAMING RESPONSE TO VAPI...")
+            # Return streaming response in OpenAI SSE format
+            return StreamingResponse(
+                stream_response_chunks(ava_response), 
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive"
+                }
+            )
+        else:
+            # Return complete response (non-streaming)
+            response_dict = vapi_response.model_dump()
+            print(f"🔍 COMPLETE VAPI RESPONSE: {response_dict}")
+            return response_dict
         
     except Exception as e:
         # ERROR HANDLING - If anything goes wrong, provide graceful fallback
