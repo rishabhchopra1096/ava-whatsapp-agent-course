@@ -288,6 +288,7 @@ async def handle_voice_chat(request: VapiChatRequest):
         # STEP 1: EXTRACT VOICE MESSAGE (like transcribing a phone call)
         # Get the latest message from the voice conversation
         # This is like asking: "What did the caller just say?"
+        print(f"📨 FULL VAPI REQUEST: {request.model_dump()}")
         if not request.messages:
             logging.error("❌ VAPI REQUEST ERROR: No messages provided")
             raise HTTPException(status_code=400, detail="No messages provided")
