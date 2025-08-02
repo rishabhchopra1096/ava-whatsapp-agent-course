@@ -235,7 +235,7 @@ class VapiClient:
                     "similarity_boost": 0.8,  # High similarity to original voice
                     "style": 0.0,  # Natural style, not overly dramatic
                     "use_speaker_boost": True,  # Enhance voice quality
-                },
+                }, 
                 
                 # CONVERSATION SETUP
                 # First thing Ava says when the call connects
@@ -245,7 +245,7 @@ class VapiClient:
                 # Vapi just handles voice infrastructure, our endpoint handles conversation logic
                 
                 # CALL SETTINGS - Only parameters supported by Vapi SDK
-                "end_call_message": "Thanks for calling! I'll send you a summary on WhatsApp. Talk to you soon!",
+                "end_call_message": "Thanks for calling! I'll send you a summary on WhatsApp.",
                 
                 # NOTE: The following settings are handled at the account/phone number level in Vapi:
                 # - Recording (configured in Vapi dashboard)
