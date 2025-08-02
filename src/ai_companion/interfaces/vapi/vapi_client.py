@@ -229,7 +229,7 @@ class VapiClient:
                 # VOICE CONFIGURATION - Use same voice as WhatsApp voice messages
                 # This ensures Ava sounds the same whether on WhatsApp or phone calls
                 "voice": {
-                    "provider": "elevenlabs",
+                    "provider": "11labs",
                     "voice_id": self.voice_id,  # Same voice for consistency
                     "stability": 0.5,  # Balanced voice stability
                     "similarity_boost": 0.8,  # High similarity to original voice
