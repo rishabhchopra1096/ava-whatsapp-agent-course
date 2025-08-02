@@ -285,6 +285,11 @@ async def handle_voice_chat(request: VapiChatRequest):
         logging.info(f"   📨 Message count: {len(request.messages)}")
         logging.info(f"   📡 Stream mode: {request.stream}")
         
+        # CRITICAL: Check if Vapi wants streaming response
+        if request.stream:
+            print(f"🚨 VAPI WANTS STREAMING BUT WE'RE SENDING COMPLETE RESPONSE!")
+            print(f"   This is likely why Vapi isn't speaking our responses!")
+        
         # STEP 1: EXTRACT VOICE MESSAGE (like transcribing a phone call)
         # Get the latest message from the voice conversation
         # This is like asking: "What did the caller just say?"
