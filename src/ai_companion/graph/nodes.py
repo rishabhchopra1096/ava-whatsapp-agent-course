@@ -83,6 +83,18 @@ async def router_node(state: AICompanionState):
     You: "Can you call me?" → router decides "audio"
     """
     
+    # 🔍 DEBUG: LOG ROUTER STATE FOR DEBUGGING
+    import logging
+    logging.info(f"🤖 ROUTER NODE STATE:")
+    logging.info(f"   🗺 State keys: {list(state.keys())}")
+    logging.info(f"   📱 user_phone_number: {state.get('user_phone_number')}")
+    logging.info(f"   🆔 user_id: {state.get('user_id')}")
+    logging.info(f"   🌐 interface: {state.get('interface', 'unknown')}")
+    logging.info(f"   💬 Messages count: {len(state.get('messages', []))}")
+    if state.get('messages'):
+        latest_message = state['messages'][-1].content if hasattr(state['messages'][-1], 'content') else str(state['messages'][-1])
+        logging.info(f"   📝 Latest message: {latest_message[:100]}{'...' if len(latest_message) > 100 else ''}")
+    
     # STEP 1: Get the "router chain" - this is a pre-configured LLM setup
     # What is a "chain"? It's: prompt + LLM model + output format
     # Located in: ai_companion/graph/utils/chains.py (get_router_chain function)
@@ -99,6 +111,9 @@ async def router_node(state: AICompanionState):
     # What gets sent? Recent messages + router prompt (stored in chains.py)
     # What comes back? RouterResponse object with response_type field
     response = await chain.ainvoke({"messages": recent_messages})
+    
+    # 🔍 DEBUG: LOG ROUTER DECISION
+    logging.info(f"🤖 ROUTER DECISION: {response.response_type}")
     
     # STEP 4: Update the state (the "clipboard") with the decision
     # This tells the graph: "execute the conversation/image/audio node next"
