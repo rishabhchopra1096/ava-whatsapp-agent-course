@@ -241,9 +241,8 @@ class VapiClient:
                 # First thing Ava says when the call connects
                 "first_message": self._create_first_message(context),
                 
-                # SYSTEM PROMPT - Same personality as WhatsApp Ava
-                # This is like giving Ava her "job description" for phone calls
-                "system_prompt": self._create_system_prompt(context),
+                # NOTE: System prompt is handled by our LangGraph workflow in /vapi/chat/completions endpoint
+                # Vapi just handles voice infrastructure, our endpoint handles conversation logic
                 
                 # CALL SETTINGS
                 "end_call_message": "Thanks for calling! I'll send you a summary on WhatsApp. Talk to you soon!",
