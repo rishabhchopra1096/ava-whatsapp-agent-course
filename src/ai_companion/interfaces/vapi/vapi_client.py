@@ -26,7 +26,7 @@ from datetime import datetime
 # Import Vapi SDK (we tested this works in Phase 1)
 # Note: The import name is vapi_python, not just vapi
 try:
-    from vapi_python import Vapi
+    from vapi import Vapi
 except ImportError:
     logging.error("❌ Vapi SDK not installed. Run: pip install vapi-python")
     raise
@@ -68,6 +68,7 @@ class VapiClient:
         - Configure your phone number (Phone Number ID)
         - Set up call routing (to your Railway app)
         """
+
         # GET API CREDENTIALS FROM SETTINGS
         # These are loaded from .env file via Pydantic settings
         self.api_key = settings.VAPI_API_PRIVATE_KEY
@@ -108,9 +109,9 @@ class VapiClient:
         
         # LOG CONFIGURATION FOR DEBUGGING
         self.logger.info(f"📞 VAPI CLIENT CONFIGURED:")
-        self.logger.info(f"   Phone Number ID: {self.phone_number_id}")
-        self.logger.info(f"   Voice ID: {self.voice_id}")
-        self.logger.info(f"   Railway URL: {self.railway_url}")
+        self.logger.info(f" Phone Number ID: {self.phone_number_id}")
+        self.logger.info(f" Voice ID: {self.voice_id}")
+        self.logger.info(f" Railway URL: {self.railway_url}")
         
         # VALIDATE CONNECTION
         # Test the connection by attempting to list phone numbers
