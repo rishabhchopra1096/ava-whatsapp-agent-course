@@ -374,8 +374,12 @@ async def handle_voice_chat(request: VapiChatRequest):
         # LOG SUCCESS FOR DEBUGGING
         logging.info(f"✅ VOICE RESPONSE SENT: {ava_response[:100]}...")
         
+        # DEBUG: Log the complete response being sent to Vapi
+        response_dict = vapi_response.model_dump()
+        logging.info(f"🔍 COMPLETE VAPI RESPONSE: {response_dict}")
+        
         # Return as dictionary (FastAPI automatically converts to JSON)
-        return vapi_response.dict()
+        return response_dict
         
     except Exception as e:
         # ERROR HANDLING - If anything goes wrong, provide graceful fallback
@@ -398,7 +402,7 @@ async def handle_voice_chat(request: VapiChatRequest):
             )]
         )
         
-        return error_response.dict()
+        return error_response.model_dump()
 
 @vapi_router.post("/webhook")
 async def handle_vapi_webhook(request: Request):
