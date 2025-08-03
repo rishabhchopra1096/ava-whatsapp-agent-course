@@ -23,7 +23,7 @@ import os
 import asyncio
 import logging
 
-# Add the project root to Python path so we can import Ava's modules
+# Add the project root to Python path so we can import Pepper's modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 # Set up logging to see what's happening
@@ -107,7 +107,7 @@ async def test_endpoint_structure():
         expected_routes = ['/chat/completions', '/webhook', '/health', '/test-chat']
         
         print("✅ Router created successfully!")
-        print(f"   Available routes: {routes}")
+        print(f"   Pepperilable routes: {routes}")
         
         # Check if we have the main routes we need
         has_chat = any('/chat/completions' in route for route in routes)

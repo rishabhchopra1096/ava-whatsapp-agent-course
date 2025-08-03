@@ -20,19 +20,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Ava** is a multi-modal WhatsApp AI agent that processes text, voice, and images. Built as an educational course project demonstrating production-level AI application development using LangGraph workflows, Docker containerization, and cloud deployment.
+**Pepper** is a multi-modal WhatsApp AI agent that processes text, voice, and images. Built as an educational course project demonstrating production-level AI application development using LangGraph workflows, Docker containerization, and cloud deployment.
 
 ## Development Commands
 
-The project uses a Makefile for common operations. All commands should be run from the `ava-whatsapp-agent-course/` directory:
+The project uses a Makefile for common operations. All commands should be run from the `pepper-whatsapp-agent-course/` directory:
 
 ### Docker Operations
 
 ```bash
-make ava-build    # Build Docker containers
-make ava-run      # Start complete system (Qdrant + Chainlit + WhatsApp webhook)
-make ava-stop     # Stop running containers
-make ava-delete   # Clean up containers and memory directories
+make pepper-build    # Build Docker containers
+make pepper-run      # Start complete system (Qdrant + Chainlit + WhatsApp webhook)
+make pepper-stop     # Stop running containers
+make pepper-delete   # Clean up containers and memory directories
 ```
 
 ### Code Quality
@@ -92,13 +92,15 @@ Entry point: `src/ai_companion/graph/graph.py:graph` (defined in langgraph.json)
 ### Railway Deployment (COMPLETED ✅)
 
 **Current Status:** Successfully deployed to Railway
-- **URL**: `https://ava-whatsapp-agent-course-production.up.railway.app`
+
+- **URL**: `https://pepper-whatsapp-agent-course-production.up.railway.app`
 - **Port**: 8080 (WhatsApp webhook)
 - **Plan**: Railway Hobby ($5/month) for 10GB Docker image support
 - **Build Time**: ~70-100 seconds
 - **Auto-deploy**: Triggered by GitHub pushes to main branch
 
 **Railway-Specific Configurations:**
+
 - **Dockerfile**: Removed `VOLUME ["/app/data"]` instruction (banned by Railway)
 - **Database Path**: Changed to `/tmp/memory.db` (Railway writable path)
 - **Environment Variables**: All API keys configured in Railway dashboard
@@ -107,13 +109,15 @@ Entry point: `src/ai_companion/graph/graph.py:graph` (defined in langgraph.json)
 ### WhatsApp Business API Integration (ACTIVE ✅)
 
 **Current Status:** Fully configured and operational
-- **Webhook URL**: `https://ava-whatsapp-agent-course-production.up.railway.app/whatsapp_response`
-- **Verify Token**: `ava_rishabh_webhook_verify_123`
+
+- **Webhook URL**: `https://pepper-whatsapp-agent-course-production.up.railway.app/whatsapp_response`
+- **Verify Token**: `pepper_rishabh_webhook_verify_123`
 - **Phone Number ID**: `778411868682055` (current test number)
 - **Access Token**: Fresh token generated (expires periodically)
 - **Webhook Fields**: Subscribed to `messages`
 
 **Test Number Configuration:**
+
 - **Test Number**: `+15551389173` (90-day free messaging)
 - **Recipient Allowlist**: Required for development mode
 - **Message Types**: Text, image, and audio supported
@@ -121,23 +125,27 @@ Entry point: `src/ai_companion/graph/graph.py:graph` (defined in langgraph.json)
 
 ## Environment Configuration
 
-Required `.env` file in `ava-whatsapp-agent-course/`:
+Required `.env` file in `pepper-whatsapp-agent-course/`:
 
 ### Core AI Services
+
 - `GROQ_API_KEY` - For LLM (Llama 3.3) and STT (Whisper)
 - `ELEVENLABS_API_KEY` & `ELEVENLABS_VOICE_ID` - For TTS
 - `TOGETHER_API_KEY` - For image generation (FLUX models)
 
 ### Memory & Database
+
 - `QDRANT_URL` - Qdrant Cloud URL (https://xxx.gcp.cloud.qdrant.io:6333)
 - `QDRANT_API_KEY` - Qdrant Cloud API key
 
 ### WhatsApp Integration
+
 - `WHATSAPP_PHONE_NUMBER_ID` - Meta's phone number reference ID
 - `WHATSAPP_TOKEN` - Access token from Meta Developers (expires periodically)
 - `WHATSAPP_VERIFY_TOKEN` - Webhook verification token
 
 ### Model Overrides
+
 - `SMALL_TEXT_MODEL_NAME=llama3-8b-8192` - Required for structured output support
 
 ## Model Configuration & Compatibility
@@ -145,6 +153,7 @@ Required `.env` file in `ava-whatsapp-agent-course/`:
 ### Working Model Combinations
 
 **Current Stable Configuration:**
+
 - `TEXT_MODEL_NAME`: `llama-3.3-70b-versatile` (main conversation)
 - `SMALL_TEXT_MODEL_NAME`: `llama3-8b-8192` (memory analysis - supports structured output)
 - `ITT_MODEL_NAME`: `meta-llama/llama-4-scout-17b-16e-instruct` (vision - working model)
@@ -155,19 +164,23 @@ Required `.env` file in `ava-whatsapp-agent-course/`:
 ### Known Issues & Fixes
 
 **Structured Output Requirements:**
+
 - Memory analysis requires models that support structured output (MemoryAnalysis format)
 - ❌ `gemma2-9b-it` - Does NOT support structured output
 - ✅ `llama3-8b-8192` - Supports structured output
 - ✅ `llama-3.1-70b-versatile` - Supports structured output
 
 **Vision Model Updates:**
+
 - ❌ `llama-3.2-90b-vision-preview` - DEPRECATED (causes "model decommissioned" errors)
 - ✅ `meta-llama/llama-4-scout-17b-16e-instruct` - Current working vision model
 
 **Error Symptoms:**
+
 ```
 Failed to call a function. Please adjust your prompt. See 'failed_generation' for more details.
 ```
+
 Usually indicates model incompatibility with structured output requirements.
 
 ## Debugging & Error Logging
@@ -175,12 +188,14 @@ Usually indicates model incompatibility with structured output requirements.
 ### Enhanced Logging System (IMPLEMENTED ✅)
 
 **Comprehensive Error Tracking:**
+
 - **Environment Variable Validation**: Logs all required API keys at startup
 - **WhatsApp API Error Logging**: Detailed HTTP response logging with status codes
 - **LangGraph Workflow Errors**: Full Python tracebacks for workflow failures
 - **Media Upload Debugging**: Comprehensive logging for file upload issues
 
 **Log Locations:**
+
 - **Railway Deploy Logs**: Real-time application logs with detailed error traces
 - **Print Output**: Immediate visibility with 🔍 and 🚨 emoji indicators
 - **Logger Output**: Standard Python logging for production debugging
@@ -190,15 +205,27 @@ Usually indicates model incompatibility with structured output requirements.
 **WhatsApp Integration Errors:**
 
 1. **Token Expiration (401 Unauthorized)**
+
    ```json
-   {"error": {"message": "Session has expired on Friday, 18-Apr-25"}}
+   {
+     "error": {
+       "message": "Session has expired on Friday, 18-Apr-25"
+     }
+   }
    ```
+
    **Solution:** Generate new access token in Meta Developers Console
 
 2. **Recipient Not Allowed (400 Bad Request)**
+
    ```json
-   {"error": {"message": "(#131030) Recipient phone number not in allowed list"}}
+   {
+     "error": {
+       "message": "(#131030) Recipient phone number not in allowed list"
+     }
+   }
    ```
+
    **Solution:** Add phone numbers to recipient allowlist in Meta Developer Console
 
 3. **API Version Upgrade Warning**
@@ -208,19 +235,23 @@ Usually indicates model incompatibility with structured output requirements.
    **Status:** Working correctly (auto-upgrade accepted)
 
 **Model Compatibility Errors:**
+
 ```bash
 groq.BadRequestError: Failed to call a function. tool_use_failed
 ```
+
 **Solution:** Ensure `SMALL_TEXT_MODEL_NAME=llama3-8b-8192` in environment variables
 
 ## Testing and Quality Assurance
 
 ### Development Testing
+
 - **Linting**: Ruff is configured for code quality
 - **Formatting**: Ruff handles code formatting
 - **Testing**: Run `make lint-check` and `make format-check` before commits
 
 ### Production Testing
+
 - **Webhook Testing**: Use Meta's webhook test data or Graph API Explorer
 - **End-to-End**: Send actual WhatsApp messages to test number
 - **Multi-modal**: Test text, image, and voice message processing
@@ -241,14 +272,16 @@ groq.BadRequestError: Failed to call a function. tool_use_failed
 ## Development Workflow
 
 ### Local Development
+
 1. Ensure `.env` is configured with required API keys
-2. Use `make ava-run` to start the development environment
+2. Use `make pepper-run` to start the development environment
 3. Access web interface at http://localhost:8000
-4. WhatsApp webhook available at http://localhost:8080
+4. WhatsApp webhook pepperilable at http://localhost:8080
 5. Run `make format-fix` and `make lint-fix` before commits
-6. Use `make ava-delete` to clean up between sessions
+6. Use `make pepper-delete` to clean up between sessions
 
 ### Production Deployment
+
 1. **Push to GitHub** - Railway auto-deploys from main branch
 2. **Monitor Build** - Check Railway build logs for Docker build success
 3. **Check Deploy** - Monitor Railway deploy logs for startup issues
@@ -260,13 +293,15 @@ groq.BadRequestError: Failed to call a function. tool_use_failed
 ### Vapi Voice Calling Implementation Status
 
 **Current Status:** Core implementation complete, debugging streaming response format
+
 - **Technology**: Vapi for phone infrastructure + ElevenLabs for voice + Custom LLM endpoint
-- **Trigger**: Users say "call me" in WhatsApp → Ava initiates phone call via `voice_calling_node`
+- **Trigger**: Users say "call me" in WhatsApp → Pepper initiates phone call via `voice_calling_node`
 - **Context**: WhatsApp conversation context passed to voice call through `voice_context_manager`
 
 ### Architecture Overview
 
 **Voice Calling Flow:**
+
 1. **WhatsApp Trigger** (`webhook_endpoint.py`) → Router detects "call me" intent
 2. **Voice Calling Node** (`graph/nodes.py:voice_calling_node`) → Initiates call via Vapi
 3. **Vapi Client** (`interfaces/vapi/vapi_client.py`) → Creates assistant + makes outbound call
@@ -276,26 +311,29 @@ groq.BadRequestError: Failed to call a function. tool_use_failed
 ### Implementation Details
 
 **Key Files & Functions:**
+
 - `src/ai_companion/graph/nodes.py:voice_calling_node()` - Call initiation trigger
 - `src/ai_companion/interfaces/vapi/vapi_client.py:make_outbound_call()` - Vapi SDK integration
 - `src/ai_companion/interfaces/vapi/vapi_endpoints.py:handle_voice_chat()` - Custom LLM endpoint
 - `src/ai_companion/interfaces/vapi/voice_context_manager.py` - Context preparation
 
 **Required Environment Variables:**
+
 ```env
 # Vapi Configuration
-VAPI_API_PRIVATE_KEY=priv_your_key_here  # From Vapi dashboard  
+VAPI_API_PRIVATE_KEY=priv_your_key_here  # From Vapi dashboard
 VAPI_PHONE_NUMBER_ID=uuid_here           # Your Vapi phone number ID
 RAILWAY_URL=https://your-app.up.railway.app  # Your deployment URL
 
 # Voice Assistant Setup
 ELEVENLABS_API_KEY=sk_...                # For consistent voice across WhatsApp/voice
-ELEVENLABS_VOICE_ID=uju3...              # Ava's voice ID
+ELEVENLABS_VOICE_ID=uju3...              # Pepper's voice ID
 ```
 
 ### Current Implementation Status
 
 **✅ Working Components:**
+
 - Phone call initiation from WhatsApp "call me" messages
 - Vapi assistant creation with correct parameters (fixed camelCase → snake_case issues)
 - Custom LLM endpoint receiving requests from Vapi
@@ -304,12 +342,14 @@ ELEVENLABS_VOICE_ID=uju3...              # Ava's voice ID
 - Context continuity between WhatsApp and voice
 
 **🔧 Active Debugging:**
+
 - **Streaming Response Format**: Vapi sends `stream: True` but expects Server-Sent Events (SSE) format
 - **Issue**: We return complete JSON responses instead of streaming chunks
 - **Solution**: Implemented `stream_response_chunks()` function for OpenAI-compatible streaming
 - **Status**: Testing streaming response implementation
 
 **🐛 Recent Fixes Applied:**
+
 1. **Parameter Naming**: Fixed 18 camelCase → snake_case parameter issues in Vapi SDK calls
 2. **Invalid Parameters**: Removed unsupported assistant configuration parameters
 3. **Voice Provider**: Changed `"elevenlabs"` → `"11labs"` for Vapi compatibility
@@ -319,6 +359,7 @@ ELEVENLABS_VOICE_ID=uju3...              # Ava's voice ID
 ### Voice Calling Debug Process
 
 **Debugging Timeline:**
+
 1. **Initial Issue**: Calls connected but no speech output from Vapi
 2. **Investigation**: Added comprehensive logging to trace request/response flow
 3. **Discovery**: Vapi expects streaming responses when `stream: True` is set
@@ -326,6 +367,7 @@ ELEVENLABS_VOICE_ID=uju3...              # Ava's voice ID
 5. **Solution**: Implemented OpenAI-compatible streaming response format
 
 **Debug Logging Added:**
+
 ```python
 # Request analysis
 print(f"📨 FULL VAPI REQUEST: {request.model_dump()}")
@@ -334,25 +376,27 @@ print(f"📨 FULL VAPI REQUEST: {request.model_dump()}")
 print(f"🚀 CALLING LANGGRAPH WITH: {graph_input}")
 print(f"📥 LANGGRAPH RESPONSE: {response}")
 
-# Response formatting  
-print(f"✅ VOICE RESPONSE SENT: {ava_response}")
+# Response formatting
+print(f"✅ VOICE RESPONSE SENT: {pepper_response}")
 print(f"🔍 COMPLETE VAPI RESPONSE: {response_dict}")
 ```
 
 ### Technical Insights Learned
 
 **Vapi Custom LLM Requirements:**
+
 - Must support both streaming (`stream: True`) and complete response modes
 - Streaming responses require Server-Sent Events (SSE) format with specific headers
 - OpenAI compatibility means exact adherence to request/response schemas
-- Python SDK uses snake_case parameters, not camelCase like JavaScript APIs
+- Python SDK uses snake_case parameters, not camelCase like JpepperScript APIs
 
 **Critical Implementation Details:**
+
 ```python
 # Streaming Response Format Required:
 {
   "Content-Type": "text/event-stream",
-  "Cache-Control": "no-cache", 
+  "Cache-Control": "no-cache",
   "Connection": "keep-alive"
 }
 
@@ -366,6 +410,7 @@ data: [DONE]
 ### Testing Voice Calls
 
 **Current Testing Process:**
+
 1. Send "call me" to WhatsApp bot
 2. Monitor Railway logs for:
    - Router decision: `🤖 ROUTER DECISION: voice_call`
@@ -377,12 +422,14 @@ data: [DONE]
 ### Next Steps
 
 **Immediate Priority:**
+
 1. **Deploy streaming response fix** - Test if SSE format resolves speech output
 2. **Verify end-to-end flow** - Ensure complete WhatsApp → Voice → Response cycle
 3. **Optimize assistant reuse** - Consider using existing assistant ID vs creating new ones
 4. **Add conversation persistence** - Maintain context across multiple voice interactions
 
 **Future Enhancements:**
+
 - Voice call → WhatsApp summary integration
 - Multi-turn conversation handling
 - Voice call analytics and logging
@@ -390,9 +437,10 @@ data: [DONE]
 
 ## Future Architecture Planning
 
-### Enhanced Ava Vision (Personal Assistant Features)
+### Enhanced Pepper Vision (Personal Assistant Features)
 
 **Planned Features:**
+
 - ✅ Voice calling via Vapi (COMPLETED)
 - Note-taking with Notion integration
 - Todo list management
@@ -402,10 +450,12 @@ data: [DONE]
 ### Database Architecture Evolution
 
 **Current (Simple):**
+
 - Qdrant Cloud: Vector database for conversation memories
 - SQLite: Short-term conversation checkpointing
 
 **Planned (Enhanced):**
+
 - **Supabase-Only Architecture** (recommended):
   - PostgreSQL with pgvector for vector search
   - User management, todos, calendar, notes tables
@@ -414,6 +464,7 @@ data: [DONE]
   - Cost: ~$25/month vs current ~$5/month
 
 **Migration Effort:**
+
 - **Primary Changes:** `src/ai_companion/modules/memory/long_term/vector_store.py` (complete rewrite)
 - **Configuration:** Update settings.py, .env, docker-compose.yml
 - **Dependencies:** Replace qdrant-client with supabase + asyncpg
@@ -425,6 +476,7 @@ data: [DONE]
 **Future:** Complex multi-path workflow (15-20 nodes)
 
 **New Nodes Needed:**
+
 - Intent Detection (identify feature requests)
 - Action Router (direct to workflows)
 - External API Integration (Notion, Google Calendar, WAPI)
@@ -438,11 +490,13 @@ data: [DONE]
 ### Startup Problems
 
 **"Missing required environment variables"**
+
 - Check Railway environment variables dashboard
 - Ensure all API keys are set correctly
 - Verify variable names match settings.py requirements
 
 **"Connection refused" to Qdrant**
+
 - Verify Qdrant Cloud URL and API key in Railway environment
 - Check Qdrant Cloud service status
 - Ensure network connectivity from Railway to Qdrant
@@ -450,26 +504,31 @@ data: [DONE]
 ### WhatsApp Integration Issues
 
 **"Access token expired"**
+
 - Generate new token in Meta Developers Console
 - Update `WHATSAPP_TOKEN` in Railway environment variables
 - Tokens typically expire every 60-90 days
 
 **"Recipient not in allowed list"**
+
 - Add test phone numbers to allowlist in Meta Developer Console
 - Development mode limits to 5 approved numbers
 - Consider upgrading to production for unlimited recipients
 
 **"Webhook verification failed"**
+
 - Verify `WHATSAPP_VERIFY_TOKEN` matches Meta Developer Console setting
 - Check webhook URL is accessible and returns correct challenge
 
 ### Railway Deployment Issues
 
 **"Docker image too large"**
+
 - Requires Railway Hobby plan ($5/month) for 10GB limit
 - Current image ~6.5GB due to AI model dependencies
 
 **"Build timeouts"**
+
 - Normal build time: 70-100 seconds
 - Monitor build logs for specific failures
 - Check uv package resolution for dependency conflicts
@@ -477,11 +536,13 @@ data: [DONE]
 ### Performance Optimization
 
 **Slow Responses:**
+
 - Consider upgrading to faster models
 - Check API rate limits on Groq/ElevenLabs/Together
 - Monitor Railway resource usage
 
 **High Costs:**
+
 - Current monthly estimate: ~$30-40 (Railway $5 + Qdrant $25 + API usage)
 - Use smaller models for non-critical tasks
 - Monitor token usage across all AI services
@@ -491,20 +552,23 @@ data: [DONE]
 ### Commenting Approach for Learning
 
 **Target Audience:** Developers with 1-month coding bootcamp knowledge
-- Knows basic Python/JavaScript, variables, functions, if/else, loops
+
+- Knows basic Python/JpepperScript, variables, functions, if/else, loops
 - Does NOT know OOP, external libraries, web development, Docker, APIs
 
 **Comment Requirements:**
+
 1. **File Headers:** Explain purpose, problem solved, define technical terms
 2. **Import Explanations:** Why each library is needed with real-world analogies
 3. **Line-by-line Comments:** What, why, how, and system connections
-4. **Grounded Analogies:** Must reference specific Ava components, not generic concepts
+4. **Grounded Analogies:** Must reference specific Pepper components, not generic concepts
 
 **Example Standards:**
+
 ```python
 # ELEVENLABS CLIENT MANAGER - Creates and reuses connection to voice synthesis service
 # This is like having one phone line to ElevenLabs instead of dialing a new connection
-# every time Ava needs to analyze an image. Much more efficient.
+# every time Pepper needs to analyze an image. Much more efficient.
 @property
 def client(self) -> ElevenLabs:
     # CHECK IF CLIENT ALREADY EXISTS (SINGLETON PATTERN)
@@ -517,7 +581,8 @@ def client(self) -> ElevenLabs:
 ```
 
 ## important-instruction-reminders
+
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.

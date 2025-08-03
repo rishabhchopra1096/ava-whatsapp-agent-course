@@ -5,7 +5,7 @@
 import base64
 
 # logging records success/failure of image generation for debugging
-# Essential for monitoring Ava's creative capabilities in production
+# Essential for monitoring Pepper's creative capabilities in production
 import logging
 
 # os provides access to operating system functions like environment variables and file operations
@@ -16,7 +16,7 @@ import os
 # Optional = value that might be None
 from typing import Optional
 
-# CUSTOM IMPORTS - Ava-specific modules
+# CUSTOM IMPORTS - Pepper-specific modules
 
 # Custom exception for image generation errors (more specific than generic Python exceptions)
 from ai_companion.core.exceptions import TextToImageError
@@ -26,7 +26,7 @@ from ai_companion.core.exceptions import TextToImageError
 # IMAGE_SCENARIO_PROMPT = creates narrative scenes from conversation context
 from ai_companion.core.prompts import IMAGE_ENHANCEMENT_PROMPT, IMAGE_SCENARIO_PROMPT
 
-# Ava's centralized configuration containing API keys and model names
+# Pepper's centralized configuration containing API keys and model names
 from ai_companion.settings import settings
 
 # LANGCHAIN IMPORTS - AI framework components
@@ -35,7 +35,7 @@ from ai_companion.settings import settings
 from langchain.prompts import PromptTemplate
 
 # ChatGroq provides access to Groq's language models for prompt enhancement
-# Same service Ava uses for conversation, but here for improving image prompts
+# Same service Pepper uses for conversation, but here for improving image prompts
 from langchain_groq import ChatGroq
 
 # PYDANTIC IMPORTS - Data validation and structure
@@ -60,7 +60,7 @@ class ScenarioPrompt(BaseModel):
     🎨 SCENARIO RESPONSE MODEL - Structure for narrative + image prompt pairs
     
     WHAT IT DOES:
-    Defines the exact format for when Ava creates a story scenario with matching image.
+    Defines the exact format for when Pepper creates a story scenario with matching image.
     Forces the AI to return both a narrative text AND a visual prompt in structured format.
     
     REAL-WORLD ANALOGY:
@@ -70,7 +70,7 @@ class ScenarioPrompt(BaseModel):
     USED BY:
     create_scenario() method when generating contextual images from conversation history
     """
-    # NARRATIVE FIELD - Ava's first-person story about what's happening
+    # NARRATIVE FIELD - Pepper's first-person story about what's happening
     # Field(...) means this field is required (can't be empty)
     # Example: "I'm currently working on ML optimization at my desk at Groq"
     narrative: str = Field(..., description="The AI's narrative response to the question")
@@ -106,19 +106,19 @@ class EnhancedPrompt(BaseModel):
 
 class TextToImage:
     """
-    🎨 AVA'S IMAGINATION SYSTEM - Ava's ability to create visual art from text descriptions
+    🎨 pepper'S IMAGINATION SYSTEM - Pepper's ability to create visual art from text descriptions
     
     WHAT IT DOES:
-    This class gives Ava the power to create actual images based on text descriptions.
-    When you ask Ava to "show me what you're working on" or "draw me a sunset,"
+    This class gives Pepper the power to create actual images based on text descriptions.
+    When you ask Pepper to "show me what you're working on" or "draw me a sunset,"
     this system generates real images using state-of-the-art AI models.
     
     HOW IT WORKS (USER STORY):
-    1. User: "Ava, show me what your office at Groq looks like"
+    1. User: "Pepper, show me what your office at Groq looks like"
     2. create_scenario() analyzes conversation and creates detailed scene description
     3. enhance_prompt() adds artistic details for better image quality
     4. generate_image() uses Together AI's FLUX models to create actual image
-    5. User receives beautiful generated image of Ava's workspace
+    5. User receives beautiful generated image of Pepper's workspace
     
     THREE POWERFUL CAPABILITIES:
     1. **Basic Generation**: Convert simple text to images
@@ -126,7 +126,7 @@ class TextToImage:
     3. **Scenario Creation**: Generate contextual images from conversation history
     
     REAL-WORLD ANALOGY:
-    This is like Ava being a talented artist with an AI paintbrush.
+    This is like Pepper being a talented artist with an AI paintbrush.
     You describe what you want to see, and she creates an actual picture for you.
     The difference is her "paintbrush" is cutting-edge AI instead of physical art supplies.
     
@@ -136,7 +136,7 @@ class TextToImage:
     - Supports both contextual scenarios and direct image requests
     
     USED BY:
-    - image_node in LangGraph: When router decides Ava should respond with images
+    - image_node in LangGraph: When router decides Pepper should respond with images
     - Triggered by conversation context: "show me," "draw," "what does X look like"
     - Both WhatsApp and Chainlit interfaces
     """
@@ -148,10 +148,10 @@ class TextToImage:
 
     def __init__(self):
         """
-        🔧 INITIALIZE AVA'S IMAGINATION SYSTEM - Set up image creation capabilities
+        🔧 INITIALIZE pepper'S IMAGINATION SYSTEM - Set up image creation capabilities
         
         WHAT HAPPENS DURING INITIALIZATION:
-        1. Validates that required API keys are available (Groq + Together)
+        1. Validates that required API keys are pepperilable (Groq + Together)
         2. Sets up logging for debugging image generation issues
         3. Prepares (but doesn't create yet) the Together AI client connection
         
@@ -167,7 +167,7 @@ class TextToImage:
         
         # PREPARE CLIENT STORAGE (LAZY INITIALIZATION)
         # _together_client starts as None, gets created only when needed
-        # Avoids expensive network connections during Ava's startup
+        # Avoids expensive network connections during Pepper's startup
         self._together_client: Optional[Together] = None
         
         # SET UP LOGGING FOR IMAGE GENERATION DEBUGGING
@@ -216,7 +216,7 @@ class TextToImage:
         
         REAL-WORLD ANALOGY:
         This is like having one dedicated art studio connection instead of setting up
-        a new studio every time Ava wants to create an image. Much more efficient.
+        a new studio every time Pepper wants to create an image. Much more efficient.
         """
         # CHECK IF CLIENT ALREADY EXISTS (SINGLETON PATTERN)
         # Only create the expensive network connection once
@@ -227,7 +227,7 @@ class TextToImage:
             self._together_client = Together(api_key=settings.TOGETHER_API_KEY)
         
         # RETURN CLIENT (EITHER NEWLY CREATED OR EXISTING)
-        # Same client instance used for all of Ava's image generation needs
+        # Same client instance used for all of Pepper's image generation needs
         return self._together_client
 
     async def generate_image(self, prompt: str, output_path: str = "") -> bytes:

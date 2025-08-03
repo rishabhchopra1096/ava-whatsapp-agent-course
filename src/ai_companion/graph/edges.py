@@ -1,5 +1,5 @@
 """
-🔀 DECISION POINTS IN AVA'S BRAIN - "Edges" that control the flow between nodes
+🔀 DECISION POINTS IN pepper'S BRAIN - "Edges" that control the flow between nodes
 
 WHAT IS THIS FILE?
 This file contains "edge functions" - the decision makers that control which node runs next.
@@ -72,7 +72,7 @@ def should_summarize_conversation(
     """
     
     # STEP 1: Get all messages from the conversation
-    # This includes both user messages (HumanMessage) and Ava's responses (AIMessage)
+    # This includes both user messages (HumanMessage) and Pepper's responses (AIMessage)
     messages = state["messages"]
 
     # STEP 2: Check if we've hit the message limit
@@ -134,7 +134,7 @@ def select_workflow(
     # Image response requested
     if workflow == "image":
         # Route to image_node which will:
-        # 1. Generate an image of Ava's current activity
+        # 1. Generate an image of Pepper's current activity
         # 2. Create a text caption to go with it
         return "image_node"
 
@@ -158,6 +158,6 @@ def select_workflow(
     # Default to text response (includes "conversation" and any unexpected values)
     else:
         # Route to conversation_node which will:
-        # Generate a text-only response using Ava's personality
+        # Generate a text-only response using Pepper's personality
         # This is the most common response type
         return "conversation_node"

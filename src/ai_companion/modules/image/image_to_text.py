@@ -18,39 +18,39 @@ import os
 # Optional = value that might be None, Union = value that could be multiple types
 from typing import Optional, Union
 
-# CUSTOM IMPORTS - Ava-specific modules
+# CUSTOM IMPORTS - Pepper-specific modules
 
 # Custom exception class for image processing errors
 # Better than generic Python exceptions because it's specific to our image analysis system
 from ai_companion.core.exceptions import ImageToTextError
 
-# Ava's configuration settings containing API keys and model names
+# Pepper's configuration settings containing API keys and model names
 # Centralized configuration makes it easy to change models or settings across the system
 from ai_companion.settings import settings
 
 # Groq is the AI service that provides vision capabilities
-# Same company that provides Ava's LLM processing and speech recognition
+# Same company that provides Pepper's LLM processing and speech recognition
 # Offers fast, cost-effective access to advanced AI models including vision
 from groq import Groq
 
 
 class ImageToText:
     """
-    👁️ AVA'S VISION SYSTEM - Ava's ability to "see" and understand images
+    👁️ pepper'S VISION SYSTEM - Pepper's ability to "see" and understand images
     
     WHAT IT DOES:
-    This class gives Ava the ability to analyze images that users send her.
-    When you upload a photo to Ava (via WhatsApp or Chainlit), this system describes
-    what's in the image so Ava can talk about it intelligently.
+    This class gives Pepper the ability to analyze images that users send her.
+    When you upload a photo to Pepper (via WhatsApp or Chainlit), this system describes
+    what's in the image so Pepper can talk about it intelligently.
     
     HOW IT WORKS:
     1. User sends image → Image gets converted to base64 text
     2. Text + image sent to Groq's vision AI model
     3. AI model analyzes image and returns text description
-    4. Ava can now "see" the image and discuss it naturally
+    4. Pepper can now "see" the image and discuss it naturally
     
     REAL-WORLD ANALOGY:
-    This is like Ava having eyes that can look at photos and describe what she sees.
+    This is like Pepper having eyes that can look at photos and describe what she sees.
     Instead of saying "I can't see images," she can say "I see a golden retriever
     playing in Golden Gate Park on a sunny day."
     
@@ -61,20 +61,20 @@ class ImageToText:
     
     TECHNICAL APPROACH:
     Uses Groq's implementation of vision models (like GPT-4 Vision) for fast,
-    cost-effective image analysis with the same API ecosystem as Ava's other AI capabilities.
+    cost-effective image analysis with the same API ecosystem as Pepper's other AI capabilities.
     """
 
     # REQUIRED ENVIRONMENT VARIABLES - Security configuration
-    # These must be set as environment variables before Ava can analyze images
+    # These must be set as environment variables before Pepper can analyze images
     # Environment variables keep API keys secure and out of source code
     REQUIRED_ENV_VARS = ["GROQ_API_KEY"]
 
     def __init__(self):
         """
-        🔧 INITIALIZE AVA'S VISION SYSTEM - Set up image analysis capabilities
+        🔧 INITIALIZE pepper'S VISION SYSTEM - Set up image analysis capabilities
         
         WHAT HAPPENS DURING INITIALIZATION:
-        1. Validates that required API keys are available
+        1. Validates that required API keys are pepperilable
         2. Sets up logging for debugging image analysis issues
         3. Prepares (but doesn't create yet) the Groq client connection
         
@@ -148,7 +148,7 @@ class ImageToText:
         
         REAL-WORLD ANALOGY:
         This is like having one phone line to Groq instead of dialing a new connection
-        every time Ava needs to analyze an image. Much more efficient.
+        every time Pepper needs to analyze an image. Much more efficient.
         
         TECHNICAL DETAILS:
         - @property makes this look like a variable but actually runs code

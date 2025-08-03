@@ -3,15 +3,15 @@
 First thing first, clone the repository.
 
 ```
-git clone https://github.com/neural-maze/ava-whatsapp-agent-course.git
-cd ava-whatsapp-agent-course
+git clone https://github.com/neural-maze/pepper-whatsapp-agent-course.git
+cd pepper-whatsapp-agent-course
 ```
 
 # 2. Install uv
 
-Instead of `pip` or `poetry`, we are using `uv` as the Python package manager. 
+Instead of `pip` or `poetry`, we are using `uv` as the Python package manager.
 
-To install uv, simply follow this [instructions](https://docs.astral.sh/uv/getting-started/installation/). 
+To install uv, simply follow this [instructions](https://docs.astral.sh/uv/getting-started/installation/).
 
 # 3. Install the project dependencies
 
@@ -25,6 +25,7 @@ uv venv .venv
 . .\.venv\Scripts\Activate.ps1 # or .\.venv\Scripts\activate
 uv pip install -e .
 ```
+
 Just to make sure that everything is working, simply run the following command:
 
 ```bash
@@ -32,7 +33,6 @@ Just to make sure that everything is working, simply run the following command:
 ```
 
 The Python version should be `Python 3.12.8`.
-
 
 # 4. Environment Variables
 
@@ -62,7 +62,7 @@ WHATSAPP_TOKEN = ""
 WHATSAPP_VERIFY_TOKEN = ""
 ```
 
-In this doc, we will show you how to get the values for all of these variables, except for the WhatsApp ones. 
+In this doc, we will show you how to get the values for all of these variables, except for the WhatsApp ones.
 That's something we will cover in a dedicated lesson, so don't worry about it for now, **you can leave the WhatsApp variables empty**.
 
 ### Groq
@@ -79,7 +79,7 @@ To create the ELEVENLABS_API_KEY you need to create an account in [ElevenLabs](h
 
 ![alt text](img/elevenlabs_api_key.png)
 
-As for the voice ID, you can check the available voices and select the one you prefer! We'll cover this in a dedicated lesson.
+As for the voice ID, you can check the pepperilable voices and select the one you prefer! We'll cover this in a dedicated lesson.
 
 ### Together AI
 
@@ -109,25 +109,25 @@ Copy both values and paste them into your own `.env` file.
 
 Once you have everything set up, it's time to run the project locally. This is the best way to check that everything is working before starting the course.
 
-To run the project locally, we have created a [Makefile](../Makefile). Use the command `ava-run` to start the project.
+To run the project locally, we have created a [Makefile](../Makefile). Use the command `pepper-run` to start the project.
 
 ```bash
-make ava-run
+make pepper-run
 ```
 
 This command will start a Docker Compose application with three services:
 
-* A Qdrant Database (http://localhost:6333/dashboard)
-* A Chainlit interface (http://localhost:8000)
-* A FastAPI application (http://localhost:8080/docs)
+- A Qdrant Database (http://localhost:6333/dashboard)
+- A Chainlit interface (http://localhost:8000)
+- A FastAPI application (http://localhost:8080/docs)
 
 The FastAPI application is necessary for the WhatsApp integration, but that's something we will cover in Lesson 6. So, for now,
-you can ignore it. Simply click the link to the Chainlit interface to start interacting with Ava.
+you can ignore it. Simply click the link to the Chainlit interface to start interacting with Pepper.
 
 You should see something like this:
 
-![Ava Chainlit](img/ava_chainlit.png)
+![Pepper Chainlit](img/pepper_chainlit.png)
 
 Now that we have verified that everything is working, it's time to move on to the [Course Syllabus](../README.md) and start the first lesson!
 
-> If you want to clean up the docker compose application and all the related local folders, you can run `make ava-delete`. For more info, check the [Makefile](../Makefile).
+> If you want to clean up the docker compose application and all the related local folders, you can run `make pepper-delete`. For more info, check the [Makefile](../Makefile).

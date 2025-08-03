@@ -1,8 +1,8 @@
 """
-🧠 AVA'S BRAIN WORKERS - Each function is a "node" that does one specific job
+🧠 pepper'S BRAIN WORKERS - Each function is a "node" that does one specific job
 
 WHAT IS THIS FILE?
-This file contains all the "workers" in Ava's brain factory. Each function (called a "node") 
+This file contains all the "workers" in Pepper's brain factory. Each function (called a "node") 
 does ONE specific job, like:
 - Deciding how to respond (text/image/audio)  
 - Generating text responses
@@ -25,7 +25,7 @@ REAL EXAMPLE:
 You: "What are you up to?"
 1. memory_extraction: Stores "User asked about activities" 
 2. router: Decides "conversation" (text response)
-3. context_injection: Gets "Ava is coding Python"
+3. context_injection: Gets "Pepper is coding Python"
 4. memory_injection: Retrieves "User is a developer"  
 5. conversation: Generates "Hey! I'm coding Python too. How's your project going?"
 """
@@ -35,7 +35,7 @@ import os
 # For generating unique filenames (image_12345.png)
 from uuid import uuid4        
 
-# LangChain imports - these are the "message" types Ava uses internally
+# LangChain imports - these are the "message" types Pepper uses internally
 from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage
 # Configuration for LLM calls
 from langchain_core.runnables import RunnableConfig  
@@ -44,7 +44,7 @@ from langchain_core.runnables import RunnableConfig
 from ai_companion.graph.state import AICompanionState   # The "clipboard" 
 # Pre-built LLM chains
 from ai_companion.graph.utils.chains import (                           
-    # Chain for Ava's personality responses
+    # Chain for Pepper's personality responses
     get_character_response_chain,  
      # Chain for deciding response type
     get_router_chain,             
@@ -57,7 +57,7 @@ from ai_companion.graph.utils.helpers import (                          # Helper
 
 # Vector DB manager
 from ai_companion.modules.memory.long_term.memory_manager import get_memory_manager  
-# Ava's daily schedule
+# Pepper's daily schedule
 from ai_companion.modules.schedules.context_generation import ScheduleContextGenerator  
 # Configuration values (API keys, model names, etc.)
 from ai_companion.settings import settings  
@@ -65,7 +65,7 @@ from ai_companion.settings import settings
 
 async def router_node(state: AICompanionState):
     """
-    🤖 THE DECISION MAKER - Ava's "brain" that decides how to respond
+    🤖 THE DECISION MAKER - Pepper's "brain" that decides how to respond
     
     WHAT IT DOES:
     Analyzes your message to decide response type:
@@ -74,7 +74,7 @@ async def router_node(state: AICompanionState):
     - "audio" = voice note response (sends you a voice message)
     
     WHY IT EXISTS:
-    This makes Ava autonomous! Instead of always responding with text,
+    This makes Pepper autonomous! Instead of always responding with text,
     she can decide "this person wants to see what I'm up to" → sends image
     
     REAL EXAMPLE:
@@ -122,10 +122,10 @@ async def router_node(state: AICompanionState):
 
 def context_injection_node(state: AICompanionState):
     """
-    📅 AVA'S LIFE INJECTION - Makes Ava feel human by giving her a daily routine
+    📅 pepper'S LIFE INJECTION - Makes Pepper feel human by giving her a daily routine
     
     WHAT IT DOES:
-    Checks what Ava is "doing" right now based on her schedule:
+    Checks what Pepper is "doing" right now based on her schedule:
     - 9 AM: "reviewing machine learning papers"  
     - 2 PM: "coding a Python data analysis script"
     - 6 PM: "cooking dinner while listening to podcasts"
@@ -140,8 +140,8 @@ def context_injection_node(state: AICompanionState):
     With this: "I'm analyzing some data for a ML project. What about you?"
     """
     
-    # STEP 1: Get Ava's current activity from her schedule
-    # What is ScheduleContextGenerator? A class that reads Ava's daily schedule
+    # STEP 1: Get Pepper's current activity from her schedule
+    # What is ScheduleContextGenerator? A class that reads Pepper's daily schedule
     # Located in: ai_companion/modules/schedules/context_generation.py
     # How does it work? Checks current time against a predefined schedule
     # Example return: "reviewing research papers on neural networks"
@@ -164,10 +164,10 @@ def context_injection_node(state: AICompanionState):
 
 async def conversation_node(state: AICompanionState, config: RunnableConfig):
     """
-    💬 TEXT RESPONSE GENERATOR - The main "thinking" node that creates Ava's replies
+    💬 TEXT RESPONSE GENERATOR - The main "thinking" node that creates Pepper's replies
     
     WHAT IT DOES:
-    Takes everything Ava knows and crafts a personalized text response:
+    Takes everything Pepper knows and crafts a personalized text response:
     - Your conversation history ("we talked about coding yesterday")
     - What she remembers about you ("John is a developer, likes pizza")  
     - What she's currently doing ("I'm working on a ML project")
@@ -187,23 +187,23 @@ async def conversation_node(state: AICompanionState, config: RunnableConfig):
     # Why get activity again? Because it might have changed since context_injection_node
     current_activity = ScheduleContextGenerator.get_current_activity()
     
-    # Get what Ava remembers about you (set by memory_injection_node)
+    # Get what Pepper remembers about you (set by memory_injection_node)
     # state.get("memory_context", "") = get memory_context from clipboard, or "" if empty
     memory_context = state.get("memory_context", "")
     
     # STEP 2: Get the "character response chain" 
-    # What is this chain? It's: Ava's personality prompt + LLM + output parsing
+    # What is this chain? It's: Pepper's personality prompt + LLM + output parsing
     # Why pass summary? For long conversations, include previous chat summary
     # Located in: ai_companion/graph/utils/chains.py (get_character_response_chain function)
     chain = get_character_response_chain(state.get("summary", ""))
     
-    # STEP 3: Generate the response using ALL available context
+    # STEP 3: Generate the response using ALL pepperilable context
     # This is where the magic happens! All context pieces come together
     response = await chain.ainvoke(
         {
             # Everything that's been said in this conversation
             "messages": state["messages"],
-            # What Ava is currently doing ("coding", "reading papers", etc.)
+            # What Pepper is currently doing ("coding", "reading papers", etc.)
             "current_activity": current_activity,
             # What she knows about you personally ("developer", "likes pizza", etc.)
             "memory_context": memory_context,
@@ -212,7 +212,7 @@ async def conversation_node(state: AICompanionState, config: RunnableConfig):
     )
     
     # STEP 4: Return the response as an AIMessage and update the conversation
-    # Why AIMessage? LangChain message type that represents Ava's responses
+    # Why AIMessage? LangChain message type that represents Pepper's responses
     # This gets added to state["messages"] so future nodes see the full conversation
     return {"messages": AIMessage(content=response)}
 
@@ -221,11 +221,11 @@ async def image_node(state: AICompanionState, config: RunnableConfig):
     """🖼️ IMAGE RESPONSE GENERATOR - Creates visual responses
     
     Two-step process:
-    1. Generate image of Ava's current activity using FLUX model
+    1. Generate image of Pepper's current activity using FLUX model
     2. Create text caption to accompany the image
     
     Example: You ask "What are you up to?" 
-    → Generates image of Ava coding + text "Working on ML project!"
+    → Generates image of Pepper coding + text "Working on ML project!"
     """
     current_activity = ScheduleContextGenerator.get_current_activity()
     memory_context = state.get("memory_context", "")
@@ -240,14 +240,14 @@ async def image_node(state: AICompanionState, config: RunnableConfig):
     await text_to_image_module.generate_image(scenario.image_prompt, img_path)  # Generate actual image
 
     # Step 2: Tell LLM what image was generated (so caption matches image)
-    scenario_message = HumanMessage(content=f"<image attached by Ava generated from prompt: {scenario.image_prompt}>")
+    scenario_message = HumanMessage(content=f"<image attached by Pepper generated from prompt: {scenario.image_prompt}>")
     updated_messages = state["messages"] + [scenario_message]  # Add image context
 
     # Generate text caption that goes with the image
     response = await chain.ainvoke(
         {
             "messages": updated_messages,         # Includes image description
-            "current_activity": current_activity, # What Ava is doing
+            "current_activity": current_activity, # What Pepper is doing
             "memory_context": memory_context,     # What she knows about you
         },
         config,
@@ -257,13 +257,13 @@ async def image_node(state: AICompanionState, config: RunnableConfig):
 
 
 async def audio_node(state: AICompanionState, config: RunnableConfig):
-    """🎵 VOICE RESPONSE GENERATOR - Creates Ava's voice notes
+    """🎵 VOICE RESPONSE GENERATOR - Creates Pepper's voice notes
     
     Two-step process:
     1. Generate text response (same as conversation_node)
     2. Convert text to speech using ElevenLabs TTS
     
-    Result: Ava sends you a voice note instead of text!
+    Result: Pepper sends you a voice note instead of text!
     """
     current_activity = ScheduleContextGenerator.get_current_activity()
     memory_context = state.get("memory_context", "")
@@ -275,19 +275,19 @@ async def audio_node(state: AICompanionState, config: RunnableConfig):
     response = await chain.ainvoke(
         {
             "messages": state["messages"],      # Conversation history
-            "current_activity": current_activity, # What Ava is doing
+            "current_activity": current_activity, # What Pepper is doing
             "memory_context": memory_context,     # What she knows about you
         },
         config,
     )
-    # Step 2: Convert text to speech using Ava's voice
+    # Step 2: Convert text to speech using Pepper's voice
     output_audio = await text_to_speech_module.synthesize(response)  # Text → Audio bytes
 
     return {"messages": response, "audio_buffer": output_audio}  # Text + audio data
 
 
 async def summarize_conversation_node(state: AICompanionState):
-    """📝 MEMORY COMPRESSION - Prevents Ava from "forgetting" long conversations
+    """📝 MEMORY COMPRESSION - Prevents Pepper from "forgetting" long conversations
     
     When chat gets too long (hits token limits):
     1. Creates/updates conversation summary
@@ -305,15 +305,15 @@ async def summarize_conversation_node(state: AICompanionState):
     if summary:
         # Update existing summary with new messages
         summary_message = (
-            f"This is summary of the conversation to date between Ava and the user: {summary}\n\n"
+            f"This is summary of the conversation to date between Pepper and the user: {summary}\n\n"
             "Extend the summary by taking into account the new messages above:"
         )
     else:
         # Create first summary
         summary_message = (
-            "Create a summary of the conversation above between Ava and the user. "
+            "Create a summary of the conversation above between Pepper and the user. "
             "The summary must be a short description of the conversation so far, "
-            "but that captures all the relevant information shared between Ava and the user:"
+            "but that captures all the relevant information shared between Pepper and the user:"
         )
 
     messages = state["messages"] + [HumanMessage(content=summary_message)]  # Add summary prompt
@@ -346,12 +346,12 @@ async def memory_extraction_node(state: AICompanionState):
 
 
 def memory_injection_node(state: AICompanionState):
-    """🧠 MEMORY READER - Retrieves what Ava remembers about YOU
+    """🧠 MEMORY READER - Retrieves what Pepper remembers about YOU
     
     Uses semantic search to find relevant memories:
     1. Takes your recent messages as search query
     2. Finds similar memories from vector database
-    3. Formats them for Ava's personality prompt
+    3. Formats them for Pepper's personality prompt
     
     Example: You mention "work" → retrieves "User is a developer"
     ⚠️ BUG: No user isolation! Might get other users' memories.
@@ -381,7 +381,7 @@ async def voice_calling_node(state: AICompanionState):
     🔗 REAL-WORLD ANALOGY: Like a personal assistant who:
     1. Gets the caller's phone number from their WhatsApp contact
     2. Prepares a briefing about recent conversations
-    3. Calls the person and introduces them to voice-Ava
+    3. Calls the person and introduces them to voice-Pepper
     4. Confirms the call was initiated successfully
     
     📞 TECHNICAL PROCESS:
@@ -395,7 +395,7 @@ async def voice_calling_node(state: AICompanionState):
     It bridges WhatsApp conversations with voice calls while maintaining context continuity
     
     WHY THIS NODE EXISTS:
-    - Makes Ava truly multi-modal (text + voice)
+    - Makes Pepper truly multi-modal (text + voice)
     - Maintains conversation continuity between WhatsApp and phone calls
     - Provides immediate callback functionality for urgent matters
     - Creates natural escalation from text to voice when needed
@@ -408,13 +408,13 @@ async def voice_calling_node(state: AICompanionState):
         
         if not user_phone:
             # LOG PHONE NUMBER EXTRACTION FAILURE
-            print(f"⚠️ PHONE NUMBER NOT AVAILABLE:")
+            print(f"⚠️ PHONE NUMBER NOT pepperILABLE:")
             print(f"   🗺 State keys: {list(state.keys())}")
             print(f"   📱 user_phone_number: {state.get('user_phone_number')}")
             print(f"   🆔 user_id: {state.get('user_id')}")
             print(f"   🌐 interface: {state.get('interface', 'unknown')}")
             
-            # FALLBACK: Ask user for phone number if not available
+            # FALLBACK: Ask user for phone number if not pepperilable
             # This might happen if phone number extraction failed
             fallback_message = """📞 I'd love to call you! However, I need your phone number to make the call.
             
@@ -425,7 +425,7 @@ Once you provide it, I'll call you right away! 📱"""
             return {"messages": [AIMessage(content=fallback_message)]}
         
         # STEP 2: PREPARE CONTEXT FOR VOICE CALL
-        # Gather recent WhatsApp conversation to brief voice-Ava
+        # Gather recent WhatsApp conversation to brief voice-Pepper
         # Import here to avoid circular dependencies during module loading
         from ai_companion.interfaces.vapi.voice_context_manager import prepare_voice_context_simple
         
@@ -436,20 +436,20 @@ Once you provide it, I'll call you right away! 📱"""
         )
         
         # STEP 3: INITIATE PHONE CALL VIA VAPI
-        # Import Vapi client (import here to handle cases where Vapi isn't available)
+        # Import Vapi client (import here to handle cases where Vapi isn't pepperilable)
         try:
             from ai_companion.interfaces.vapi.vapi_client import vapi_client
             
             if vapi_client is None:
                 # LOG VAPI CLIENT INITIALIZATION FAILURE
                 import logging
-                logging.error(f"❌ VAPI CLIENT NOT AVAILABLE:")
+                logging.error(f"❌ VAPI CLIENT NOT pepperILABLE:")
                 logging.error(f"   📞 Phone: {user_phone}")
                 logging.error(f"   👤 User: {state.get('user_id', 'Unknown')}")
                 logging.error(f"   ⚙️ Possible causes: Missing API keys, network issues, service down")
                 
                 # Vapi client failed to initialize (missing API keys or connection issues)
-                error_message = """❌ Sorry, voice calling is temporarily unavailable.
+                error_message = """❌ Sorry, voice calling is temporarily unpepperilable.
                 
 This could be due to:
 - Voice service configuration issues
@@ -500,7 +500,7 @@ I'm working to resolve this! 💬"""
         confirmation_message = f"""📞 Calling you now at {user_phone}!
 
 🔔 Your phone should ring in the next 10-15 seconds
-🎙️ When you answer, you'll be talking to voice-Ava
+🎙️ When you answer, you'll be talking to voice-Pepper
 📋 I have all our recent conversation context ready
 ⏱️ Call ID: {call_details['call_id']}
 

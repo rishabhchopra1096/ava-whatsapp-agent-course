@@ -1,8 +1,8 @@
 """
-🏗️ AVA'S BRAIN BLUEPRINT - Where all the pieces connect to form her complete mind
+🏗️ pepper'S BRAIN BLUEPRINT - Where all the pieces connect to form her complete mind
 
 WHAT IS THIS FILE?
-This is the "architect's blueprint" that shows how Ava's brain is wired. It connects:
+This is the "architect's blueprint" that shows how Pepper's brain is wired. It connects:
 - STATE (the clipboard) flows between all nodes
 - NODES (the workers) do the actual work
 - EDGES (the decision points) control the flow
@@ -75,11 +75,11 @@ from ai_companion.graph.edges import (
 # Our custom node functions (the workers)
 from ai_companion.graph.nodes import (
     audio_node,                    # Generates voice responses
-    context_injection_node,        # Adds Ava's current activity
+    context_injection_node,        # Adds Pepper's current activity
     conversation_node,             # Generates text responses  
     image_node,                    # Generates image + caption
     memory_extraction_node,        # Stores facts about you
-    memory_injection_node,         # Retrieves what Ava remembers about you
+    memory_injection_node,         # Retrieves what Pepper remembers about you
     router_node,                   # Decides response type (text/image/audio/voice_call)
     summarize_conversation_node,   # Compresses long conversations
     voice_calling_node,            # NEW: Handles phone call requests
@@ -92,10 +92,10 @@ from ai_companion.graph.state import AICompanionState
 @lru_cache(maxsize=1)  
 def create_workflow_graph():
     """
-    🧠 THE BRAIN CONSTRUCTOR - Builds Ava's complete neural network
+    🧠 THE BRAIN CONSTRUCTOR - Builds Pepper's complete neural network
     
     WHAT IT DOES:
-    Creates the "wiring diagram" for Ava's brain by connecting nodes and edges.
+    Creates the "wiring diagram" for Pepper's brain by connecting nodes and edges.
     Like an electrician connecting all the circuits in a house.
     
     WHY CACHE IT?
@@ -121,7 +121,7 @@ def create_workflow_graph():
     # memory_extraction_node: 
     # - What it does: "Let me write down what you just told me"
     # - Real example: You say "I'm a developer" → stores "User is a software developer"
-    # - Why it exists: So Ava remembers facts about you for future conversations
+    # - Why it exists: So Pepper remembers facts about you for future conversations
     graph_builder.add_node("memory_extraction_node", memory_extraction_node)   
 
     # memory_injection_node: 
@@ -140,14 +140,14 @@ def create_workflow_graph():
     # Router Node
     # - What it does: "How should I respond to this?"
     # - Real example: You ask "What are you up to?" → decides "I should send a picture"
-    # - Why it exists: Makes Ava autonomous - she chooses text/image/audio responses
+    # - Why it exists: Makes Pepper autonomous - she chooses text/image/audio responses
     graph_builder.add_node("router_node", router_node)                        
 
     # context_injection_node 📅
     # - What it does: "What am I doing right now according to my schedule?"
     # - Real example: Checks time → "I'm coding Python at 2 PM"
-    # - Why it exists: Makes Ava feel human instead of saying "I'm just an AI"
-    graph_builder.add_node("context_injection_node", context_injection_node)   # Add Ava's current activity
+    # - Why it exists: Makes Pepper feel human instead of saying "I'm just an AI"
+    graph_builder.add_node("context_injection_node", context_injection_node)   # Add Pepper's current activity
     
     # Response generation nodes
     graph_builder.add_node("conversation_node", conversation_node)             # Generate text responses
@@ -169,7 +169,7 @@ def create_workflow_graph():
     # Always extract memories, then decide response type
     graph_builder.add_edge("memory_extraction_node", "router_node")
     
-    # Always add Ava's activity context after routing decision
+    # Always add Pepper's activity context after routing decision
     graph_builder.add_edge("router_node", "context_injection_node")
     
     # Always retrieve user memories after context injection
@@ -205,5 +205,5 @@ def create_workflow_graph():
 # STEP 5: Create the final executable graph
 # What is compile()? Converts the blueprint into an actual runnable workflow
 # What is "without checkpointer"? No conversation persistence between sessions
-# This compiled graph is what gets imported and used by other parts of Ava
+# This compiled graph is what gets imported and used by other parts of Pepper
 graph = create_workflow_graph().compile()

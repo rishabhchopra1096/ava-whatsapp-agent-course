@@ -1,58 +1,58 @@
 """
-🚪 WHATSAPP PRODUCTION INTERFACE - Where Ava talks to real users through WhatsApp Business API
+🚪 WHATSAPP PRODUCTION INTERFACE - Where Pepper talks to real users through WhatsApp Business API
 
 WHAT IS THIS FILE?
-This is Ava's production brain interface for WhatsApp. When real users send messages to Ava's
+This is Pepper's production brain interface for WhatsApp. When real users send messages to Pepper's
 WhatsApp number, this file processes them through the SAME LangGraph workflow as Chainlit,
 then sends responses back through WhatsApp Business API.
 
 BEGINNER CONCEPTS YOU NEED TO KNOW:
 
 📱 WHAT IS WHATSAPP BUSINESS API?
-WhatsApp Business API is Meta's system that lets programs (like Ava) send and receive
-WhatsApp messages programmatically. Think of it like Ava having her own WhatsApp account
+WhatsApp Business API is Meta's system that lets programs (like Pepper) send and receive
+WhatsApp messages programmatically. Think of it like Pepper having her own WhatsApp account
 that can automatically respond to thousands of users simultaneously.
 - Regular WhatsApp: You manually type messages on your phone
-- WhatsApp Business API: Ava's LangGraph brain automatically processes and responds
+- WhatsApp Business API: Pepper's LangGraph brain automatically processes and responds
 - Same end result: Users get messages in their normal WhatsApp app
 
-🔗 WHAT ARE WEBHOOKS IN AVA'S CONTEXT?
-Webhooks are how WhatsApp instantly notifies Ava when someone sends a message.
-Instead of Ava constantly asking "any new messages?", WhatsApp immediately sends
+🔗 WHAT ARE WEBHOOKS IN pepper'S CONTEXT?
+Webhooks are how WhatsApp instantly notifies Pepper when someone sends a message.
+Instead of Pepper constantly asking "any new messages?", WhatsApp immediately sends
 a notification to whatsapp_handler() function whenever a message arrives.
 - User sends message → WhatsApp servers receive it → Webhook fired → whatsapp_handler() called
 - This enables instant responses like a real conversation
 
-🌐 WHAT IS HTTP IN AVA'S ARCHITECTURE?
-HTTP is the communication protocol between Ava and WhatsApp's servers.
+🌐 WHAT IS HTTP IN pepper'S ARCHITECTURE?
+HTTP is the communication protocol between Pepper and WhatsApp's servers.
 - WhatsApp sends webhooks via HTTP POST to our server
-- Ava sends responses back via HTTP POST to WhatsApp API
+- Pepper sends responses back via HTTP POST to WhatsApp API
 - Different from Chainlit which uses WebSocket connections for real-time chat
 
-📦 WHAT IS ASYNC PROCESSING FOR AVA?
-Async lets Ava handle multiple WhatsApp conversations simultaneously without blocking.
-- User A sends message → Ava starts processing (doesn't wait)
-- User B sends message → Ava processes this too (parallel processing)
-- Both get responses as soon as Ava's LangGraph workflow completes
-- Critical for production: thousands of users can chat with Ava at once
+📦 WHAT IS ASYNC PROCESSING FOR pepper?
+Async lets Pepper handle multiple WhatsApp conversations simultaneously without blocking.
+- User A sends message → Pepper starts processing (doesn't wait)
+- User B sends message → Pepper processes this too (parallel processing)
+- Both get responses as soon as Pepper's LangGraph workflow completes
+- Critical for production: thousands of users can chat with Pepper at once
 
-THE COMPLETE AVA WHATSAPP FLOW:
-1. User sends message to Ava's WhatsApp number
+THE COMPLETE pepper WHATSAPP FLOW:
+1. User sends message to Pepper's WhatsApp number
 2. WhatsApp Business API receives message on Meta servers
 3. Meta fires webhook → calls whatsapp_handler() function
 4. whatsapp_handler() extracts message content (text/image/audio)
 5. Content processed through IDENTICAL LangGraph workflow as Chainlit
-6. Ava's response flows through router_node → conversation/image/audio nodes
-7. send_response() delivers Ava's response via WhatsApp Business API
-8. User receives Ava's response in their WhatsApp app
+6. Pepper's response flows through router_node → conversation/image/audio nodes
+7. send_response() delivers Pepper's response via WhatsApp Business API
+8. User receives Pepper's response in their WhatsApp app
 
-REAL-WORLD ANALOGY GROUNDED IN AVA'S FUNCTIONALITY:
-This file is like Ava's WhatsApp office that handles real customer service:
-- whatsapp_handler() is Ava's receptionist that receives all incoming calls (webhooks)
-- The LangGraph workflow is Ava's brain that processes each conversation
-- send_response() is Ava's communication system that calls customers back
+REAL-WORLD ANALOGY GROUNDED IN pepper'S FUNCTIONALITY:
+This file is like Pepper's WhatsApp office that handles real customer service:
+- whatsapp_handler() is Pepper's receptionist that receives all incoming calls (webhooks)
+- The LangGraph workflow is Pepper's brain that processes each conversation
+- send_response() is Pepper's communication system that calls customers back
 - Each phone number gets its own conversation thread (user isolation)
-- The SAME Ava personality and intelligence as the Chainlit demo, just different communication method
+- The SAME Pepper personality and intelligence as the Chainlit demo, just different communication method
 
 COMPARED TO CHAINLIT INTERFACE:
 ┌─────────────────┬─────────────────┬──────────────────────┐
@@ -67,7 +67,7 @@ COMPARED TO CHAINLIT INTERFACE:
 │ Session ID      │ Phone number    │ Fixed thread_id = 1  │
 │ Error Handling  │ Production-     │ Development-friendly │
 │                 │ grade logging   │                      │
-│ Ava Brain       │ IDENTICAL       │ IDENTICAL            │
+│ Pepper Brain       │ IDENTICAL       │ IDENTICAL            │
 └─────────────────┴─────────────────┴──────────────────────┘
 
 WEBHOOK SECURITY:
@@ -76,7 +76,7 @@ WhatsApp requires webhook verification to prevent spam:
 - POST request: Process actual messages
 
 CROSS-SYSTEM CONNECTIONS:
-- graph_builder: IDENTICAL Ava brain as Chainlit interface
+- graph_builder: IDENTICAL Pepper brain as Chainlit interface
 - AsyncSqliteSaver: SAME conversation persistence mechanism  
 - AI modules: SAME speech/image processing as Chainlit
 - settings.py: SAME configuration across all interfaces
@@ -91,16 +91,16 @@ PRODUCTION CONSIDERATIONS:
 # STANDARD LIBRARY IMPORTS - Python's built-in tools we need
 
 # logging = Python's built-in error reporting system (like a black box recorder for problems)
-# Think of it like a flight recorder that saves what went wrong when Ava crashes
+# Think of it like a flight recorder that saves what went wrong when Pepper crashes
 import logging
 
 # os = Python's tool for reading environment variables (secret settings stored outside code)
-# Like reading Ava's API keys from a secure lockbox instead of hardcoding them in files
+# Like reading Pepper's API keys from a secure lockbox instead of hardcoding them in files
 import os
 
 # BytesIO = Python's tool for handling files in memory (like a temporary file holder)
 # When users send images/audio, we need to hold the file data in memory to process it
-# Think of it like a temporary clipboard that holds file contents while Ava works on them
+# Think of it like a temporary clipboard that holds file contents while Pepper works on them
 from io import BytesIO
 
 # Dict = Python's type hint for dictionary data structures (key-value pairs)
@@ -111,9 +111,9 @@ from typing import Dict
 # EXTERNAL LIBRARY IMPORTS - Third-party tools for specific functionality
 
 # httpx = Modern HTTP client library for making web requests (like a web browser for Python)
-# This is how Ava talks to WhatsApp's servers - sending and receiving data over the internet
+# This is how Pepper talks to WhatsApp's servers - sending and receiving data over the internet
 # AsyncClient() = version that can handle multiple requests at once (non-blocking)
-# Think of it like Ava having multiple phone lines to talk to WhatsApp instead of just one
+# Think of it like Pepper having multiple phone lines to talk to WhatsApp instead of just one
 import httpx
 
 # FastAPI components for building web servers that receive HTTP requests
@@ -123,31 +123,31 @@ import httpx
 from fastapi import APIRouter, Request, Response
 
 # LangChain message format - standardized way to represent chat messages
-# HumanMessage = wrapper that tells Ava "this message came from a human user"
-# Same format used in Chainlit interface, so Ava's brain processes WhatsApp and web messages identically
+# HumanMessage = wrapper that tells Pepper "this message came from a human user"
+# Same format used in Chainlit interface, so Pepper's brain processes WhatsApp and web messages identically
 from langchain_core.messages import HumanMessage
 
 # AsyncSqliteSaver = LangGraph's conversation memory system using SQLite database
-# Stores conversation history so Ava remembers what you talked about previously
+# Stores conversation history so Pepper remembers what you talked about previously
 # AsyncSqliteSaver = version that doesn't block other conversations while saving memory
-# Think of it like Ava's diary that she writes in without stopping her conversations
+# Think of it like Pepper's diary that she writes in without stopping her conversations
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
-# AVA'S CORE BRAIN COMPONENTS - The same AI modules used in Chainlit interface
+# pepper'S CORE BRAIN COMPONENTS - The same AI modules used in Chainlit interface
 
-# graph_builder = Ava's complete workflow system (the conductor that orchestrates all AI modules)
+# graph_builder = Pepper's complete workflow system (the conductor that orchestrates all AI modules)
 # Contains the IDENTICAL LangGraph workflow: memory→router→context→response nodes
 # Same brain that processes messages in Chainlit web interface, just different input/output methods
 from ai_companion.graph import graph_builder
 
 # AI processing modules for different media types (same capabilities as Chainlit)
-# ImageToText = Ava's vision system (analyzes photos users send via WhatsApp)
-# SpeechToText = Ava's hearing system (transcribes voice messages to text for processing)
-# TextToSpeech = Ava's speaking system (converts Ava's text responses to audio files)
+# ImageToText = Pepper's vision system (analyzes photos users send via WhatsApp)
+# SpeechToText = Pepper's hearing system (transcribes voice messages to text for processing)
+# TextToSpeech = Pepper's speaking system (converts Pepper's text responses to audio files)
 from ai_companion.modules.image import ImageToText
 from ai_companion.modules.speech import SpeechToText, TextToSpeech
 
-# settings = Ava's configuration file containing API keys, model choices, database paths
+# settings = Pepper's configuration file containing API keys, model choices, database paths
 # Shared across all interfaces so Chainlit and WhatsApp use same AI models and settings
 from ai_companion.settings import settings
 
@@ -162,42 +162,42 @@ logger = logging.getLogger(__name__)
 # Why create these globally instead of inside functions?
 # These AI modules are expensive to initialize (load models, connect to APIs)
 # Creating them once at startup and reusing them is much faster than recreating for each message
-# Think of it like keeping Ava's brain modules "warmed up" and ready to process any user's message
+# Think of it like keeping Pepper's brain modules "warmed up" and ready to process any user's message
 
-# speech_to_text = Ava's hearing system using Whisper AI model via Groq API
-# Converts audio files (voice messages) into text that Ava's LangGraph brain can understand
+# speech_to_text = Pepper's hearing system using Whisper AI model via Groq API
+# Converts audio files (voice messages) into text that Pepper's LangGraph brain can understand
 # Same instance used in Chainlit interface - consistent speech processing across all interfaces
 speech_to_text = SpeechToText()
 
-# text_to_speech = Ava's speaking system using ElevenLabs API
-# Converts Ava's text responses into realistic speech audio files
+# text_to_speech = Pepper's speaking system using ElevenLabs API
+# Converts Pepper's text responses into realistic speech audio files
 # Same instance used in Chainlit interface - consistent voice across all interfaces
 text_to_speech = TextToSpeech()
 
-# image_to_text = Ava's vision system using multimodal AI models
-# Analyzes images and describes what Ava "sees" in text format for LangGraph processing
+# image_to_text = Pepper's vision system using multimodal AI models
+# Analyzes images and describes what Pepper "sees" in text format for LangGraph processing
 # Same instance used in Chainlit interface - consistent image understanding across interfaces
 image_to_text = ImageToText()
 
 # CREATE FASTAPI ROUTER - Organizes all WhatsApp-related web endpoints
 # APIRouter() = creates a group of related web endpoints (like organizing related phone extensions)
 # This router gets connected to the main server in webhook_endpoint.py
-# Think of it like creating a "WhatsApp department" within Ava's web server
+# Think of it like creating a "WhatsApp department" within Pepper's web server
 whatsapp_router = APIRouter()
 
 # LOAD WHATSAPP BUSINESS API CREDENTIALS FROM ENVIRONMENT VARIABLES
 # Environment variables = secure way to store secrets outside of code files
-# These get set on the server where Ava runs, not hardcoded in the source code
+# These get set on the server where Pepper runs, not hardcoded in the source code
 
 # os.getenv() = Python function that reads environment variables (like reading from a secure lockbox)
 # Returns None if the environment variable doesn't exist (safer than crashing)
 
 # WHATSAPP_TOKEN = Secret key that proves to Meta's servers that we're authorized to use WhatsApp API
-# Like Ava's ID card that lets her send/receive messages through WhatsApp Business
+# Like Pepper's ID card that lets her send/receive messages through WhatsApp Business
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
 
-# WHATSAPP_PHONE_NUMBER_ID = Identifies which business phone number Ava uses for messaging
-# Not the actual phone number, but Meta's internal ID that references Ava's WhatsApp number
+# WHATSAPP_PHONE_NUMBER_ID = Identifies which business phone number Pepper uses for messaging
+# Not the actual phone number, but Meta's internal ID that references Pepper's WhatsApp number
 # Like how your credit card has both a number and an internal bank ID
 WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
 
@@ -218,7 +218,7 @@ async def whatsapp_handler(request: Request) -> Response:
     1. User sends message in WhatsApp app
     2. Meta receives message on their servers
     3. Meta sends HTTP POST to this function
-    4. We process through IDENTICAL Ava brain (same as Chainlit)
+    4. We process through IDENTICAL Pepper brain (same as Chainlit)
     5. We send response back to Meta's API
     6. Meta delivers response to user's WhatsApp
     
@@ -237,7 +237,7 @@ async def whatsapp_handler(request: Request) -> Response:
     4. Send appropriate response type via WhatsApp API
     
     CROSS-SYSTEM CONNECTIONS:
-    - graph_builder.compile(): IDENTICAL Ava brain as Chainlit
+    - graph_builder.compile(): IDENTICAL Pepper brain as Chainlit
     - AsyncSqliteSaver: SAME conversation persistence mechanism
     - image_to_text/speech_to_text: SAME AI modules as Chainlit
     - Multi-modal responses: SAME workflow routing from router_node
@@ -277,7 +277,7 @@ async def whatsapp_handler(request: Request) -> Response:
         return Response(content="Verification token mismatch", status_code=403)
 
     # ACTUAL MESSAGE PROCESSING (POST REQUEST FROM META)
-    # This is where real user messages get processed through Ava's brain
+    # This is where real user messages get processed through Pepper's brain
     # POST requests contain the actual message data, not just verification
     
     # try/except = error handling block (like wearing a seatbelt while driving)
@@ -329,21 +329,21 @@ async def whatsapp_handler(request: Request) -> Response:
             message = change_value["messages"][0]
             
             # from_number = user's phone number who sent this message
-            # This is like caller ID - tells us who is talking to Ava
+            # This is like caller ID - tells us who is talking to Pepper
             # Example: "+15551234567"
             from_number = message["from"]
             
-            # session_id = unique identifier for this user's conversation with Ava
+            # session_id = unique identifier for this user's conversation with Pepper
             # We use phone number as session ID so each user gets their own conversation thread
-            # Like giving each customer their own file folder in Ava's memory system
+            # Like giving each customer their own file folder in Pepper's memory system
             # Different users with different phone numbers = completely separate conversations
             session_id = from_number
 
             # STEP 3: EXTRACT MESSAGE CONTENT BASED ON TYPE (TEXT/AUDIO/IMAGE)
-            # Users can send different types of messages - Ava needs to handle all of them
+            # Users can send different types of messages - Pepper needs to handle all of them
             # This is the same multi-modal processing logic used in Chainlit interface
             
-            # content = variable that will hold the final text for Ava's brain to process
+            # content = variable that will hold the final text for Pepper's brain to process
             # Start with empty string, then fill based on message type
             content = ""
             
@@ -376,12 +376,12 @@ async def whatsapp_handler(request: Request) -> Response:
                 # download_media() = function that gets actual image bytes from Meta's servers
                 image_bytes = await download_media(message["image"]["id"])
                 
-                # ANALYZE IMAGE CONTENT USING AVA'S VISION
-                # Now we have the image data, let Ava "see" what's in the picture
+                # ANALYZE IMAGE CONTENT USING pepper'S VISION
+                # Now we have the image data, let Pepper "see" what's in the picture
                 try:
-                    # image_to_text.analyze_image() = Ava's vision system (same as Chainlit)
+                    # image_to_text.analyze_image() = Pepper's vision system (same as Chainlit)
                     # Takes: image data (bytes) and a prompt asking what to look for
-                    # Returns: text description of what Ava sees in the image
+                    # Returns: text description of what Pepper sees in the image
                     # await = wait for AI vision processing to complete
                     description = await image_to_text.analyze_image(
                         image_bytes,  # The actual image data we downloaded
@@ -391,7 +391,7 @@ async def whatsapp_handler(request: Request) -> Response:
                     # ADD IMAGE ANALYSIS TO CONTENT
                     # content += means "add this text to the end of existing content"
                     # f"..." = f-string formatting to insert the description variable
-                    # Final content = user's caption + "\n[Image Analysis: what Ava saw]"
+                    # Final content = user's caption + "\n[Image Analysis: what Pepper saw]"
                     content += f"\n[Image Analysis: {description}]"
                     
                 # HANDLE VISION PROCESSING ERRORS
@@ -409,8 +409,8 @@ async def whatsapp_handler(request: Request) -> Response:
                 # Like reading someone's text message - no processing needed
                 content = message["text"]["body"]
 
-            # STEP 4: PROCESS THROUGH AVA'S BRAIN (IDENTICAL TO CHAINLIT PROCESSING)
-            # Now we have the content text, send it through Ava's complete LangGraph workflow
+            # STEP 4: PROCESS THROUGH pepper'S BRAIN (IDENTICAL TO CHAINLIT PROCESSING)
+            # Now we have the content text, send it through Pepper's complete LangGraph workflow
             
             # 🔍 DEBUG: LOG MESSAGE PROCESSING START
             print(f"📋 STARTING LANGGRAPH PROCESSING:")
@@ -423,7 +423,7 @@ async def whatsapp_handler(request: Request) -> Response:
             # SETUP CONVERSATION MEMORY DATABASE CONNECTION
             # async with = Python context manager that automatically handles opening/closing resources
             # Like automatically locking/unlocking a file cabinet when you're done using it
-            # AsyncSqliteSaver = Ava's memory system that remembers conversation history
+            # AsyncSqliteSaver = Pepper's memory system that remembers conversation history
             # .from_conn_string() = connect to SQLite database file at the specified path
             # settings.SHORT_TERM_MEMORY_DB_PATH = file path where conversation history is stored
             try:
@@ -433,9 +433,9 @@ async def whatsapp_handler(request: Request) -> Response:
                 async with AsyncSqliteSaver.from_conn_string(settings.SHORT_TERM_MEMORY_DB_PATH) as short_term_memory:
                     print(f"✅ MEMORY DATABASE CONNECTED SUCCESSFULLY")
                     
-                    # BUILD AVA'S COMPLETE WORKFLOW GRAPH
-                    # graph_builder.compile() = creates Ava's complete LangGraph workflow
-                    # checkpointer=short_term_memory = connect the memory system so Ava remembers conversations
+                    # BUILD pepper'S COMPLETE WORKFLOW GRAPH
+                    # graph_builder.compile() = creates Pepper's complete LangGraph workflow
+                    # checkpointer=short_term_memory = connect the memory system so Pepper remembers conversations
                     # This creates the IDENTICAL workflow used in Chainlit: memory→router→context→response nodes
                     print(f"🔍 BUILDING LANGGRAPH WORKFLOW:")
                     print(f"  🧠 Compiling graph with memory checkpointer...")
@@ -470,21 +470,21 @@ async def whatsapp_handler(request: Request) -> Response:
                     print(f"  🔧 Config: thread_id = {session_id}")
                     print(f"  🚀 Starting graph.ainvoke()...")
                     
-                    # PROCESS USER MESSAGE THROUGH COMPLETE AVA WORKFLOW
-                    # await = wait for Ava's brain to complete processing (this takes time)
-                    # graph.ainvoke() = run the message through Ava's complete LangGraph workflow
+                    # PROCESS USER MESSAGE THROUGH COMPLETE pepper WORKFLOW
+                    # await = wait for Pepper's brain to complete processing (this takes time)
+                    # graph.ainvoke() = run the message through Pepper's complete LangGraph workflow
                     await graph.ainvoke(graph_input, graph_config)
                     
                     print(f"✅ LANGGRAPH WORKFLOW COMPLETED SUCCESSFULLY")
                     
-                    # HumanMessage(content=content) = tells Ava "this text came from a human user"
+                    # HumanMessage(content=content) = tells Pepper "this text came from a human user"
                     # thread_id: session_id = each phone number gets its own conversation thread
-                    # This is how Ava keeps different users' conversations separate
+                    # This is how Pepper keeps different users' conversations separate
                     
-                    # GET AVA'S FINAL STATE AFTER PROCESSING
-                    # After the workflow completes, we need to see what Ava decided to do
+                    # GET pepper'S FINAL STATE AFTER PROCESSING
+                    # After the workflow completes, we need to see what Pepper decided to do
                     # await = wait for state retrieval to complete
-                    # graph.aget_state() = get the final state of Ava's workflow
+                    # graph.aget_state() = get the final state of Pepper's workflow
                     # config = same configuration (thread_id) to get the right conversation's state
                     print(f"🔍 RETRIEVING FINAL WORKFLOW STATE:")
                     print(f"  🔧 Config: thread_id = {session_id}")
@@ -510,33 +510,33 @@ async def whatsapp_handler(request: Request) -> Response:
                 # Re-raise the exception so outer try/catch handles it
                 raise
 
-            # STEP 5: EXTRACT AVA'S RESPONSE DETAILS FROM FINAL STATE
-            # output_state.values = dictionary containing all data from Ava's workflow
-            # This is like looking at Ava's final decision after thinking through the workflow
+            # STEP 5: EXTRACT pepper'S RESPONSE DETAILS FROM FINAL STATE
+            # output_state.values = dictionary containing all data from Pepper's workflow
+            # This is like looking at Pepper's final decision after thinking through the workflow
             
-            # GET WORKFLOW TYPE (WHAT KIND OF RESPONSE AVA DECIDED TO GIVE)
+            # GET WORKFLOW TYPE (WHAT KIND OF RESPONSE pepper DECIDED TO GIVE)
             # .get("workflow", "conversation") = get the workflow value, default to "conversation" if missing
-            # router_node in Ava's graph decides this: "conversation", "audio", or "image"
-            # Like asking Ava "how do you want to respond - with text, voice, or a picture?"
+            # router_node in Pepper's graph decides this: "conversation", "audio", or "image"
+            # Like asking Pepper "how do you want to respond - with text, voice, or a picture?"
             workflow = output_state.values.get("workflow", "conversation")
             
-            # GET AVA'S RESPONSE TEXT
+            # GET pepper'S RESPONSE TEXT
             # output_state.values["messages"] = list of all messages in conversation
             # [-1] = get the last message (most recent)
-            # .content = the actual text content of that message (Ava's response)
-            # This is what Ava wants to say to the user
+            # .content = the actual text content of that message (Pepper's response)
+            # This is what Pepper wants to say to the user
             response_message = output_state.values["messages"][-1].content
 
             # STEP 6: SEND APPROPRIATE RESPONSE TYPE VIA WHATSAPP API
             # Based on router_node's decision, send different types of responses
             # This matches the exact same multi-modal handling used in Chainlit interface
             
-            # AUDIO RESPONSE - AVA WANTS TO SEND A VOICE MESSAGE
+            # AUDIO RESPONSE - pepper WANTS TO SEND A VOICE MESSAGE
             if workflow == "audio":
                 
-                # GET AUDIO DATA FROM AVA'S AUDIO_NODE
+                # GET AUDIO DATA FROM pepper'S AUDIO_NODE
                 # audio_buffer = the actual audio file data (bytes) that audio_node generated
-                # This is Ava's voice saying the response_message text (ElevenLabs TTS)
+                # This is Pepper's voice saying the response_message text (ElevenLabs TTS)
                 audio_buffer = output_state.values["audio_buffer"]
                 
                 # SEND VOICE MESSAGE TO USER
@@ -545,12 +545,12 @@ async def whatsapp_handler(request: Request) -> Response:
                 # Returns: True if successful, False if failed
                 success = await send_response(from_number, response_message, "audio", audio_buffer)
             
-            # IMAGE RESPONSE - AVA WANTS TO SEND A GENERATED IMAGE    
+            # IMAGE RESPONSE - pepper WANTS TO SEND A GENERATED IMAGE    
             elif workflow == "image":
                 
-                # GET IMAGE FILE PATH FROM AVA'S IMAGE_NODE
+                # GET IMAGE FILE PATH FROM pepper'S IMAGE_NODE
                 # image_path = file path where image_node saved the generated image
-                # This is a picture Ava created using FLUX image generation AI
+                # This is a picture Pepper created using FLUX image generation AI
                 image_path = output_state.values["image_path"]
                 
                 # READ IMAGE FILE FROM DISK
@@ -566,7 +566,7 @@ async def whatsapp_handler(request: Request) -> Response:
                 # image_data = actual image file bytes
                 success = await send_response(from_number, response_message, "image", image_data)
             
-            # VOICE CALL RESPONSE - AVA INITIATED A PHONE CALL
+            # VOICE CALL RESPONSE - pepper INITIATED A PHONE CALL
             elif workflow == "voice_call":
                 
                 # 📞 LOG VOICE CALL COMPLETION
@@ -580,7 +580,7 @@ async def whatsapp_handler(request: Request) -> Response:
                 # This lets them know the call is coming
                 success = await send_response(from_number, response_message, "text")
                 
-                # LOG CALL TRACKING INFO (if available)
+                # LOG CALL TRACKING INFO (if pepperilable)
                 if "active_call" in output_state.values and output_state.values["active_call"]:
                     call_details = output_state.values["active_call"]
                     print(f"📞 CALL TRACKING:")
@@ -588,10 +588,10 @@ async def whatsapp_handler(request: Request) -> Response:
                     print(f"  ⏰ Initiated: {call_details.get('timestamp', 'Unknown')}")
                     print(f"  📋 Status: Call should ring within 10-15 seconds")
             
-            # TEXT RESPONSE - AVA WANTS TO SEND A REGULAR TEXT MESSAGE (MOST COMMON)
+            # TEXT RESPONSE - pepper WANTS TO SEND A REGULAR TEXT MESSAGE (MOST COMMON)
             else:
                 # SEND TEXT MESSAGE TO USER
-                # No media needed, just send Ava's response text directly
+                # No media needed, just send Pepper's response text directly
                 # This is the most common case - regular conversation
                 success = await send_response(from_number, response_message, "text")
 
@@ -617,7 +617,7 @@ async def whatsapp_handler(request: Request) -> Response:
         elif "statuses" in change_value:
             # Status updates = notifications about message delivery ("delivered", "read", etc.)
             # These aren't messages from users, just Meta telling us about delivery status
-            # We acknowledge receipt but don't need to process through Ava's brain
+            # We acknowledge receipt but don't need to process through Pepper's brain
             # Like getting a "message delivered" notification - we note it but don't respond
             return Response(content="Status update received", status_code=200)
 
@@ -655,35 +655,35 @@ async def whatsapp_handler(request: Request) -> Response:
 
 async def download_media(media_id: str) -> bytes:
     """
-    📥 MEDIA DOWNLOADER - Downloads user images/videos for Ava's image_to_text analysis
+    📥 MEDIA DOWNLOADER - Downloads user images/videos for Pepper's image_to_text analysis
     
     WHAT IT DOES:
-    When users send images to Ava via WhatsApp, Meta doesn't include the actual image
+    When users send images to Pepper via WhatsApp, Meta doesn't include the actual image
     in the webhook. Instead, they send a media_id that this function uses to download
-    the image so Ava's image_to_text module can analyze what the user shared.
+    the image so Pepper's image_to_text module can analyze what the user shared.
     
     THE TWO-STEP DOWNLOAD PROCESS:
     1. Get metadata: Use media_id to get actual download URL from Meta's Graph API
     2. Download file: Use download URL to get the actual image bytes for image_to_text
     
-    WHY TWO STEPS IN AVA'S WORKFLOW?
+    WHY TWO STEPS IN pepper'S WORKFLOW?
     Security and efficiency. Meta doesn't want to send large files in webhooks to whatsapp_handler(),
-    and they control access with time-limited URLs so only Ava can download the user's image.
+    and they control access with time-limited URLs so only Pepper can download the user's image.
     
-    GROUNDED ANALOGY FOR AVA:
-    This function is like Ava's image pickup service:
-    - User sends photo → WhatsApp gives Ava a pickup ticket (media_id)
+    GROUNDED ANALOGY FOR pepper:
+    This function is like Pepper's image pickup service:
+    - User sends photo → WhatsApp gives Pepper a pickup ticket (media_id)
     - This function goes to Meta's storage facility with the ticket
-    - Downloads the actual image for Ava's image_to_text brain to analyze
+    - Downloads the actual image for Pepper's image_to_text brain to analyze
     - Just like how Chainlit gets images directly, but WhatsApp requires this extra step
     
-    CROSS-SYSTEM CONNECTION IN AVA'S WORKFLOW:
+    CROSS-SYSTEM CONNECTION IN pepper'S WORKFLOW:
     - Called by: whatsapp_handler() when processing image messages (line 172)
     - Returns: Raw image bytes that get passed to image_to_text.analyze_image() (line 176)
     - Different from Chainlit: Chainlit reads files directly, WhatsApp requires API download
-    - Same destination: Both end up feeding image_to_text module for Ava's vision analysis
+    - Same destination: Both end up feeding image_to_text module for Pepper's vision analysis
     
-    SECURITY NOTES FOR AVA'S PRODUCTION:
+    SECURITY NOTES FOR pepper'S PRODUCTION:
     - Download URLs expire quickly (minutes) for security
     - Requires valid WHATSAPP_TOKEN for authentication with Meta
     - Media is automatically deleted from Meta servers after a few days
@@ -747,30 +747,30 @@ async def download_media(media_id: str) -> bytes:
         
         # RETURN THE RAW IMAGE BYTES
         # .content = the actual binary data of the image file
-        # These bytes can be fed to Ava's image_to_text module for analysis
-        # Like getting the actual photo data that Ava's vision can "see"
+        # These bytes can be fed to Pepper's image_to_text module for analysis
+        # Like getting the actual photo data that Pepper's vision can "see"
         return media_response.content
 
 
 async def process_audio_message(message: Dict) -> str:
     """
-    🎤 VOICE MESSAGE PROCESSOR - Downloads and transcribes user voice messages for Ava's LangGraph brain
+    🎤 VOICE MESSAGE PROCESSOR - Downloads and transcribes user voice messages for Pepper's LangGraph brain
     
     WHAT IT DOES:
-    When users send voice messages to Ava via WhatsApp, this function downloads the audio
-    from Meta servers and transcribes it to text so Ava's LangGraph workflow can process
+    When users send voice messages to Pepper via WhatsApp, this function downloads the audio
+    from Meta servers and transcribes it to text so Pepper's LangGraph workflow can process
     the user's spoken words through the same conversation pipeline as text messages.
     
-    AVA'S VOICE PROCESSING PIPELINE:
+    pepper'S VOICE PROCESSING PIPELINE:
     User Voice → WhatsApp servers → download_media pattern → speech_to_text transcription → LangGraph workflow
     
-    GROUNDED ANALOGY FOR AVA'S VOICE UNDERSTANDING:
-    This function is like Ava's listening and transcription service:
-    - User speaks to Ava via voice message (like leaving a voicemail)
+    GROUNDED ANALOGY FOR pepper'S VOICE UNDERSTANDING:
+    This function is like Pepper's listening and transcription service:
+    - User speaks to Pepper via voice message (like leaving a voicemail)
     - This function downloads the audio (like retrieving the voicemail file)
-    - speech_to_text transcribes it (like Ava listening and writing down what user said)
+    - speech_to_text transcribes it (like Pepper listening and writing down what user said)
     - Transcribed text goes to LangGraph workflow (same as if user typed the message)
-    - End result: Ava understands voice just like text, processes through same conversation_node
+    - End result: Pepper understands voice just like text, processes through same conversation_node
     
     COMPARED TO CHAINLIT VOICE HANDLING:
     - Chainlit: Direct audio buffer from real-time recording in web interface
@@ -778,14 +778,14 @@ async def process_audio_message(message: Dict) -> str:
     - Processing: IDENTICAL speech_to_text module and Whisper model
     - Destination: Same LangGraph workflow processes the transcribed text
     
-    CROSS-SYSTEM CONNECTIONS IN AVA'S WORKFLOW:
+    CROSS-SYSTEM CONNECTIONS IN pepper'S WORKFLOW:
     - Called by: whatsapp_handler() for audio message type (line 165)
     - Uses: SAME speech_to_text.transcribe() module as Chainlit interface
     - Returns: Transcribed text that gets processed through IDENTICAL LangGraph workflow
     - Audio formats: WhatsApp typically sends .ogg files, Whisper handles automatically
     - Flow continues: Transcribed text → LangGraph → router_node → conversation/image/audio nodes
     
-    PRODUCTION CONSIDERATIONS FOR AVA:
+    PRODUCTION CONSIDERATIONS FOR pepper:
     - WhatsApp voice messages can be up to 16MB (long recordings)
     - Download URLs expire quickly, so we process immediately
     - Transcription costs apply per minute of audio (Groq Whisper pricing)
@@ -850,7 +850,7 @@ async def process_audio_message(message: Dict) -> str:
         audio_response.raise_for_status()
 
     # STEP 4: PREPARE AUDIO DATA FOR TRANSCRIPTION
-    # Convert the raw audio bytes into a format Ava's speech_to_text can process
+    # Convert the raw audio bytes into a format Pepper's speech_to_text can process
     
     # CREATE AUDIO BUFFER IN MEMORY
     # BytesIO() = creates a file-like object in memory (like a temporary audio file)
@@ -869,7 +869,7 @@ async def process_audio_message(message: Dict) -> str:
     audio_data = audio_buffer.read()
 
     # STEP 5: TRANSCRIBE USING SAME MODULE AS CHAINLIT INTERFACE
-    # Now feed the audio data to Ava's speech recognition system
+    # Now feed the audio data to Pepper's speech recognition system
     # await = wait for Whisper AI to transcribe the speech (can take several seconds)
     # speech_to_text.transcribe() = IDENTICAL function used in Chainlit interface
     # Returns: text string of what the user said in their voice message
@@ -883,39 +883,39 @@ async def send_response(
     media_content: bytes = None,
 ) -> bool:
     """
-    📤 RESPONSE SENDER - Delivers Ava's LangGraph responses back to WhatsApp users
+    📤 RESPONSE SENDER - Delivers Pepper's LangGraph responses back to WhatsApp users
     
     WHAT IT DOES:
-    The final step in Ava's WhatsApp workflow - takes responses generated by Ava's
+    The final step in Pepper's WhatsApp workflow - takes responses generated by Pepper's
     LangGraph nodes (conversation_node, image_node, audio_node) and delivers them
     to users through WhatsApp Business API based on router_node decisions.
     
-    AVA'S MULTI-MODAL RESPONSE PIPELINE:
-    Ava's Brain (LangGraph) → router_node decision → Response Generated → This Function → WhatsApp API → User's Phone
+    pepper'S MULTI-MODAL RESPONSE PIPELINE:
+    Pepper's Brain (LangGraph) → router_node decision → Response Generated → This Function → WhatsApp API → User's Phone
     
-    GROUNDED ANALOGY FOR AVA'S RESPONSE DELIVERY:
-    This function is like Ava's delivery service that adapts to different message types:
-    - Text responses: Ava's conversation_node generates text → delivered directly via WhatsApp API
-    - Image responses: Ava's image_node creates image → upload_media() first → then deliver with caption
-    - Audio responses: Ava's audio_node generates voice → upload_media() first → then deliver as voice message
+    GROUNDED ANALOGY FOR pepper'S RESPONSE DELIVERY:
+    This function is like Pepper's delivery service that adapts to different message types:
+    - Text responses: Pepper's conversation_node generates text → delivered directly via WhatsApp API
+    - Image responses: Pepper's image_node creates image → upload_media() first → then deliver with caption
+    - Audio responses: Pepper's audio_node generates voice → upload_media() first → then deliver as voice message
     - Just like how Chainlit displays different UI elements, this sends different WhatsApp message types
     
-    AVA'S MULTI-MODAL HANDLING:
+    pepper'S MULTI-MODAL HANDLING:
     1. Text: conversation_node output sent as simple JSON to WhatsApp API
     2. Audio: audio_node buffer uploaded via upload_media(), then sent with media_id reference
     3. Image: image_node file uploaded via upload_media(), then sent with caption and media_id
     4. Fallback: If media upload fails, fallback to text (keeps conversation flowing)
     
-    CROSS-SYSTEM CONNECTIONS IN AVA'S WORKFLOW:
-    - Called by: whatsapp_handler() with output from Ava's LangGraph state (lines 211, 218, 222)
+    CROSS-SYSTEM CONNECTIONS IN pepper'S WORKFLOW:
+    - Called by: whatsapp_handler() with output from Pepper's LangGraph state (lines 211, 218, 222)
     - Receives: response_text from conversation_node/image_node/audio_node
     - Receives: media_content from state.audio_buffer or state.image_path
     - Uses: upload_media() for audio/image delivery to WhatsApp servers
     - Compares to: Chainlit's cl.Message/cl.Audio/cl.Image UI elements (same content, different delivery)
     
-    PRODUCTION RELIABILITY FOR AVA:
+    PRODUCTION RELIABILITY FOR pepper:
     - Returns bool for success/failure checking in whatsapp_handler()
-    - Graceful fallback to text if media upload fails (keeps Ava responding)
+    - Graceful fallback to text if media upload fails (keeps Pepper responding)
     - Proper error logging for debugging user interaction issues
     """
     # CREATE STANDARD HEADERS FOR WHATSAPP BUSINESS API
@@ -954,7 +954,7 @@ async def send_response(
             
             # PREPARE MEDIA DATA FOR UPLOAD
             # BytesIO() = creates file-like object in memory from raw bytes
-            # media_content = the actual audio/image bytes from Ava's AI generation
+            # media_content = the actual audio/image bytes from Pepper's AI generation
             # This is like putting the file into a temporary container for uploading
             media_buffer = BytesIO(media_content)
             
@@ -986,7 +986,7 @@ async def send_response(
             # ADD CAPTION FOR IMAGES (AUDIO DOESN'T SUPPORT CAPTIONS)
             # WhatsApp allows text captions with images but not with audio messages
             if message_type == "image":
-                # Add Ava's response text as the image caption
+                # Add Pepper's response text as the image caption
                 # json_data["image"]["caption"] = modifies the image section to include caption
                 json_data["image"]["caption"] = response_text
         
@@ -1022,7 +1022,7 @@ async def send_response(
             "type": "text",
             
             # text = dictionary containing the actual message content
-            # {"body": response_text} = puts Ava's response text in the message body
+            # {"body": response_text} = puts Pepper's response text in the message body
             "text": {"body": response_text},
         }
 
@@ -1094,41 +1094,41 @@ async def send_response(
 
 async def upload_media(media_content: BytesIO, mime_type: str) -> str:
     """
-    📁 MEDIA UPLOADER - Uploads Ava's LangGraph-generated media to WhatsApp servers for delivery
+    📁 MEDIA UPLOADER - Uploads Pepper's LangGraph-generated media to WhatsApp servers for delivery
     
     WHAT IT DOES:
-    Takes audio/image files generated by Ava's LangGraph nodes (audio_node/image_node)
+    Takes audio/image files generated by Pepper's LangGraph nodes (audio_node/image_node)
     and uploads them to WhatsApp's servers so they can be delivered to users.
     This is the opposite of download_media() - instead of getting user media, 
-    we're sending Ava's generated media.
+    we're sending Pepper's generated media.
     
-    AVA'S MEDIA UPLOAD PIPELINE:
-    1. Ava's audio_node generates voice (ElevenLabs TTS) OR image_node generates image (FLUX)
-    2. send_response() calls this function to upload Ava's creation to WhatsApp servers
+    pepper'S MEDIA UPLOAD PIPELINE:
+    1. Pepper's audio_node generates voice (ElevenLabs TTS) OR image_node generates image (FLUX)
+    2. send_response() calls this function to upload Pepper's creation to WhatsApp servers
     3. WhatsApp returns media_id for the uploaded file
-    4. send_response() uses media_id in message to reference Ava's uploaded media
+    4. send_response() uses media_id in message to reference Pepper's uploaded media
     
-    GROUNDED ANALOGY FOR AVA'S MEDIA SHARING:
-    This function is like Ava's media publishing service:
-    - Ava creates content (audio_node voice or image_node picture)
+    GROUNDED ANALOGY FOR pepper'S MEDIA SHARING:
+    This function is like Pepper's media publishing service:
+    - Pepper creates content (audio_node voice or image_node picture)
     - This function uploads it to WhatsApp's content servers (like posting to a platform)
     - WhatsApp gives us a media_id (like a URL to the posted content)
     - send_response() shares that media_id with the user (like sharing a link)
-    - Reverse of download_media(): download gets user content for Ava, upload shares Ava content with user
+    - Reverse of download_media(): download gets user content for Pepper, upload shares Pepper content with user
     
-    AVA'S SUPPORTED MEDIA TYPES:
-    - Audio: MP3 files from Ava's audio_node using ElevenLabs TTS (same generation as Chainlit)
-    - Images: PNG files from Ava's image_node using FLUX generation (same AI art as Chainlit)
+    pepper'S SUPPORTED MEDIA TYPES:
+    - Audio: MP3 files from Pepper's audio_node using ElevenLabs TTS (same generation as Chainlit)
+    - Images: PNG files from Pepper's image_node using FLUX generation (same AI art as Chainlit)
     - Size limits: WhatsApp enforces limits (16MB audio, 5MB images)
     
-    CROSS-SYSTEM CONNECTIONS IN AVA'S WORKFLOW:
+    CROSS-SYSTEM CONNECTIONS IN pepper'S WORKFLOW:
     - Called by: send_response() for audio/image message types (lines 399, 449)
     - Receives: Audio buffer from state.audio_buffer (audio_node output)
     - Receives: Image data from state.image_path (image_node output)
     - Returns: media_id that gets used in WhatsApp message payload by send_response()
     - Media source: IDENTICAL audio/image generation as Chainlit interface (same AI models)
     
-    ERROR HANDLING FOR AVA'S RELIABILITY:
+    ERROR HANDLING FOR pepper'S RELIABILITY:
     - Upload failures cause send_response() to fallback to text responses
     - Media validation happens server-side at WhatsApp
     - Temporary storage on WhatsApp servers (expires after delivery to user)

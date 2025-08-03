@@ -1,16 +1,16 @@
 # VAPI CLIENT - Handles making phone calls through Vapi's service
 # 
 # 🎯 PURPOSE: This is like having a "phone dialer" that can call any number on demand
-# and connect them to Ava's voice interface
+# and connect them to Pepper's voice interface
 #
 # 🔗 REAL-WORLD ANALOGY: This is like a smart phone system that can:
 # - Dial any number automatically when requested
 # - Set up the call with specific instructions for the conversation
-# - Connect the caller to Ava's voice personality
+# - Connect the caller to Pepper's voice personality
 # - Track call status and results
 #
 # 📞 TECHNICAL ROLE: This handles the "outbound calling" side of voice integration
-# - Creates Vapi assistants configured to use Ava's personality
+# - Creates Vapi assistants configured to use Pepper's personality
 # - Makes phone calls using your Vapi phone number
 # - Passes WhatsApp context to voice calls for continuity
 #
@@ -31,19 +31,19 @@ except ImportError:
     logging.error("❌ Vapi SDK not installed. Run: pip install vapi_server_sdk")
     raise
 
-# Import Ava's settings (for API keys and configuration)
+# Import Pepper's settings (for API keys and configuration)
 from ai_companion.settings import settings
 
 class VapiClient:
     """
-    VAPI CLIENT WRAPPER - Ava's phone dialing system
+    VAPI CLIENT WRAPPER - Pepper's phone dialing system
     
-    🎯 PURPOSE: This class handles all phone call operations for Ava
+    🎯 PURPOSE: This class handles all phone call operations for Pepper
     
     🔗 REAL-WORLD ANALOGY: Like a smart phone that can:
     - Dial any number automatically (make_outbound_call)
     - Set up the call with specific instructions (create_voice_assistant)
-    - Connect the caller to Ava's voice personality
+    - Connect the caller to Pepper's voice personality
     - Check if calls are still active (get_call_status)
     
     📞 KEY FEATURES:
@@ -93,7 +93,7 @@ class VapiClient:
         self.railway_url = settings.RAILWAY_URL
         if not self.railway_url:
             logging.warning("⚠️ RAILWAY_URL not found in settings, using default")
-            self.railway_url = "https://ava-whatsapp-agent-course-production.up.railway.app"
+            self.railway_url = "https://pepper-whatsapp-agent-course-production.up.railway.app"
         
         # INITIALIZE VAPI CLIENT
         # This creates the actual connection to Vapi's service
@@ -120,7 +120,7 @@ class VapiClient:
             self.validate_connection()
         except Exception as e:
             self.logger.error(f"⚠️ Vapi connection validation failed: {str(e)}")
-            self.logger.error("⚠️ Voice calling will not be available")
+            self.logger.error("⚠️ Voice calling will not be pepperilable")
     
     def validate_connection(self) -> bool:
         """
@@ -154,7 +154,7 @@ class VapiClient:
                 if self.phone_number_id not in phone_ids:
                     self.logger.warning(f"⚠️ Configured phone number ID not found in Vapi account")
                     self.logger.warning(f"   Configured: {self.phone_number_id}")
-                    self.logger.warning(f"   Available: {phone_ids}")
+                    self.logger.warning(f"   Pepperilable: {phone_ids}")
             
             return True
             
@@ -177,7 +177,7 @@ class VapiClient:
     
     def is_connected(self) -> bool:
         """
-        CHECK CONNECTION STATUS - Quick check if Vapi is available
+        CHECK CONNECTION STATUS - Quick check if Vapi is pepperilable
         
         🔗 REAL-WORLD ANALOGY: Like checking if the phone line has dial tone
         before trying to make a call
@@ -186,12 +186,12 @@ class VapiClient:
     
     async def create_voice_assistant(self, context: Dict[str, Any]) -> str:
         """
-        CREATE VOICE ASSISTANT - Sets up Ava's voice personality for a specific call
+        CREATE VOICE ASSISTANT - Sets up Pepper's voice personality for a specific call
         
-        🎯 PURPOSE: Before making a phone call, we need to create a "voice version" of Ava
+        🎯 PURPOSE: Before making a phone call, we need to create a "voice version" of Pepper
         that knows about the specific user and their WhatsApp conversation context
         
-        🔗 REAL-WORLD ANALOGY: This is like creating a "briefing document" for Ava 
+        🔗 REAL-WORLD ANALOGY: This is like creating a "briefing document" for Pepper 
         before she takes a phone call:
         - What's her personality? (Same as WhatsApp)
         - What should she know about this caller? (Recent WhatsApp messages)
@@ -202,7 +202,7 @@ class VapiClient:
         - Creates a Vapi assistant configured to use YOUR Groq LLM (not Vapi's)
         - Passes WhatsApp context via variableValues
         - Uses same ElevenLabs voice as WhatsApp for consistency
-        - Configures personality to match WhatsApp Ava
+        - Configures personality to match WhatsApp Pepper
         
         Args:
             context: Dictionary with user context from WhatsApp conversation
@@ -212,9 +212,9 @@ class VapiClient:
         """
         try:
             # PREPARE VOICE ASSISTANT CONFIGURATION
-            # This tells Vapi how to make Ava sound and behave on phone calls
+            # This tells Vapi how to make Pepper sound and behave on phone calls
             assistant_config = {
-                "name": f"Ava Voice Assistant - {datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                "name": f"Pepper Voice Assistant - {datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 
                 # MODEL CONFIGURATION - Use OUR Groq LLM instead of Vapi's default
                 # This is the key part that makes Vapi use YOUR existing AI brain!
@@ -227,7 +227,7 @@ class VapiClient:
                 },
                 
                 # VOICE CONFIGURATION - Use same voice as WhatsApp voice messages
-                # This ensures Ava sounds the same whether on WhatsApp or phone calls
+                # This ensures Pepper sounds the same whether on WhatsApp or phone calls
                 "voice": {
                     "provider": "11labs",
                     "voice_id": self.voice_id,  # Same voice for consistency
@@ -238,7 +238,7 @@ class VapiClient:
                 }, 
                 
                 # CONVERSATION SETUP
-                # First thing Ava says when the call connects
+                # First thing Pepper says when the call connects
                 "first_message": self._create_first_message(context),
                 
                 # NOTE: System prompt is handled by our LangGraph workflow in /vapi/chat/completions endpoint
@@ -275,7 +275,7 @@ class VapiClient:
     
     def _create_first_message(self, context: Dict[str, Any]) -> str:
         """
-        CREATE FIRST MESSAGE - What Ava says when the call connects
+        CREATE FIRST MESSAGE - What Pepper says when the call connects
         
         🔗 REAL-WORLD ANALOGY: Like the greeting a receptionist gives when 
         they call someone back: "Hi John, this is Sarah from ABC Company 
@@ -285,7 +285,7 @@ class VapiClient:
         calling_reason = context.get('callingReason', 'You requested a callback')
         
         # Create personalized greeting
-        greeting = f"Hi {user_name}! This is Ava calling you back from WhatsApp."
+        greeting = f"Hi {user_name}! This is Pepper calling you back from WhatsApp."
         
         # Add context about why we're calling
         if 'recent_context' in context and context['recent_context']:
@@ -299,7 +299,7 @@ class VapiClient:
     
     def _create_system_prompt(self, context: Dict[str, Any]) -> str:
         """
-        CREATE SYSTEM PROMPT - Ava's "job description" for phone calls
+        CREATE SYSTEM PROMPT - Pepper's "job description" for phone calls
         
         🔗 REAL-WORLD ANALOGY: Like giving an employee a detailed job description
         before they handle customer calls, including:
@@ -308,10 +308,10 @@ class VapiClient:
         - How should they handle different situations?
         """
         user_name = context.get('userName', 'the caller')
-        recent_context = context.get('recentContext', 'No recent context available')
+        recent_context = context.get('recentContext', 'No recent context pepperilable')
         conversation_topic = context.get('conversationTopic', 'General conversation')
         
-        system_prompt = f"""You are Ava, a helpful AI assistant. You're currently on a phone call with {user_name}.
+        system_prompt = f"""You are Pepper, a helpful AI assistant. You're currently on a phone call with {user_name}.
 
 RECENT CONTEXT FROM WHATSAPP:
 {recent_context}
@@ -323,7 +323,7 @@ PHONE CALL GUIDELINES:
 - Reference the WhatsApp conversation naturally when relevant
 - Keep responses concise - people don't like long speeches on phone calls
 - If you need to share detailed information, offer to send it via WhatsApp
-- Be the same helpful, friendly Ava they know from messaging
+- Be the same helpful, friendly Pepper they know from messaging
 - If the caller asks about something not in your context, politely ask them to elaborate
 - End responses with questions to keep the conversation flowing naturally
 
@@ -340,14 +340,14 @@ REMEMBER: This is a continuation of your WhatsApp relationship with this user. T
     
     async def make_outbound_call(self, to_number: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """
-        MAKE OUTBOUND CALL - Dials a phone number and connects them to voice Ava
+        MAKE OUTBOUND CALL - Dials a phone number and connects them to voice Pepper
         
         🎯 PURPOSE: This is the main function that actually makes phone calls happen!
         
         🔗 REAL-WORLD ANALOGY: Like a secretary who:
         1. Gets briefed about who to call and what they need to know
         2. Dials the number on the office phone
-        3. When someone answers, introduces them to the expert (Ava)
+        3. When someone answers, introduces them to the expert (Pepper)
         4. Provides a reference number for tracking the call
         
         📞 TECHNICAL PROCESS:
@@ -388,7 +388,7 @@ REMEMBER: This is a continuation of your WhatsApp relationship with this user. T
             self.logger.info(f"✅ Phone number validation passed: {to_number}")
             
             # STEP 2: CREATE VOICE ASSISTANT FOR THIS SPECIFIC CALL
-            # This sets up Ava's voice personality with the user's context
+            # This sets up Pepper's voice personality with the user's context
             self.logger.info(f"🤖 Creating voice assistant with context...")
             assistant_id = await self.create_voice_assistant(context)
             self.logger.info(f"✅ Voice assistant created: {assistant_id}")
@@ -398,10 +398,10 @@ REMEMBER: This is a continuation of your WhatsApp relationship with this user. T
             call_config = {
                 "phone_number_id": self.phone_number_id,  # Your Vapi phone number (caller ID)
                 "customer": {"number": to_number},       # Who to call
-                "assistant_id": assistant_id,             # Voice Ava configuration
+                "assistant_id": assistant_id,             # Voice Pepper configuration
                 
                 # ASSISTANT OVERRIDES - Pass WhatsApp context to voice call
-                # This is like giving Ava a "cheat sheet" before the call
+                # This is like giving Pepper a "cheat sheet" before the call
                 "assistant_overrides": {
                     "variable_values": {
                         "userName": context.get("userName", ""),
@@ -516,7 +516,7 @@ REMEMBER: This is a continuation of your WhatsApp relationship with this user. T
             return []
 
 # SINGLETON INSTANCE - One phone dialer for the whole application
-# This creates a single VapiClient that can be used throughout Ava
+# This creates a single VapiClient that can be used throughout Pepper
 # Like having one phone system for the entire office
 try:
     # ATTEMPT TO CREATE VAPI CLIENT
@@ -526,7 +526,7 @@ try:
     
     # LOG CONNECTION STATUS
     if vapi_client.is_connected():
-        logging.info("✅ Vapi connection validated - Voice calling is available")
+        logging.info("✅ Vapi connection validated - Voice calling is pepperilable")
     else:
         logging.warning("⚠️ Vapi client created but connection invalid - Voice calling disabled")
         

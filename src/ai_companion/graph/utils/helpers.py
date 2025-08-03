@@ -1,9 +1,9 @@
 """
-🛠️ AVA'S UTILITY TOOLBOX - Helper functions that keep everything running smoothly
+🛠️ pepper'S UTILITY TOOLBOX - Helper functions that keep everything running smoothly
 
 WHAT IS THIS FILE?
 This file contains "helper functions" - small, reusable utilities that other parts
-of Ava need. Think of it as a toolbox with useful gadgets:
+of Pepper need. Think of it as a toolbox with useful gadgets:
 - AI model configurator (wrench)
 - Text cleaner (sandpaper)
 - Module factories (assembly tools)
@@ -92,19 +92,19 @@ def get_text_to_speech_module():
     🎵 VOICE SYNTHESIS FACTORY - Creates ElevenLabs text-to-speech client
     
     WHAT IT DOES:
-    Creates a configured ElevenLabs client that can convert Ava's text responses
+    Creates a configured ElevenLabs client that can convert Pepper's text responses
     into natural-sounding speech using her specific voice.
     
     WHY ELEVENLABS?
-    - Most natural-sounding AI voices available
-    - Consistent voice identity (Ava always sounds like Ava)
+    - Most natural-sounding AI voices pepperilable
+    - Consistent voice identity (Pepper always sounds like Pepper)
     - Supports emotional expression and tone variation
     - High-quality audio output for professional feel
     
     HOW IT'S USED:
     audio_node calls this to get a TTS client, then:
     1. Generates text response (like conversation_node)
-    2. Converts text to speech using Ava's voice
+    2. Converts text to speech using Pepper's voice
     3. Returns audio buffer for WhatsApp voice message
     
     VOICE CONFIGURATION:
@@ -121,7 +121,7 @@ def get_text_to_image_module():
     
     WHAT IT DOES:
     Creates a configured FLUX AI client that can generate photorealistic images
-    based on text descriptions of what Ava is doing.
+    based on text descriptions of what Pepper is doing.
     
     WHY FLUX?
     - State-of-the-art image quality (better than DALL-E 2)
@@ -131,7 +131,7 @@ def get_text_to_image_module():
     
     HOW IT'S USED:
     image_node calls this to get an image generator, then:
-    1. Creates scenario prompt ("Ava coding at her desk...")
+    1. Creates scenario prompt ("Pepper coding at her desk...")
     2. Generates photorealistic image using FLUX
     3. Saves image file and returns path for WhatsApp
     
@@ -148,11 +148,11 @@ def get_image_to_text_module():
     👁️ VISION ANALYSIS FACTORY - Creates image-to-text client for understanding images
     
     WHAT IT DOES:
-    Creates a client that can "see" and describe images that users send to Ava.
-    Like giving Ava eyes to understand visual content.
+    Creates a client that can "see" and describe images that users send to Pepper.
+    Like giving Pepper eyes to understand visual content.
     
     WHY IMAGE-TO-TEXT?
-    Users might send Ava photos and expect her to understand them:
+    Users might send Pepper photos and expect her to understand them:
     - "What do you think of my setup?" (with desk photo)
     - "Look at this sunset!" (with sunset photo)  
     - "Can you help me with this code?" (with screenshot)
@@ -161,7 +161,7 @@ def get_image_to_text_module():
     1. User sends image to WhatsApp
     2. This module analyzes the image content
     3. Converts visual information to text description
-    4. Ava can then respond contextually about the image
+    4. Pepper can then respond contextually about the image
     
     MODEL USED:
     - "llama-3.2-90b-vision-preview" (multimodal model)
@@ -227,7 +227,7 @@ class AsteriskRemovalParser(StrOutputParser):
     get_character_response_chain() uses this parser:
     prompt | model | AsteriskRemovalParser()
     
-    This ensures Ava's responses are always clean and natural-looking.
+    This ensures Pepper's responses are always clean and natural-looking.
     
     EXAMPLE TRANSFORMATION:
     AI Output: "I'm *currently* debugging some Python *code*!"

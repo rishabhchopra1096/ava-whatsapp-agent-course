@@ -1,16 +1,16 @@
 # STANDARD LIBRARY IMPORTS - Python's built-in tools for memory management
 
-# logging is Python's system for recording what happens when Ava processes memories
-# This helps us debug issues like "Why didn't Ava remember what I told her yesterday?"
+# logging is Python's system for recording what happens when Pepper processes memories
+# This helps us debug issues like "Why didn't Pepper remember what I told her yesterday?"
 import logging
 
-# uuid generates unique identifiers for each memory Ava stores
+# uuid generates unique identifiers for each memory Pepper stores
 # Think of it like giving each memory a unique serial number so we can find it later
-# Example: "abc123-def456-789xyz" - completely unique across all of Ava's memories
+# Example: "abc123-def456-789xyz" - completely unique across all of Pepper's memories
 import uuid
 
 # datetime handles timestamps for when memories were created
-# Ava needs to know WHEN she learned something, not just what she learned
+# Pepper needs to know WHEN she learned something, not just what she learned
 # Example: "I learned the user's name is John on 2024-03-15 at 2:30 PM"
 from datetime import datetime
 
@@ -18,17 +18,17 @@ from datetime import datetime
 # List = list of items, Optional = value that might be None
 from typing import List, Optional
 
-# CUSTOM IMPORTS - Ava-specific memory components
+# CUSTOM IMPORTS - Pepper-specific memory components
 
-# MEMORY_ANALYSIS_PROMPT is a pre-written instruction that teaches Ava how to analyze messages
+# MEMORY_ANALYSIS_PROMPT is a pre-written instruction that teaches Pepper how to analyze messages
 # It tells her: "Look at this message and decide if it contains important information worth remembering"
 from ai_companion.core.prompts import MEMORY_ANALYSIS_PROMPT
 
-# get_vector_store connects to Ava's long-term memory database (like her brain's storage system)
-# This is where Ava permanently stores important facts she learns about users
+# get_vector_store connects to Pepper's long-term memory database (like her brain's storage system)
+# This is where Pepper permanently stores important facts she learns about users
 from ai_companion.modules.memory.long_term.vector_store import get_vector_store
 
-# settings contains Ava's configuration like which AI models to use for memory analysis
+# settings contains Pepper's configuration like which AI models to use for memory analysis
 from ai_companion.settings import settings
 
 # BaseMessage is LangChain's standard format for chat messages
@@ -36,7 +36,7 @@ from ai_companion.settings import settings
 from langchain_core.messages import BaseMessage
 
 # ChatGroq provides access to Groq's language models for analyzing message importance
-# Same service Ava uses for conversation, but here for memory decision-making
+# Same service Pepper uses for conversation, but here for memory decision-making
 from langchain_groq import ChatGroq
 
 # Pydantic provides data validation and structure for memory analysis results
@@ -47,14 +47,14 @@ from pydantic import BaseModel, Field
 
 class MemoryAnalysis(BaseModel):
     """
-    🧠 MEMORY ANALYSIS RESULT - Structure for Ava's memory decisions
+    🧠 MEMORY ANALYSIS RESULT - Structure for Pepper's memory decisions
     
     WHAT IT DOES:
-    This is like a form that Ava fills out after analyzing each message to decide
+    This is like a form that Pepper fills out after analyzing each message to decide
     if it contains important information worth remembering long-term.
     
     WHY WE NEED STRUCTURED RESULTS:
-    When Ava analyzes a message, she needs to make two decisions:
+    When Pepper analyzes a message, she needs to make two decisions:
     1. Is this important enough to remember? (Yes/No)
     2. If yes, how should I format it for storage? (Clean, standardized text)
     
@@ -65,20 +65,20 @@ class MemoryAnalysis(BaseModel):
     
     EXAMPLE ANALYSIS:
     User says: "My birthday is March 15th and I love chocolate cake!"
-    Ava's analysis:
+    Pepper's analysis:
     - is_important: True (personal information worth remembering)
     - formatted_memory: "User's birthday is March 15th and their favorite cake is chocolate"
     """
 
-    # IS_IMPORTANT FIELD - Ava's decision about memory worthiness
-    # Field(...) means this field is required (Ava must make a decision)
+    # IS_IMPORTANT FIELD - Pepper's decision about memory worthiness
+    # Field(...) means this field is required (Pepper must make a decision)
     # bool = True or False (either worth remembering or not)
     is_important: bool = Field(
-        ...,  # Required field - Ava can't skip this decision
+        ...,  # Required field - Pepper can't skip this decision
         description="Whether the message is important enough to be stored as a memory",
     )
     
-    # FORMATTED_MEMORY FIELD - How Ava wants to store the information
+    # FORMATTED_MEMORY FIELD - How Pepper wants to store the information
     # Optional[str] = either text string or None (if not important)
     # This is the cleaned-up version that goes into permanent memory
     formatted_memory: Optional[str] = Field(
@@ -89,17 +89,17 @@ class MemoryAnalysis(BaseModel):
 
 class MemoryManager:
     """
-    📚 AVA'S LONG-TERM MEMORY SYSTEM - Manages what Ava remembers permanently
+    📚 pepper'S LONG-TERM MEMORY SYSTEM - Manages what Pepper remembers permanently
     
     WHAT IT DOES:
-    This is Ava's long-term memory system that decides what information is important
+    This is Pepper's long-term memory system that decides what information is important
     enough to remember permanently and stores it in a way she can find later.
-    Think of it as Ava's personal diary combined with a smart filing system.
+    Think of it as Pepper's personal diary combined with a smart filing system.
     
-    HOW AVA'S MEMORY WORKS:
-    1. **Analysis**: When users say something, Ava analyzes if it's worth remembering
+    HOW pepper'S MEMORY WORKS:
+    1. **Analysis**: When users say something, Pepper analyzes if it's worth remembering
     2. **Storage**: Important information gets stored in her vector database
-    3. **Retrieval**: During conversations, Ava searches for relevant memories
+    3. **Retrieval**: During conversations, Pepper searches for relevant memories
     4. **Context**: Retrieved memories get added to her responses for personalization
     
     REAL-WORLD ANALOGY:
@@ -109,7 +109,7 @@ class MemoryManager:
     - Files information in a smart way
     - Brings up relevant information when needed
     
-    MEMORY TYPES AVA STORES:
+    MEMORY TYPES pepper STORES:
     - Personal information: "User's birthday is March 15th"
     - Preferences: "User prefers coffee over tea"
     - Important events: "User got promoted at work last week"
@@ -127,7 +127,7 @@ class MemoryManager:
 
     def __init__(self):
         """
-        🔧 INITIALIZE AVA'S MEMORY SYSTEM - Set up all memory processing components
+        🔧 INITIALIZE pepper'S MEMORY SYSTEM - Set up all memory processing components
         
         WHAT GETS SET UP:
         1. Connection to vector database (where memories are stored)
@@ -139,14 +139,14 @@ class MemoryManager:
         - logger: Helps debug when memory storage/retrieval goes wrong
         - llm: AI that decides what's important enough to remember
         """
-        # CONNECT TO AVA'S LONG-TERM MEMORY STORAGE
-        # get_vector_store() returns the vector database where Ava stores permanent memories
-        # This is like connecting to Ava's "brain storage" where important information lives
+        # CONNECT TO pepper'S LONG-TERM MEMORY STORAGE
+        # get_vector_store() returns the vector database where Pepper stores permanent memories
+        # This is like connecting to Pepper's "brain storage" where important information lives
         self.vector_store = get_vector_store()
         
         # SET UP LOGGING FOR MEMORY OPERATIONS
         # __name__ = this file's name for labeled logging
-        # Helps debug issues like "Why didn't Ava remember my birthday?"
+        # Helps debug issues like "Why didn't Pepper remember my birthday?"
         self.logger = logging.getLogger(__name__)
         
         # CREATE AI MODEL FOR MEMORY ANALYSIS
@@ -175,7 +175,7 @@ class MemoryManager:
         
         WHAT IT DOES:
         Takes a user's message and uses AI to decide if it contains important information
-        that Ava should remember permanently. Not everything users say is worth storing.
+        that Pepper should remember permanently. Not everything users say is worth storing.
         
         HOW IT WORKS:
         1. Takes user's message: "I just got a new job at Google!"
@@ -215,19 +215,19 @@ class MemoryManager:
         💾 MEMORY EXTRACTION AND STORAGE - Main function that processes messages for permanent storage
         
         WHAT IT DOES:
-        This is the main function called by Ava's memory_extraction_node in her workflow.
+        This is the main function called by Pepper's memory_extraction_node in her workflow.
         It takes each user message, analyzes it for important information, and stores
-        anything worth remembering in Ava's long-term memory database.
+        anything worth remembering in Pepper's long-term memory database.
         
         THE COMPLETE MEMORY STORAGE PROCESS:
-        1. Check if message is from human (ignore Ava's own messages)
+        1. Check if message is from human (ignore Pepper's own messages)
         2. Analyze message for importance using AI
         3. If important, check if we already have similar information
         4. If new information, store it with timestamp and unique ID
         
         WHY CHECK FOR DUPLICATES:
         If user says "My name is John" today and "My name is John" tomorrow,
-        we don't want two identical memories cluttering Ava's storage.
+        we don't want two identical memories cluttering Pepper's storage.
         
         REAL-WORLD ANALOGY:
         This is like a personal assistant who:
@@ -240,11 +240,11 @@ class MemoryManager:
         message: LangChain message object containing user's text and metadata
         
         CALLED BY:
-        memory_extraction_node in Ava's LangGraph workflow
+        memory_extraction_node in Pepper's LangGraph workflow
         """
         # STEP 1: ONLY PROCESS HUMAN MESSAGES
         # message.type tells us who sent this message: "human" or "ai"
-        # We only want to remember what users tell us, not what Ava says
+        # We only want to remember what users tell us, not what Pepper says
         # If it's not from a human, exit early (return immediately)
         if message.type != "human":
             return
@@ -300,7 +300,7 @@ class MemoryManager:
         🔍 MEMORY RETRIEVAL SYSTEM - Finds relevant memories for current conversation
         
         WHAT IT DOES:
-        When Ava is having a conversation, this function searches her long-term memory
+        When Pepper is having a conversation, this function searches her long-term memory
         to find information that's relevant to what's being discussed right now.
         
         HOW IT WORKS (USER STORY):
@@ -308,7 +308,7 @@ class MemoryManager:
         2. context = "What do you remember about my job?"
         3. Searches vector database for memories related to "job"
         4. Finds: ["User works at Google as software engineer", "User got promoted last month"]
-        5. Returns these memories to be included in Ava's response
+        5. Returns these memories to be included in Pepper's response
         
         WHY VECTOR SEARCH:
         Traditional search looks for exact word matches. Vector search understands meaning.
@@ -327,12 +327,12 @@ class MemoryManager:
         List of memory text strings relevant to the current conversation
         
         USED BY:
-        memory_injection_node in Ava's LangGraph workflow
+        memory_injection_node in Pepper's LangGraph workflow
         """
         # SEARCH VECTOR DATABASE FOR RELEVANT MEMORIES
         # self.vector_store.search_memories() finds memories semantically similar to context
         # k=settings.MEMORY_TOP_K limits number of results (typically 3-5 memories)
-        # Too many memories would overwhelm Ava's response context
+        # Too many memories would overwhelm Pepper's response context
         memories = self.vector_store.search_memories(context, k=settings.MEMORY_TOP_K)
         
         # LOG RETRIEVED MEMORIES FOR DEBUGGING
@@ -348,16 +348,16 @@ class MemoryManager:
         # RETURN JUST THE TEXT CONTENT OF MEMORIES
         # memories contains Memory objects with text, metadata, and scores
         # [memory.text for memory in memories] extracts just the text content
-        # This is what goes into Ava's conversation context
+        # This is what goes into Pepper's conversation context
         return [memory.text for memory in memories]
 
     def format_memories_for_prompt(self, memories: List[str]) -> str:
         """
-        📝 MEMORY FORMATTER - Prepares memories for inclusion in Ava's conversation prompt
+        📝 MEMORY FORMATTER - Prepares memories for inclusion in Pepper's conversation prompt
         
         WHAT IT DOES:
         Takes a list of relevant memories and formats them as clean bullet points
-        that can be added to Ava's conversation prompt. This gives Ava context
+        that can be added to Pepper's conversation prompt. This gives Pepper context
         about what she knows about the user.
         
         HOW IT WORKS:
@@ -370,7 +370,7 @@ class MemoryManager:
         WHY BULLET POINT FORMAT:
         - Clean and readable for AI processing
         - Clear separation between different memories
-        - Easy for Ava's language model to parse and understand
+        - Easy for Pepper's language model to parse and understand
         
         REAL-WORLD ANALOGY:
         This is like preparing notes for someone before they meet a client.
@@ -384,11 +384,11 @@ class MemoryManager:
         Formatted string with bullet points, or empty string if no memories
         
         USED BY:
-        memory_injection_node when adding context to Ava's conversation prompt
+        memory_injection_node when adding context to Pepper's conversation prompt
         """
         # HANDLE EMPTY MEMORIES LIST
         # If no relevant memories found, return empty string
-        # This prevents adding empty bullet points to Ava's prompt
+        # This prevents adding empty bullet points to Pepper's prompt
         if not memories:
             return ""
         
@@ -401,14 +401,14 @@ class MemoryManager:
 
 def get_memory_manager() -> MemoryManager:
     """
-    🏭 MEMORY MANAGER FACTORY - Creates and returns Ava's memory management system
+    🏭 MEMORY MANAGER FACTORY - Creates and returns Pepper's memory management system
     
     WHAT IT DOES:
     Simple factory function that creates and returns a MemoryManager instance.
-    This is used by Ava's LangGraph nodes that need to work with long-term memory.
+    This is used by Pepper's LangGraph nodes that need to work with long-term memory.
     
     WHY A FACTORY FUNCTION:
-    - Consistent way to create memory manager across different parts of Ava's system
+    - Consistent way to create memory manager across different parts of Pepper's system
     - Could be extended later to implement singleton pattern or caching
     - Provides clear interface for accessing memory functionality
     

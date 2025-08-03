@@ -3,7 +3,7 @@
 
 WHAT IS THIS FILE?
 This file creates a web server that listens for messages from WhatsApp. When someone
-sends a message to Ava on WhatsApp, this server receives it and passes it to the 
+sends a message to Pepper on WhatsApp, this server receives it and passes it to the 
 code that actually processes the message.
 
 BEGINNER CONCEPTS YOU NEED TO KNOW:
@@ -26,71 +26,71 @@ Docker helps us because:
 - We don't have to worry about "it works on my machine but not yours"
 - Easy to deploy (put our program online)
 
-🔗 WHAT IS A WEBHOOK IN AVA'S CONTEXT?
-A webhook is how WhatsApp notifies Ava instantly when someone sends a message.
-Instead of Ava constantly asking "any new messages?", WhatsApp pushes messages to Ava.
+🔗 WHAT IS A WEBHOOK IN pepper'S CONTEXT?
+A webhook is how WhatsApp notifies Pepper instantly when someone sends a message.
+Instead of Pepper constantly asking "any new messages?", WhatsApp pushes messages to Pepper.
 
-Why webhooks are perfect for Ava:
-- Instant response: User sends message, Ava processes immediately 
-- No polling overhead: Ava doesn't waste resources checking for messages
+Why webhooks are perfect for Pepper:
+- Instant response: User sends message, Pepper processes immediately 
+- No polling overhead: Pepper doesn't waste resources checking for messages
 - Scalable: Works with thousands of users simultaneously
 
-Ava's WhatsApp webhook flow:
-1. User sends message to Ava's WhatsApp number
+Pepper's WhatsApp webhook flow:
+1. User sends message to Pepper's WhatsApp number
 2. WhatsApp Business API receives the message
 3. WhatsApp immediately sends HTTP POST to our "/whatsapp_response" endpoint
-4. This FastAPI server receives the webhook and processes through Ava's LangGraph workflow
-5. Ava's response gets sent back to WhatsApp API
-6. WhatsApp delivers Ava's response to the user's phone
+4. This FastAPI server receives the webhook and processes through Pepper's LangGraph workflow
+5. Pepper's response gets sent back to WhatsApp API
+6. WhatsApp delivers Pepper's response to the user's phone
 
-⚡ WHAT IS FASTAPI IN AVA'S ARCHITECTURE?
-FastAPI is the Python web framework that creates Ava's WhatsApp webhook server.
-It handles the HTTP communication layer so Ava can focus on AI processing.
+⚡ WHAT IS FASTAPI IN pepper'S ARCHITECTURE?
+FastAPI is the Python web framework that creates Pepper's WhatsApp webhook server.
+It handles the HTTP communication layer so Pepper can focus on AI processing.
 
-Why FastAPI is perfect for Ava:
+Why FastAPI is perfect for Pepper:
 - Fast async processing: Can handle multiple WhatsApp users simultaneously
 - Automatic request parsing: Converts WhatsApp webhook JSON into Python objects
 - Built-in validation: Ensures incoming webhooks have the right format
 - Production-ready: Handles errors gracefully for real users
 
-FastAPI's role in Ava:
+FastAPI's role in Pepper:
 - Listens on port 8080 for WhatsApp webhook HTTP requests
 - Routes "/whatsapp_response" calls to whatsapp_handler() function
-- Manages async processing so Ava can handle multiple conversations at once
+- Manages async processing so Pepper can handle multiple conversations at once
 - Returns proper HTTP status codes to WhatsApp API for reliability
 
-🛣️ WHAT IS ROUTING IN AVA'S CONTEXT?
+🛣️ WHAT IS ROUTING IN pepper'S CONTEXT?
 Routing directs incoming WhatsApp webhooks to the right processing function.
 - WhatsApp sends HTTP request to "/whatsapp_response" endpoint
 - FastAPI router automatically calls whatsapp_handler() function
 - Different endpoints could handle different types of messages (if we had them)
 
-In Ava's case:
+In Pepper's case:
 - All WhatsApp messages go to the same endpoint: "/whatsapp_response" 
-- The whatsapp_handler() function then processes them through Ava's LangGraph workflow
+- The whatsapp_handler() function then processes them through Pepper's LangGraph workflow
 - This is different from Chainlit which uses WebSocket connections instead of HTTP endpoints
 
 THE COMPLETE FLOW:
-1. User sends WhatsApp message to Ava
+1. User sends WhatsApp message to Pepper
 2. WhatsApp servers receive the message
 3. WhatsApp makes HTTP POST request to our webhook URL
 4. This FastAPI server receives the request
 5. Router sends request to whatsapp_handler function
-6. whatsapp_handler processes message through Ava's brain
+6. whatsapp_handler processes message through Pepper's brain
 7. Response sent back to WhatsApp
 8. WhatsApp delivers response to user
 
-REAL-WORLD ANALOGY GROUNDED IN AVA'S ACTUAL FUNCTIONALITY:
-This file is like Ava's phone reception desk:
+REAL-WORLD ANALOGY GROUNDED IN pepper'S ACTUAL FUNCTIONALITY:
+This file is like Pepper's phone reception desk:
 - The FastAPI server is always listening for WhatsApp webhook calls (like a phone always ready)
 - When WhatsApp sends a message webhook, this server receives it immediately
-- The router directs the webhook to whatsapp_handler() where Ava's brain processes it
+- The router directs the webhook to whatsapp_handler() where Pepper's brain processes it
 - The actual conversation happens in whatsapp_response.py using the SAME LangGraph workflow as Chainlit
-- Just like how a receptionist connects callers to the right department, this connects WhatsApp messages to Ava's AI processing
+- Just like how a receptionist connects callers to the right department, this connects WhatsApp messages to Pepper's AI processing
 
 WHY IS THIS FILE SO SHORT?
 This file only does ONE job: receive webhooks and pass them to the right handler.
-All the actual work (processing messages, talking to Ava's brain) happens in 
+All the actual work (processing messages, talking to Pepper's brain) happens in 
 whatsapp_response.py. This keeps things simple and organized.
 
 DOCKER CONNECTION:
@@ -123,8 +123,8 @@ app = FastAPI()
 # STEP 2: Tell the server how to handle WhatsApp requests
 # app.include_router() connects WhatsApp message processing to this web server
 # Instead of handling WhatsApp logic directly in this simple file,
-# we delegate to whatsapp_router which contains all the actual Ava conversation processing
-# This is like connecting a specialized Ava brain module to our basic HTTP server
+# we delegate to whatsapp_router which contains all the actual Pepper conversation processing
+# This is like connecting a specialized Pepper brain module to our basic HTTP server
 
 # What whatsapp_router contains:
 # - A function that handles GET requests (for webhook verification)
@@ -141,11 +141,11 @@ app.include_router(whatsapp_router)
 # This adds new endpoints like /vapi/chat/completions and /vapi/webhook
 # 
 # What vapi_router contains:
-# - /vapi/chat/completions: OpenAI-compatible endpoint that connects Vapi to Ava's Groq LLM
+# - /vapi/chat/completions: OpenAI-compatible endpoint that connects Vapi to Pepper's Groq LLM
 # - /vapi/webhook: Receives call events (call started, ended, transcripts)
 # - /vapi/health: Health check for the voice calling system
 # - /vapi/test-chat: Testing endpoint for development
 #
 # After this line, when Vapi sends voice conversations to /vapi/chat/completions,
-# they will be processed through Ava's existing LangGraph + Groq LLM workflow
+# they will be processed through Pepper's existing LangGraph + Groq LLM workflow
 app.include_router(vapi_router)

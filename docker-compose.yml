@@ -1,4 +1,4 @@
-# 🐳 AVA'S DOCKER COMPOSE CONFIGURATION - Orchestrates all of Ava's services working together
+# 🐳 pepper'S DOCKER COMPOSE CONFIGURATION - Orchestrates all of Pepper's services working together
 #
 # WHAT IS DOCKER COMPOSE:
 # Docker Compose is like a conductor for an orchestra. Instead of manually starting each
@@ -8,16 +8,16 @@
 # WHAT IS DOCKER:
 # Docker is like having portable, self-contained apartments for software.
 # Each "container" has everything needed to run a specific service:
-# - Ava's Chainlit interface runs in one container (apartment)
-# - Ava's WhatsApp interface runs in another container (apartment)
+# - Pepper's Chainlit interface runs in one container (apartment)
+# - Pepper's WhatsApp interface runs in another container (apartment)
 # - Qdrant database runs in its own container (apartment)
 #
 # WHY USE CONTAINERS:
-# - Consistency: Ava runs the same way on any computer (Mac, Windows, Linux)
+# - Consistency: Pepper runs the same way on any computer (Mac, Windows, Linux)
 # - Isolation: Each service has its own environment, preventing conflicts
 # - Easy deployment: "It works on my machine" becomes "it works everywhere"
 #
-# AVA'S ARCHITECTURE:
+# pepper'S ARCHITECTURE:
 # ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 # │   Chainlit      │    │    WhatsApp     │    │     Qdrant      │
 # │  (Port 8000)    │    │  (Port 8080)    │    │  (Port 6333)    │
@@ -34,30 +34,29 @@
 # - Qdrant = Kitchen storage (where ingredients/memories are kept)
 # - Chainlit = Dine-in service (customers eat at tables)
 # - WhatsApp = Delivery service (food delivered to customers' homes)
-# All stations work together to serve the same menu (Ava's AI capabilities)
+# All stations work together to serve the same menu (Pepper's AI capabilities)
 
-services:  # This section defines all the "containers" (services) that make up Ava
-
-  # 🗄️ QDRANT SERVICE - Ava's long-term memory database
+services: # This section defines all the "containers" (services) that make up Pepper
+  # 🗄️ QDRANT SERVICE - Pepper's long-term memory database
   qdrant:
     # WHAT IS QDRANT:
     # Qdrant is a specialized database designed for storing and searching vector embeddings.
-    # This is where Ava stores her long-term memories about users and conversations.
-    # Think of it as Ava's permanent brain storage that remembers everything important.
-    
+    # This is where Pepper stores her long-term memories about users and conversations.
+    # Think of it as Pepper's permanent brain storage that remembers everything important.
+
     # IMAGE: Pre-built Qdrant software package from Docker Hub
     # "qdrant/qdrant:latest" = official Qdrant image, latest version
     # Like downloading a pre-built Qdrant installation instead of building from source
     image: qdrant/qdrant:latest
-    
+
     # PORTS: How to access Qdrant from outside the container
     # "6333:6333" means:
-    # - Outside port 6333 (what Ava's other services connect to)
+    # - Outside port 6333 (what Pepper's other services connect to)
     # - Inside port 6333 (what Qdrant listens on inside container)
     # Like having apartment 6333 with mail slot 6333
     ports:
       - "6333:6333"
-    
+
     # VOLUMES: Persistent storage that survives container restarts
     # "./long_term_memory:/qdrant/storage" means:
     # - ./long_term_memory = folder on your computer
@@ -65,109 +64,108 @@ services:  # This section defines all the "containers" (services) that make up A
     # Like having a safety deposit box that persists even if bank closes
     volumes:
       - ./long_term_memory:/qdrant/storage
-    
+
     # RESTART POLICY: What to do if Qdrant crashes
     # "unless-stopped" = automatically restart unless manually stopped
     # Like having a backup generator that turns on when power goes out
     restart: unless-stopped
 
-  # 💬 CHAINLIT SERVICE - Ava's web development interface
+  # 💬 CHAINLIT SERVICE - Pepper's web development interface
   chainlit:
     # WHAT IS CHAINLIT SERVICE:
-    # This runs Ava's web-based chat interface for development and testing.
-    # Accessible at http://localhost:8000 for developers to chat with Ava.
-    
+    # This runs Pepper's web-based chat interface for development and testing.
+    # Accessible at http://localhost:8000 for developers to chat with Pepper.
+
     # BUILD: Custom container built from our code (not pre-built image)
     build:
       # CONTEXT: Which folder contains the code to build
       # "." = current directory (where this docker-compose.yml is located)
       context: .
-      
+
       # DOCKERFILE: Instructions for building Chainlit container
       # "Dockerfile.chainlit" = specific build instructions for Chainlit interface
       dockerfile: Dockerfile.chainlit
-    
+
     # PORTS: How to access Chainlit web interface
-    # "8000:8000" means web interface available at http://localhost:8000
+    # "8000:8000" means web interface pepperilable at http://localhost:8000
     ports:
       - "8000:8000"
-    
+
     # ENV_FILE: Load environment variables from .env file
     # Contains API keys and configuration that shouldn't be in source code
     # Like reading secrets from a locked filing cabinet
     env_file:
       - .env
-    
+
     # ENVIRONMENT: Additional environment variables specific to this service
     # These override or supplement variables from .env file
     environment:
       # QDRANT CONNECTION SETTINGS:
       # Tell Chainlit how to connect to Qdrant database for memory storage
-      - QDRANT_PORT=6333           # Port where Qdrant is listening
-      - QDRANT_API_KEY=None        # No authentication needed (local development)
-      - QDRANT_HOST=localhost      # Qdrant is on same machine
-      - QDRANT_URL=http://qdrant:6333  # Full URL using Docker service name
-    
+      - QDRANT_PORT=6333 # Port where Qdrant is listening
+      - QDRANT_API_KEY=None # No authentication needed (local development)
+      - QDRANT_HOST=localhost # Qdrant is on same machine
+      - QDRANT_URL=http://qdrant:6333 # Full URL using Docker service name
+
     # RESTART POLICY: Automatically restart if Chainlit crashes
     restart: unless-stopped
-    
+
     # VOLUMES: Persistent storage for conversation history
     # "./short_term_memory:/app/data" maps local folder to container folder
     # SQLite conversation files persist even if container restarts
-    volumes: 
+    volumes:
       - ./short_term_memory:/app/data
-    
+
     # DEPENDS_ON: Start Qdrant before starting Chainlit
     # Chainlit needs database to be running before it can connect
     # Like waiting for kitchen to be ready before opening restaurant
     depends_on:
       - qdrant
 
-  # 📱 WHATSAPP SERVICE - Ava's production WhatsApp interface
+  # 📱 WHATSAPP SERVICE - Pepper's production WhatsApp interface
   whatsapp:
     # WHAT IS WHATSAPP SERVICE:
-    # This runs Ava's WhatsApp webhook handler for production messaging.
+    # This runs Pepper's WhatsApp webhook handler for production messaging.
     # Receives messages from real users via WhatsApp Business API.
-    
+
     # BUILD: Custom container built from our code
     build:
       # CONTEXT: Same codebase as Chainlit, different container
       context: .
-      
+
       # DOCKERFILE: Different build instructions for WhatsApp interface
       # "Dockerfile" (default name) contains WhatsApp-specific build steps
       dockerfile: Dockerfile
-    
+
     # PORTS: How WhatsApp Business API connects to our webhook
-    # "8080:8080" means webhook available at http://localhost:8080
+    # "8080:8080" means webhook pepperilable at http://localhost:8080
     ports:
       - "8080:8080"
-    
+
     # ENV_FILE: Same .env file as Chainlit (shared API keys)
     env_file:
       - .env
-    
+
     # ENVIRONMENT: Same Qdrant connection settings as Chainlit
     # Both interfaces use the same memory database
     environment:
       - QDRANT_PORT=6333
       - QDRANT_API_KEY=None
       - QDRANT_HOST=localhost
-      - QDRANT_URL=http://qdrant:6333  # Docker service name for internal communication
-    
+      - QDRANT_URL=http://qdrant:6333 # Docker service name for internal communication
+
     # RESTART POLICY: Critical for production - always restart if crashed
     restart: unless-stopped
-    
+
     # VOLUMES: Same conversation storage as Chainlit
     # Both interfaces share the same conversation history database
-    volumes: 
+    volumes:
       - ./short_term_memory:/app/data
-    
+
     # DEPENDS_ON: Start Qdrant before WhatsApp interface
     # WhatsApp needs memory database running for conversation context
     depends_on:
       - qdrant
-
 # SUMMARY OF SERVICE RELATIONSHIPS:
 # 1. Qdrant starts first (database dependency)
 # 2. Chainlit and WhatsApp start after Qdrant is ready
@@ -181,4 +179,4 @@ services:  # This section defines all the "containers" (services) that make up A
 # - WhatsApp ↔ Qdrant: Uses Docker service name "qdrant:6333"
 # - External access: localhost:8000 (Chainlit), localhost:8080 (WhatsApp), localhost:6333 (Qdrant)
 #
-# This configuration ensures all of Ava's services work together as a cohesive system.
+# This configuration ensures all of Pepper's services work together as a cohesive system.

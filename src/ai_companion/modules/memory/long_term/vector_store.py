@@ -9,7 +9,7 @@ import os
 from dataclasses import dataclass
 
 # datetime handles timestamps for when memories were created
-# Helps track when Ava learned each piece of information
+# Helps track when Pepper learned each piece of information
 from datetime import datetime
 
 # functools provides utilities for working with functions
@@ -20,9 +20,9 @@ from functools import lru_cache
 # List = list of items, Optional = value that might be None
 from typing import List, Optional
 
-# CUSTOM IMPORTS - Ava-specific configuration
+# CUSTOM IMPORTS - Pepper-specific configuration
 
-# settings contains Ava's configuration like database URLs and API keys
+# settings contains Pepper's configuration like database URLs and API keys
 from ai_companion.settings import settings
 
 # QDRANT IMPORTS - Vector database for storing and searching memories
@@ -50,11 +50,11 @@ from sentence_transformers import SentenceTransformer
 @dataclass
 class Memory:
     """
-    📝 MEMORY DATA STRUCTURE - Represents a single memory stored in Ava's long-term database
+    📝 MEMORY DATA STRUCTURE - Represents a single memory stored in Pepper's long-term database
     
     WHAT IT IS:
-    This is like a single index card in Ava's memory filing system. Each Memory object
-    contains the actual information Ava learned, when she learned it, and how relevant
+    This is like a single index card in Pepper's memory filing system. Each Memory object
+    contains the actual information Pepper learned, when she learned it, and how relevant
     it is to current conversation.
     
     WHAT EACH FIELD CONTAINS:
@@ -69,11 +69,11 @@ class Memory:
     - How relevant it is to your current search (score)
     
     USED BY:
-    Vector search functions return lists of these Memory objects when Ava searches
+    Vector search functions return lists of these Memory objects when Pepper searches
     her long-term memory for information relevant to current conversation.
     """
 
-    # TEXT FIELD - The actual memory content that Ava learned
+    # TEXT FIELD - The actual memory content that Pepper learned
     # Example: "User works as a software engineer at Google"
     text: str
     
@@ -117,10 +117,10 @@ class Memory:
         
         WHAT IT DOES:
         Extracts the creation timestamp from metadata and converts it to Python datetime object.
-        This tells us when Ava learned this piece of information.
+        This tells us when Pepper learned this piece of information.
         
         WHY TIMESTAMPS MATTER:
-        - Debugging memory issues ("When did Ava learn this?")
+        - Debugging memory issues ("When did Pepper learn this?")
         - Potentially expiring old memories in the future
         - Understanding conversation history and context
         
@@ -140,7 +140,7 @@ class Memory:
 
 class VectorStore:
     """
-    🗄 AVA'S VECTOR DATABASE INTERFACE - Manages storage and retrieval of memories using semantic search
+    🗄 pepper'S VECTOR DATABASE INTERFACE - Manages storage and retrieval of memories using semantic search
     
     WHAT IS A VECTOR DATABASE:
     A vector database stores information as numerical vectors (lists of numbers) instead of text.
@@ -168,7 +168,7 @@ class VectorStore:
     It's fast, reliable, and great for storing AI-generated embeddings.
     
     SINGLETON PATTERN:
-    Only one VectorStore instance exists across Ava's entire system.
+    Only one VectorStore instance exists across Pepper's entire system.
     All memory operations use the same database connection.
     """
 
@@ -182,9 +182,9 @@ class VectorStore:
     # Small, fast, and good quality for semantic similarity tasks
     EMBEDDING_MODEL = "all-MiniLM-L6-v2"
     
-    # COLLECTION NAME - Database table name for Ava's memories
+    # COLLECTION NAME - Database table name for Pepper's memories
     # "long_term_memory" is like a table name in traditional databases
-    # All of Ava's permanent memories are stored in this collection
+    # All of Pepper's permanent memories are stored in this collection
     COLLECTION_NAME = "long_term_memory"
     
     # SIMILARITY THRESHOLD - How similar memories must be to be considered duplicates
@@ -209,7 +209,7 @@ class VectorStore:
         
         WHY SINGLETON PATTERN:
         - Database connections are expensive to create
-        - All parts of Ava should use the same memory storage
+        - All parts of Pepper should use the same memory storage
         - Prevents conflicts from multiple database connections
         - Ensures consistent memory access across entire system
         
@@ -322,7 +322,7 @@ class VectorStore:
         
         WHAT IT DOES:
         Takes a piece of text (like "User's birthday is March 15th") and stores it
-        in Ava's vector database so she can find it later through semantic search.
+        in Pepper's vector database so she can find it later through semantic search.
         
         HOW VECTOR STORAGE WORKS:
         1. Convert text to vector: "User likes coffee" → [0.1, 0.8, -0.3, 0.2, ...]
@@ -330,12 +330,12 @@ class VectorStore:
         3. Later searches find similar vectors = similar meanings
         
         WHY CHECK FOR COLLECTION:
-        Collections are like tables in traditional databases. If this is Ava's first memory,
+        Collections are like tables in traditional databases. If this is Pepper's first memory,
         we need to create the "long_term_memory" collection to store it in.
         
         DUPLICATE HANDLING:
         If similar memory already exists, we update it instead of creating duplicate.
-        Keeps Ava's memory clean and prevents storage bloat.
+        Keeps Pepper's memory clean and prevents storage bloat.
         
         PARAMETERS:
         text: The actual memory content to store
@@ -393,7 +393,7 @@ class VectorStore:
         🔍 SEMANTIC MEMORY SEARCH - Finds memories related to current conversation
         
         WHAT IT DOES:
-        Takes current conversation context and searches Ava's memory database
+        Takes current conversation context and searches Pepper's memory database
         for information that's semantically related (similar in meaning).
         
         HOW SEMANTIC SEARCH WORKS:
@@ -466,7 +466,7 @@ def get_vector_store() -> VectorStore:
     🏭 VECTOR STORE FACTORY - Returns the single shared VectorStore instance
     
     WHAT IT DOES:
-    Simple factory function that returns Ava's vector database interface.
+    Simple factory function that returns Pepper's vector database interface.
     Combined with singleton pattern, ensures entire system uses same database connection.
     
     WHY @lru_cache:
@@ -489,7 +489,7 @@ def get_vector_store() -> VectorStore:
     
     USED BY:
     - MemoryManager for storing and retrieving memories
-    - Any part of Ava's system that needs access to long-term memory
+    - Any part of Pepper's system that needs access to long-term memory
     """
     # CREATE AND RETURN VECTOR STORE INSTANCE
     # VectorStore() constructor handles singleton pattern internally

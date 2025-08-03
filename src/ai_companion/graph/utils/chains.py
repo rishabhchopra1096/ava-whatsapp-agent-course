@@ -1,5 +1,5 @@
 """
-🔗 AVA'S BRAIN ASSEMBLY LINE - Where prompts get connected to AI models to create "chains"
+🔗 pepper'S BRAIN ASSEMBLY LINE - Where prompts get connected to AI models to create "chains"
 
 WHAT IS THIS FILE?
 This file creates "chains" - pre-assembled combinations of:
@@ -21,9 +21,9 @@ prompt | model | parser
 This "|" symbol means "pipe the output to the next step"
 Like: Instructions → AI → Clean Response
 
-HOW CHAINS ARE USED IN AVA:
+HOW CHAINS ARE USED IN pepper:
 1. router_node calls get_router_chain() → decides text/image/audio
-2. conversation_node calls get_character_response_chain() → generates Ava's personality
+2. conversation_node calls get_character_response_chain() → generates Pepper's personality
 3. All other response nodes use these same chains
 
 REAL EXAMPLE FLOW:
@@ -33,7 +33,7 @@ You: "What are you up to?"
 
 THE TWO MAIN CHAINS:
 🤖 get_router_chain() - Decides how to respond (text/image/audio)
-👩‍💻 get_character_response_chain() - Generates Ava's personality responses
+👩‍💻 get_character_response_chain() - Generates Pepper's personality responses
 """
 
 # LangChain core components for building prompt templates
@@ -84,7 +84,7 @@ def get_router_chain():
     
     WHAT IT BUILDS:
     A complete "decision-making assembly line" that takes conversation messages
-    and returns a structured decision about how Ava should respond.
+    and returns a structured decision about how Pepper should respond.
     
     THE ASSEMBLY LINE:
     1. PROMPT: Takes messages + ROUTER_PROMPT instructions
@@ -124,24 +124,24 @@ def get_router_chain():
 
 def get_character_response_chain(summary: str = ""):
     """
-    👩‍💻 AVA'S PERSONALITY CHAIN - Assembles the response generator with Ava's complete personality
+    👩‍💻 pepper'S PERSONALITY CHAIN - Assembles the response generator with Pepper's complete personality
     
     WHAT IT BUILDS:
-    The complete "Ava personality generator" that takes conversation context
-    and produces responses that sound exactly like Ava - witty, tech-savvy, human.
+    The complete "Pepper personality generator" that takes conversation context
+    and produces responses that sound exactly like Pepper - witty, tech-savvy, human.
     
     THE ASSEMBLY LINE:
-    1. PROMPT: Ava's personality + conversation context + optional summary
-    2. MODEL: Groq Llama 3.3 70B generates response in Ava's voice
+    1. PROMPT: Pepper's personality + conversation context + optional summary
+    2. MODEL: Groq Llama 3.3 70B generates response in Pepper's voice
     3. PARSER: Removes asterisk formatting (*like this*) for clean output
     
     WHY NO STRUCTURED OUTPUT?
     Unlike the router, we want creative, natural text responses.
-    No rigid format needed - just Ava being herself.
+    No rigid format needed - just Pepper being herself.
     
     SUMMARY PARAMETER:
     - Used for long conversations that have been compressed
-    - Gives Ava context about what happened earlier
+    - Gives Pepper context about what happened earlier
     - Example: "User discussed work projects, asked about weekend plans"
     """
     
@@ -150,20 +150,20 @@ def get_character_response_chain(summary: str = ""):
     # No structured output = AI can respond freely in natural language
     model = get_chat_model()
     
-    # STEP 2: Build the system message (Ava's personality instructions)
-    # Start with CHARACTER_CARD_PROMPT (Ava's complete identity)
+    # STEP 2: Build the system message (Pepper's personality instructions)
+    # Start with CHARACTER_CARD_PROMPT (Pepper's complete identity)
     system_message = CHARACTER_CARD_PROMPT
 
-    # STEP 3: Add conversation summary if available (for long conversations)
-    # This gives Ava context about what happened before the current messages
+    # STEP 3: Add conversation summary if pepperilable (for long conversations)
+    # This gives Pepper context about what happened before the current messages
     # Helps maintain consistency across long chats that have been summarized
     if summary:
-        system_message += f"\n\nSummary of conversation earlier between Ava and the user: {summary}"
+        system_message += f"\n\nSummary of conversation earlier between Pepper and the user: {summary}"
 
     # STEP 4: Create the prompt template with personality + messages
     prompt = ChatPromptTemplate.from_messages(
         [
-            ("system", system_message),                       # Ava's complete personality + summary
+            ("system", system_message),                       # Pepper's complete personality + summary
             MessagesPlaceholder(variable_name="messages"),    # Current conversation messages
         ]
     )
@@ -173,5 +173,5 @@ def get_character_response_chain(summary: str = ""):
     # 1. Send prompt to model
     # 2. Model generates response  
     # 3. Parser cleans up formatting (removes *emphasis* marks)
-    # Result: Clean, natural-sounding Ava responses
+    # Result: Clean, natural-sounding Pepper responses
     return prompt | model | AsteriskRemovalParser()

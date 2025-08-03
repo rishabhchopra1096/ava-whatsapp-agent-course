@@ -1,6 +1,6 @@
 <p align="center">
-        <img alt="logo" src="img/ava_final_design.gif" width=1000 />
-    <h1 align="center">📱 Ava 📱</h1>
+        <img alt="logo" src="img/pepper_final_design.gif" width=1000 />
+    <h1 align="center">📱 Pepper 📱</h1>
     <h3 align="center">Turning the Turing Test into a WhatsApp Agent</h3>
 </p>
 
@@ -25,21 +25,20 @@
 
 What happens when [two ML Engineers](#contributors) with a love for sci-fi movies team up? 🤔
 
-You get **Ava**, a Whatsapp agent that can engage with users in a "realistic" way, inspired by the great film [Ex Machina](https://www.imdb.com/es-es/title/tt0470752/). Ok, you won't find a fully sentient robot here, but you **will** have some pretty interesting Whatsapp conversations.
+You get **Pepper**, a Whatsapp agent that can engage with users in a "realistic" way, inspired by the great film [Ex Machina](https://www.imdb.com/es-es/title/tt0470752/). Ok, you won't find a fully sentient robot here, but you **will** have some pretty interesting Whatsapp conversations.
 
-By the end of this course, you'll have built your own Ava too, capable of:
+By the end of this course, you'll have built your own Pepper too, capable of:
 
+- Receiving and sending Whatsapp messages 📲
+- Understanding your voice 🗣️
+- Recognizing your images 🖼️
+- Sending voice notes back 🎤
+- Sharing updates about its "daily activities" 🚣
+- Sending you images of its current activities 🖼️
 
-* Receiving and sending Whatsapp messages 📲
-* Understanding your voice 🗣️
-* Recognizing your images 🖼️
-* Sending voice notes back 🎤
-* Sharing updates about its "daily activities" 🚣
-* Sending you images of its current activities 🖼️
+> You can think of it as a modern reinterpretation of the Turing Test 🤣
 
->You can think of it as a modern reinterpretation of the Turing Test 🤣
-
-Excited? Let's get started! 
+Excited? Let's get started!
 
 <div style="text-align: center;">
     <video src="https://github.com/user-attachments/assets/6d1abefc-b4d8-4f66-9db6-a0e54b8df944" controls width="100%"></video>
@@ -51,7 +50,7 @@ Excited? Let's get started!
   <tr style="border: none;">
     <td width="20%" style="border: none;">
       <a href="https://theneuralmaze.substack.com/" aria-label="The Neural Maze">
-        <img src="https://avatars.githubusercontent.com/u/151655127?s=400&u=2fff53e8c195ac155e5c8ee65c6ba683a72e655f&v=4" alt="The Neural Maze Logo" width="150"/>
+        <img src="https://peppertars.githubusercontent.com/u/151655127?s=400&u=2fff53e8c195ac155e5c8ee65c6ba683a72e655f&v=4" alt="The Neural Maze Logo" width="150"/>
       </a>
     </td>
     <td width="80%" style="border: none;">
@@ -99,21 +98,21 @@ This course is for Software Engineers, ML Engineers, and AI Engineers who want t
 
 ## What you'll get out of this course
 
-* Build a fully working WhatsApp agent you can chat with on your phone
-* Get a solid understanding of how to build LangGraph workflows
-* Set up a long-term memory system using Qdrant as a Vector Database
-* Use Groq models to power AI Agent responses
-* Implement STT systems using Whisper
-* Implement TTS systems using ElevenLabs
-* Generate high-quality images using diffusion models, like FLUX models
-* Process images using VLM models, like llama-3.2-vision
-* Create chat interfaces using Chainlit
-* Deploy agentic applications to Cloud Run
-* Connect agentic applications to the WhatsApp API
+- Build a fully working WhatsApp agent you can chat with on your phone
+- Get a solid understanding of how to build LangGraph workflows
+- Set up a long-term memory system using Qdrant as a Vector Database
+- Use Groq models to power AI Agent responses
+- Implement STT systems using Whisper
+- Implement TTS systems using ElevenLabs
+- Generate high-quality images using diffusion models, like FLUX models
+- Process images using VLM models, like llama-3.2-vision
+- Create chat interfaces using Chainlit
+- Deploy agentic applications to Cloud Run
+- Connect agentic applications to the WhatsApp API
 
 ## Getting started
 
-Before you begin the course, there are a few things you need to do. 
+Before you begin the course, there are a few things you need to do.
 
 I'm referring to the virtual environment creation, dependencies installation, `.env` file creation, etc. I know, it's very boring, but it's a necessary evil! 😅
 
@@ -123,19 +122,19 @@ All of this is detailed in the following doc: [GETTING STARTED.md](docs/GETTING_
 
 ## Course syllabus
 
-| Lesson Number | Written Lesson | Video Lesson | Description |
-|---------------|----------------|--------------|-------------|
-| <div align="center">1</div> | [Project overview](https://theneuralmaze.substack.com/p/meet-ava-the-whatsapp-agent) | <a href="https://youtu.be/u5y06cFK2WA?si=RCx__sJNtr2DYf0U"><img src="img/video_thumbnails/thumbnail_1_play.png" alt="Thumbnail 1" width="400"></a> | Understand the project architecture and the tech stack. |
-| <div align="center">2</div> | [Dissecting Ava's brain](https://theneuralmaze.substack.com/p/dissecting-avas-brain) | <a href="https://youtu.be/nTsLL3htkCU?si=aSmSkpL-U3rzw9Za"><img src="img/video_thumbnails/thumbnail_2_play.png" alt="Thumbnail 2" width="400"></a> | Learn the basics of LangGraph and implement complex workflows using this framework. |
-| <div align="center">3</div> | [Unlocking Ava's memories](https://theneuralmaze.substack.com/p/can-agents-get-nostalgic-about-the) | <a href="https://youtu.be/oTHqYEpdFXg?si=MXEvjUJ8Xbc6h9l2"><img src="img/video_thumbnails/thumbnail_3_play.png" alt="Thumbnail 3" width="400"></a> | Build a short-term memory system for graph state persistence and chat history. Also, implement a long-term memory system using Qdrant. |
-| <div align="center">4</div> | [Giving Ava a Voice](https://theneuralmaze.substack.com/p/the-ultimate-ai-voice-pipeline) | <a href="https://youtu.be/RNmwvMjtIt0"><img src="img/video_thumbnails/thumbnail_4_play.png" alt="Thumbnail 4" width="400"></a> | Build a STT and a TTS pipeline to make Ava process input and output audio. |
-| <div align="center">5</div> | [Ava learns to see](https://theneuralmaze.substack.com/p/reading-images-drawing-dreams-vlms) | <a href="https://youtu.be/LS7k-XFBbeo"><img src="img/video_thumbnails/thumbnail_5_play.png" alt="Thumbnail 5" width="400"></a> | Understand how to process images using VLM models. Implement an image generation pipeline using FLUX models. |
-| <div align="center">6</div> | [Ava installs Whatsapp](https://theneuralmaze.substack.com/p/connecting-an-ai-agent-to-whatsapp) | <a href="https://youtu.be/dFsI4lnUkKo"><img src="img/video_thumbnails/thumbnail_6_play.png" alt="Thumbnail 6" width="400"></a> | Connect Ava to WhatsApp. Learn how to deploy a LangGraph application to Google Cloud Run. |
+| Lesson Number               | Written Lesson                                                                                         | Video Lesson                                                                                                                                       | Description                                                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| <div align="center">1</div> | [Project overview](https://theneuralmaze.substack.com/p/meet-pepper-the-whatsapp-agent)                | <a href="https://youtu.be/u5y06cFK2WA?si=RCx__sJNtr2DYf0U"><img src="img/video_thumbnails/thumbnail_1_play.png" alt="Thumbnail 1" width="400"></a> | Understand the project architecture and the tech stack.                                                                                |
+| <div align="center">2</div> | [Dissecting Pepper's brain](https://theneuralmaze.substack.com/p/dissecting-peppers-brain)             | <a href="https://youtu.be/nTsLL3htkCU?si=aSmSkpL-U3rzw9Za"><img src="img/video_thumbnails/thumbnail_2_play.png" alt="Thumbnail 2" width="400"></a> | Learn the basics of LangGraph and implement complex workflows using this framework.                                                    |
+| <div align="center">3</div> | [Unlocking Pepper's memories](https://theneuralmaze.substack.com/p/can-agents-get-nostalgic-about-the) | <a href="https://youtu.be/oTHqYEpdFXg?si=MXEvjUJ8Xbc6h9l2"><img src="img/video_thumbnails/thumbnail_3_play.png" alt="Thumbnail 3" width="400"></a> | Build a short-term memory system for graph state persistence and chat history. Also, implement a long-term memory system using Qdrant. |
+| <div align="center">4</div> | [Giving Pepper a Voice](https://theneuralmaze.substack.com/p/the-ultimate-ai-voice-pipeline)           | <a href="https://youtu.be/RNmwvMjtIt0"><img src="img/video_thumbnails/thumbnail_4_play.png" alt="Thumbnail 4" width="400"></a>                     | Build a STT and a TTS pipeline to make Pepper process input and output audio.                                                          |
+| <div align="center">5</div> | [Pepper learns to see](https://theneuralmaze.substack.com/p/reading-images-drawing-dreams-vlms)        | <a href="https://youtu.be/LS7k-XFBbeo"><img src="img/video_thumbnails/thumbnail_5_play.png" alt="Thumbnail 5" width="400"></a>                     | Understand how to process images using VLM models. Implement an image generation pipeline using FLUX models.                           |
+| <div align="center">6</div> | [Pepper installs Whatsapp](https://theneuralmaze.substack.com/p/connecting-an-ai-agent-to-whatsapp)    | <a href="https://youtu.be/dFsI4lnUkKo"><img src="img/video_thumbnails/thumbnail_6_play.png" alt="Thumbnail 6" width="400"></a>                     | Connect Pepper to WhatsApp. Learn how to deploy a LangGraph application to Google Cloud Run.                                           |
 
 And if you're feeling extra brave, there's also a 2+ hour video course where we walk through all the project details and the code, step by step.
 
 <p align="center">
-    <a href="https://youtu.be/NQlYB_OMtjQ?si=OacTft8tyQzO6pwh"><img src="img/video_thumbnails/ava_full_course.png" alt="Ava Full Course" width="500"></a>
+    <a href="https://youtu.be/NQlYB_OMtjQ?si=OacTft8tyQzO6pwh"><img src="img/video_thumbnails/pepper_full_course.png" alt="Pepper Full Course" width="500"></a>
 </p>
 
 ---
@@ -179,10 +178,9 @@ If you want to try it out on Google Cloud Run, you can get a free account and ge
   </tr>
   <tr>
     <td><img src="img/together_logo.png" width="100" alt="Together AI Logo"/></td>
-    <td>Behind Ava's image generation process</td>
+    <td>Behind Pepper's image generation process</td>
   </tr>
 </table>
-
 
 ## Contributors
 
@@ -218,7 +216,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   <tr style="border: none;">
     <td width="20%" style="border: none;">
       <a href="https://theneuralmaze.substack.com/" aria-label="The Neural Maze">
-        <img src="https://avatars.githubusercontent.com/u/151655127?s=400&u=2fff53e8c195ac155e5c8ee65c6ba683a72e655f&v=4" alt="The Neural Maze Logo" width="150"/>
+        <img src="https://peppertars.githubusercontent.com/u/151655127?s=400&u=2fff53e8c195ac155e5c8ee65c6ba683a72e655f&v=4" alt="The Neural Maze Logo" width="150"/>
       </a>
     </td>
     <td width="80%" style="border: none;">

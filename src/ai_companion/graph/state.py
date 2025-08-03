@@ -7,7 +7,7 @@ angGraph models agent workflows as graphs, using three main components:
 
 🔶 Edges - Python functions that decide which Node runs next based on the State, allowing for conditional or fixed transitions (we'll see an example of conditional edge later 😉)
 
-By combining Nodes and Edges, you can build dynamic workflows, like Ava! In the next section, we'll take a look at Ava's graph and its Nodes and Edges.
+By combining Nodes and Edges, you can build dynamic workflows, like Pepper! In the next section, we'll take a look at Pepper's graph and its Nodes and Edges.
 
 
 """
@@ -17,37 +17,37 @@ from langgraph.graph import MessagesState
 
 class AICompanionState(MessagesState):
     """
-    🧠 AVA'S WORKING MEMORY - The "clipboard" that gets passed between all graph nodes
+    🧠 pepper'S WORKING MEMORY - The "clipboard" that gets passed between all graph nodes
     
-    This is like Ava's scratch pad that accumulates information as your message 
+    This is like Pepper's scratch pad that accumulates information as your message 
     flows through her brain. Each node can read from and write to these fields.
     
     Extends MessagesState to automatically get:
     - messages: List[BaseMessage] - Full conversation history 
     - This gives us chat context for free!
 
-    As we mentioned earlier, LangGraph keeps track of your app's current status using the State. Ava’s state has these attributes:
+    As we mentioned earlier, LangGraph keeps track of your app's current status using the State. Pepper’s state has these attributes:
 
     summary - The summary of the conversation so far (more on this in Lesson 3)
 
-    workflow - The current workflow Ava is in. Can be “conversation”, “image” or “audio”. More on this when we talk about the Router Node.
+    workflow - The current workflow Pepper is in. Can be “conversation”, “image” or “audio”. More on this when we talk about the Router Node.
 
     audio_buffer - The buffer containing audio data for voice messages. This is something we’ll cover in Speech Mdoules. 
 
     image_path - Path to the current image being generated. More about this in Image Generation Module. 
 
-    current_activity - Description of Ava’s current simulated activity.
+    current_activity - Description of Pepper’s current simulated activity.
 
     apply_activity - Flag indicating whether to apply or update the current activity.
     """
 
     # 💭 CONVERSATION MANAGEMENT
     summary: str           # Summary of the conversation so far
-                          # Prevents Ava from "forgetting" in long chats
+                          # Prevents Pepper from "forgetting" in long chats
                           # Example: "User asked about weather, discussed plans for weekend"
 
     # 🤖 RESPONSE TYPE DECISION  
-    workflow: str         # How should Ava respond? Set by router_node
+    workflow: str         # How should Pepper respond? Set by router_node
                          # Values: "conversation" | "image" | "audio"
                          # This tells the graph which response node to execute
 
@@ -59,14 +59,14 @@ class AICompanionState(MessagesState):
     # 🖼️ IMAGE GENERATION
     image_path: str       # File path where generated image is saved
                          # Used by WhatsApp handler to send image back to user
-                         # Example: "/tmp/ava_activity_image.png"
+                         # Example: "/tmp/pepper_activity_image.png"
 
-    # 📅 AVA'S LIFE & PERSONALITY
-    current_activity: str # What is Ava doing right now based on her schedule?
+    # 📅 pepper'S LIFE & PERSONALITY
+    current_activity: str # What is Pepper doing right now based on her schedule?
                          # Example: "reviewing ML papers", "coding a Python script"
                          # Makes her feel more human and alive
 
-    apply_activity: bool  # Should Ava mention her current activity in response?
+    apply_activity: bool  # Should Pepper mention her current activity in response?
                          # Sometimes she talks about what she's doing, sometimes not
                          # Adds natural variation to conversations
 

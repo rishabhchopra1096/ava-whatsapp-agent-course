@@ -13,43 +13,43 @@ import tempfile
 # Optional = value that might be None
 from typing import Optional
 
-# CUSTOM IMPORTS - Ava-specific modules
+# CUSTOM IMPORTS - Pepper-specific modules
 
 # Custom exception for speech processing errors (more specific than generic Python exceptions)
-# Provides consistent error handling across Ava's speech recognition system
+# Provides consistent error handling across Pepper's speech recognition system
 from ai_companion.core.exceptions import SpeechToTextError
 
-# Ava's centralized configuration containing API keys and model names
+# Pepper's centralized configuration containing API keys and model names
 # Single source of truth for all AI service configurations
 from ai_companion.settings import settings
 
 # GROQ IMPORT - AI service for speech recognition
 
 # Groq provides fast, cost-effective access to OpenAI's Whisper speech recognition models
-# Same service that powers Ava's language processing and image analysis
+# Same service that powers Pepper's language processing and image analysis
 # Offers better performance and pricing than directly using OpenAI's API
 from groq import Groq
 
 
 class SpeechToText:
     """
-    👂 AVA'S HEARING SYSTEM - Ava's ability to listen and understand voice messages
+    👂 pepper'S HEARING SYSTEM - Pepper's ability to listen and understand voice messages
     
     WHAT IT DOES:
-    This class gives Ava the ability to "hear" and understand voice messages that users send.
+    This class gives Pepper the ability to "hear" and understand voice messages that users send.
     When you record audio in Chainlit or send voice messages via WhatsApp, this system
-    converts your speech into text that Ava's brain can process and respond to.
+    converts your speech into text that Pepper's brain can process and respond to.
     
     HOW IT WORKS (USER STORY):
-    1. User sends voice message: "Hey Ava, what's the weather like today?"
+    1. User sends voice message: "Hey Pepper, what's the weather like today?"
     2. Audio bytes get passed to transcribe() method
     3. Creates temporary audio file for Groq's API processing
-    4. Whisper AI model converts speech to text: "Hey Ava, what's the weather like today?"
-    5. Text gets processed through Ava's normal LangGraph workflow
-    6. Ava responds as if user had typed the message
+    4. Whisper AI model converts speech to text: "Hey Pepper, what's the weather like today?"
+    5. Text gets processed through Pepper's normal LangGraph workflow
+    6. Pepper responds as if user had typed the message
     
     REAL-WORLD ANALOGY:
-    This is like Ava having excellent hearing and perfect note-taking skills.
+    This is like Pepper having excellent hearing and perfect note-taking skills.
     You speak to her in a voice message, and she "listens" carefully and writes down
     exactly what you said, word-for-word. Then she can think about your words and respond.
     
@@ -64,7 +64,7 @@ class SpeechToText:
     - Chainlit interface: When users record audio in web chat
     - Voice-to-voice conversations: First step in processing voice input
     
-    INTEGRATION WITH AVA'S BRAIN:
+    INTEGRATION WITH pepper'S BRAIN:
     Transcribed text gets processed through identical LangGraph workflow as typed messages.
     Voice input becomes indistinguishable from text input after this conversion.
     """
@@ -75,17 +75,17 @@ class SpeechToText:
 
     def __init__(self):
         """
-        🔧 INITIALIZE AVA'S HEARING SYSTEM - Set up speech recognition capabilities
+        🔧 INITIALIZE pepper'S HEARING SYSTEM - Set up speech recognition capabilities
         
         WHAT HAPPENS DURING INITIALIZATION:
-        1. Validates that GROQ_API_KEY is available for Whisper access
+        1. Validates that GROQ_API_KEY is pepperilable for Whisper access
         2. Prepares (but doesn't create yet) the Groq client connection
         
         WHY GROQ FOR SPEECH RECOGNITION:
         - Faster processing than OpenAI's direct API
         - More cost-effective for production use
-        - Same infrastructure as Ava's other AI capabilities
-        - Consistent API patterns across all of Ava's AI modules
+        - Same infrastructure as Pepper's other AI capabilities
+        - Consistent API patterns across all of Pepper's AI modules
         """
         # VALIDATE API KEY IS CONFIGURED
         # Better to fail fast during startup than during user's first voice message
@@ -93,7 +93,7 @@ class SpeechToText:
         
         # PREPARE CLIENT STORAGE (LAZY INITIALIZATION)
         # _client starts as None, gets created only when first voice message arrives
-        # Avoids expensive network connections during Ava's startup process
+        # Avoids expensive network connections during Pepper's startup process
         self._client: Optional[Groq] = None
 
     def _validate_env_vars(self) -> None:
@@ -107,7 +107,7 @@ class SpeechToText:
         WHY THIS VALIDATION IS IMPORTANT:
         Voice messages are time-sensitive - users expect quick responses.
         Better to discover configuration issues during startup than during
-        a user's voice conversation with Ava.
+        a user's voice conversation with Pepper.
         
         REAL-WORLD ANALOGY:
         This is like checking your hearing aids have batteries before going to a concert.
@@ -139,7 +139,7 @@ class SpeechToText:
         
         REAL-WORLD ANALOGY:
         This is like having one dedicated phone line to Groq's speech recognition service
-        instead of dialing a new connection every time someone sends Ava a voice message.
+        instead of dialing a new connection every time someone sends Pepper a voice message.
         Much more efficient for handling multiple voice conversations.
         
         TECHNICAL BENEFITS:
@@ -164,26 +164,26 @@ class SpeechToText:
 
     async def transcribe(self, audio_data: bytes) -> str:
         """
-        🎤 SPEECH TRANSCRIPTION ENGINE - Converts voice messages to text for Ava's brain
+        🎤 SPEECH TRANSCRIPTION ENGINE - Converts voice messages to text for Pepper's brain
         
         WHAT IT DOES:
-        Takes raw audio bytes (voice messages) and converts them into text that Ava
+        Takes raw audio bytes (voice messages) and converts them into text that Pepper
         can understand and process through her normal conversation workflow.
         
         HOW IT WORKS (USER STORY):
-        1. User sends voice message: "Hey Ava, how's your day going?"
+        1. User sends voice message: "Hey Pepper, how's your day going?"
         2. WhatsApp/Chainlit provides audio as bytes in memory
         3. Creates temporary .wav file for Groq's API (APIs need files, not memory bytes)
         4. Sends file to Groq's Whisper model for speech recognition
-        5. Returns text: "Hey Ava, how's your day going?"
-        6. Text flows into Ava's LangGraph brain for normal processing
+        5. Returns text: "Hey Pepper, how's your day going?"
+        6. Text flows into Pepper's LangGraph brain for normal processing
         
         PARAMETERS:
         audio_data: Raw audio bytes from voice message (any audio format supported)
                    Usually .ogg from WhatsApp, .webm from Chainlit, or .wav from files
         
         RETURNS:
-        Transcribed text string that Ava's brain can process like typed messages
+        Transcribed text string that Pepper's brain can process like typed messages
         
         REAL-WORLD ANALOGY:
         This is like having a court stenographer who listens to speech and types it out
@@ -254,12 +254,12 @@ class SpeechToText:
 
                 # VALIDATE API RESPONSE
                 # Check that Whisper actually returned transcribed text
-                # Empty responses would break Ava's conversation flow
+                # Empty responses would break Pepper's conversation flow
                 if not transcription:
                     raise SpeechToTextError("Transcription result is empty")
 
-                # RETURN TRANSCRIBED TEXT FOR AVA'S BRAIN TO PROCESS
-                # This text will flow into Ava's LangGraph workflow just like typed messages
+                # RETURN TRANSCRIBED TEXT FOR pepper'S BRAIN TO PROCESS
+                # This text will flow into Pepper's LangGraph workflow just like typed messages
                 # From here, voice input becomes indistinguishable from text input
                 return transcription
 
@@ -276,7 +276,7 @@ class SpeechToText:
         # except Exception catches any error that occurred during transcription
         except Exception as e:
             # WRAP ERROR IN CUSTOM EXCEPTION TYPE
-            # SpeechToTextError provides consistent error handling across Ava's system
+            # SpeechToTextError provides consistent error handling across Pepper's system
             # "from e" preserves original error details for debugging
             # str(e) converts any exception to readable error message
             raise SpeechToTextError(f"Speech-to-text conversion failed: {str(e)}") from e

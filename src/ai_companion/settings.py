@@ -1,8 +1,8 @@
 """
-⚙️ AVA'S CONTROL PANEL - All the knobs and dials that control how Ava behaves
+⚙️ pepper'S CONTROL PANEL - All the knobs and dials that control how Pepper behaves
 
 WHAT IS THIS FILE?
-This is Ava's "settings dashboard" - like the control panel in a car where you adjust:
+This is Pepper's "settings dashboard" - like the control panel in a car where you adjust:
 - Which AI models to use (engine type)
 - How much memory to remember (fuel efficiency) 
 - When to summarize conversations (cruise control settings)
@@ -10,7 +10,7 @@ This is Ava's "settings dashboard" - like the control panel in a car where you a
 
 WHY CENTRALIZED SETTINGS?
 Instead of hardcoding values throughout the codebase, we put them all here:
-- Easy to change Ava's behavior without touching code
+- Easy to change Pepper's behavior without touching code
 - Different environments (dev/prod) can have different settings
 - Sensitive info (API keys) stays in environment variables
 
@@ -23,12 +23,12 @@ HOW IT WORKS:
 REAL EXAMPLE:
 In .env file: TOTAL_MESSAGES_SUMMARY_TRIGGER=20
 In nodes.py: if len(messages) > settings.TOTAL_MESSAGES_SUMMARY_TRIGGER:
-Result: Ava summarizes conversations after 20 messages
+Result: Pepper summarizes conversations after 20 messages
 
 THE SETTINGS CATEGORIES:
 🔑 API KEYS - Passwords for different AI services
 🤖 MODEL NAMES - Which AI models to use for different tasks  
-🧠 MEMORY LIMITS - How much Ava remembers and when to compress
+🧠 MEMORY LIMITS - How much Pepper remembers and when to compress
 💾 DATABASE PATHS - Where to store conversation data
 """
 
@@ -38,7 +38,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     """
-    🎛️ AVA'S CONFIGURATION CLASS - Type-safe settings with automatic validation
+    🎛️ pepper'S CONFIGURATION CLASS - Type-safe settings with automatic validation
     
     WHAT IS BASESETTINGS?
     A Pydantic class that automatically:
@@ -69,20 +69,20 @@ class Settings(BaseSettings):
                                         # Get from: https://console.groq.com/keys
                                         # Used by: router_node, conversation_node, all text generation
     
-    ELEVENLABS_API_KEY: str             # For text-to-speech (Ava's voice)
+    ELEVENLABS_API_KEY: str             # For text-to-speech (Pepper's voice)
                                         # Get from: https://elevenlabs.io/app/settings/api-keys
                                         # Used by: audio_node when generating voice responses
     
-    ELEVENLABS_VOICE_ID: str            # Which voice to use for Ava  
+    ELEVENLABS_VOICE_ID: str            # Which voice to use for Pepper  
                                         # Get from: ElevenLabs voice library
-                                        # Used by: audio_node to make Ava sound consistent
+                                        # Used by: audio_node to make Pepper sound consistent
     
     TOGETHER_API_KEY: str               # For FLUX image generation
                                         # Get from: https://api.together.xyz/settings/api-keys
                                         # Used by: image_node when creating visual responses
 
-    # 🏛️ VECTOR DATABASE SECTION - Where Ava stores her memories about you
-    # Qdrant is like Ava's long-term memory bank
+    # 🏛️ VECTOR DATABASE SECTION - Where Pepper stores her memories about you
+    # Qdrant is like Pepper's long-term memory bank
     
     QDRANT_API_KEY: str | None          # Optional API key for cloud Qdrant
                                         # None = use local Qdrant instance
@@ -101,7 +101,7 @@ class Settings(BaseSettings):
                                         # Used by: memory_manager for complex network setups
 
     # 🤖 AI MODEL NAMES - Which specific AI models to use for different tasks
-    # These determine Ava's "brain power" and capabilities
+    # These determine Pepper's "brain power" and capabilities
     
     TEXT_MODEL_NAME: str = "llama-3.3-70b-versatile"    # Main conversation model
                                                          # Groq's most capable model for text
@@ -116,7 +116,7 @@ class Settings(BaseSettings):
                                                          # Used by: WhatsApp voice message processing
     
     TTS_MODEL_NAME: str = "eleven_flash_v2_5"           # Text-to-speech model
-                                                         # Converts Ava's text to her voice
+                                                         # Converts Pepper's text to her voice
                                                          # Used by: audio_node for voice responses
     
     TTI_MODEL_NAME: str = "black-forest-labs/FLUX.1-schnell-Free"  # Text-to-image model
@@ -124,11 +124,11 @@ class Settings(BaseSettings):
                                                                     # Used by: image_node for visual responses
     
     ITT_MODEL_NAME: str = "meta-llama/llama-4-scout-17b-16e-instruct"          # Image-to-text model
-                                                                    # Describes images you send to Ava
+                                                                    # Describes images you send to Pepper
                                                                     # Used by: Processing images you share
 
-    # 🧠 MEMORY AND PERFORMANCE LIMITS - Control how much Ava remembers and processes
-    # These numbers directly affect Ava's behavior and response speed
+    # 🧠 MEMORY AND PERFORMANCE LIMITS - Control how much Pepper remembers and processes
+    # These numbers directly affect Pepper's behavior and response speed
     
     MEMORY_TOP_K: int = 3               # How many relevant memories to retrieve
                                         # Higher = more context, slower responses
@@ -146,7 +146,7 @@ class Settings(BaseSettings):
                                               # Rest get compressed into summary text
                                               # Used by: summarize_conversation_node
 
-    # 💾 DATABASE PATHS - Where Ava stores different types of data
+    # 💾 DATABASE PATHS - Where Pepper stores different types of data
     
     SHORT_TERM_MEMORY_DB_PATH: str = "/tmp/memory.db"  # Local database for conversation state
                                                        # Using /tmp for Railway deployment (non-persistent)
@@ -171,14 +171,14 @@ class Settings(BaseSettings):
                                              # Used to verify callbacks from Vapi are legitimate
                                              # Example: "pub_xyz789..."
     
-    # 🌐 DEPLOYMENT CONFIGURATION - Where is Ava hosted?
-    RAILWAY_URL: str = "https://ava-whatsapp-agent-course-production.up.railway.app"
+    # 🌐 DEPLOYMENT CONFIGURATION - Where is Pepper hosted?
+    RAILWAY_URL: str = "https://pepper-whatsapp-agent-course-production.up.railway.app"
                                              # Your deployed application URL
-                                             # Used by Vapi to call back to Ava's custom LLM endpoint
+                                             # Used by Vapi to call back to Pepper's custom LLM endpoint
                                              # Update this with YOUR Railway deployment URL
                                              # Example: "https://your-app-name.up.railway.app"
     
-    # 🎙️ VOICE CONFIGURATION FOR VAPI - How should voice Ava sound?
+    # 🎙️ VOICE CONFIGURATION FOR VAPI - How should voice Pepper sound?
     VAPI_VOICE_PROVIDER: str = "elevenlabs"  # Voice synthesis provider for phone calls
                                              # Options: "elevenlabs", "playht", "deepgram", etc.
                                              # Should match your regular TTS provider for consistency
@@ -192,5 +192,5 @@ class Settings(BaseSettings):
 
 # STEP 5: Create the global settings instance
 # This object gets imported by other files to access configuration
-# Why global? Every part of Ava needs access to these settings
+# Why global? Every part of Pepper needs access to these settings
 settings = Settings()

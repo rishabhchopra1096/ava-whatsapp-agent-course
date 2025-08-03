@@ -1,18 +1,18 @@
-# VAPI ENDPOINTS - Voice calling endpoints that connect Vapi to Ava's brain
+# VAPI ENDPOINTS - Voice calling endpoints that connect Vapi to Pepper's brain
 # 
 # 🎯 PURPOSE: This file creates "phone call processing" endpoints that receive voice conversations
-# and process them through Ava's existing LangGraph workflow
+# and process them through Pepper's existing LangGraph workflow
 #
 # 🔗 REAL-WORLD ANALOGY: This is like a "telephone switchboard" at a company:
 # - Phone calls come in (from Vapi's voice system)
 # - The switchboard operator (this file) connects them to the right department
-# - The expert (Ava's LangGraph + Groq LLM) handles the actual conversation
+# - The expert (Pepper's LangGraph + Groq LLM) handles the actual conversation
 # - The switchboard relays the expert's response back to the caller
 #
 # 📞 TECHNICAL FLOW:
 # Voice → Vapi (speech-to-text) → This endpoint → LangGraph → Groq LLM → Response → Vapi (text-to-speech) → Voice
 #
-# 🌐 KEY INSIGHT: Ava's brain (LangGraph + Groq) doesn't know this is voice vs WhatsApp!
+# 🌐 KEY INSIGHT: Pepper's brain (LangGraph + Groq) doesn't know this is voice vs WhatsApp!
 # We just change the input/output format, but the AI processing stays identical.
 
 from fastapi import APIRouter, HTTPException, Request
@@ -25,14 +25,14 @@ from datetime import datetime
 import os
 import json
 
-# Import Ava's existing brain components (no changes to these!)
+# Import Pepper's existing brain components (no changes to these!)
 # This is like importing the "department experts" who will handle the actual work
 try:
     from ai_companion.graph.graph import graph
     from ai_companion.graph.state import AICompanionState
     from langchain_core.messages import HumanMessage, AIMessage
 except ImportError as e:
-    logging.error(f"❌ Could not import Ava's core components: {e}")
+    logging.error(f"❌ Could not import Pepper's core components: {e}")
     # For development, we'll create a simple fallback
     graph = None
 
@@ -45,7 +45,7 @@ class VapiChatMessage(BaseModel):
     VAPI CHAT MESSAGE - Individual message in a conversation
     Like a single line in a phone conversation transcript
     """
-    role: str           # "user" (caller), "assistant" (Ava), or "system" (instructions)
+    role: str           # "user" (caller), "assistant" (Pepper), or "system" (instructions)
     content: str        # The actual message text that was spoken/should be spoken
 
 class VapiChatRequest(BaseModel):
@@ -56,14 +56,14 @@ class VapiChatRequest(BaseModel):
     "I have a caller on line 1 who said: [message]. How should I respond?"
     
     This follows OpenAI's chat completions format so Vapi can talk to us
-    like we're OpenAI's GPT, but we secretly use Ava's Groq LLM instead!
+    like we're OpenAI's GPT, but we secretly use Pepper's Groq LLM instead!
     """
     model: str                          # LLM model name (we ignore this, use our Groq)
     messages: List[VapiChatMessage]     # Conversation history from voice call
     temperature: Optional[float] = 0.7   # How creative responses should be (0=robotic, 1=creative)
     stream: Optional[bool] = False       # Whether to stream response chunks (for real-time)
     max_tokens: Optional[int] = 150      # Maximum response length (keep voice responses concise!)
-    tools: Optional[List[Dict]] = None   # Available functions (for advanced features later)
+    tools: Optional[List[Dict]] = None   # Pepperilable functions (for advanced features later)
 
 class VapiChatChoice(BaseModel):
     """Single response choice in OpenAI format"""
@@ -76,7 +76,7 @@ class VapiChatResponse(BaseModel):
     VAPI CHAT RESPONSE - What we send back to Vapi
     
     Real-world analogy: Like telling the phone operator:
-    "Here's what to say to the caller: [Ava's response]"
+    "Here's what to say to the caller: [Pepper's response]"
     
     This uses OpenAI's response format so Vapi thinks we're OpenAI
     """
@@ -141,7 +141,7 @@ def stream_response_chunks(response_text: str):
     yield "data: [DONE]\n\n"
 
 # CREATE ROUTER FOR VAPI ENDPOINTS
-# This is like creating a "phone department" within Ava's office
+# This is like creating a "phone department" within Pepper's office
 vapi_router = APIRouter(prefix="/vapi", tags=["vapi"])
 
 @vapi_router.get("/health")
@@ -316,17 +316,17 @@ async def handle_voice_chat(request: VapiChatRequest):
     VAPI CHAT COMPLETIONS ENDPOINT - The "brain connection" for voice calls
     
     🎯 PURPOSE: This is the main endpoint that makes Vapi think we're OpenAI,
-    but secretly processes everything through Ava's existing Groq LLM setup.
+    but secretly processes everything through Pepper's existing Groq LLM setup.
     
     🔗 REAL-WORLD ANALOGY: This is like a telephone switchboard operator who:
     1. Receives phone calls (Vapi voice input converted to text)
-    2. Connects to the office expert (Ava's LangGraph + Groq LLM)
+    2. Connects to the office expert (Pepper's LangGraph + Groq LLM)
     3. Relays the expert's response back to the caller (text that Vapi converts to voice)
     
     📞 TECHNICAL FLOW:
     Voice → Vapi → This endpoint → LangGraph → Groq → Response → This endpoint → Vapi → Voice
     
-    🌐 KEY INSIGHT: Ava's existing brain doesn't change at all! We just:
+    🌐 KEY INSIGHT: Pepper's existing brain doesn't change at all! We just:
     - Convert Vapi's format to LangGraph's format (like translating languages)
     - Process through existing workflow (same as WhatsApp messages)
     - Convert response back to Vapi's format (translate back)
@@ -366,27 +366,27 @@ async def handle_voice_chat(request: VapiChatRequest):
         logging.info(f"   📏 Length: {len(voice_message_content)} characters")
         logging.info(f"   👤 Role: {latest_message.role}")
         
-        # STEP 2: PREPARE CONTEXT FOR AVA'S BRAIN
+        # STEP 2: PREPARE CONTEXT FOR pepper'S BRAIN
         # Create the same input format that WhatsApp messages use
-        # This is like briefing Ava: "This came from a phone call, here's what they said"
+        # This is like briefing Pepper: "This came from a phone call, here's what they said"
         
         # TODO: Later we'll add WhatsApp context passing here
         # TODO: Add user identification from phone number
         # For now, we process the voice message as a standalone interaction
         
         # STEP 3: PROCESS THROUGH EXISTING LANGGRAPH WORKFLOW
-        # Use Ava's existing "brain" - same LangGraph that handles WhatsApp
-        # The beauty: Ava doesn't know this came from voice vs WhatsApp!
+        # Use Pepper's existing "brain" - same LangGraph that handles WhatsApp
+        # The beauty: Pepper doesn't know this came from voice vs WhatsApp!
         
         if graph is None:
-            # FALLBACK FOR DEVELOPMENT - Simple response if LangGraph not available
-            ava_response = f"I heard you say: '{voice_message_content}'. This is Ava responding from a voice call! The LangGraph integration will make this much smarter."
-            logging.warning("⚠️ VAPI FALLBACK: Using simple response - LangGraph not available")
-            logging.warning("   📋 This means Ava's full brain is not connected to voice calls yet")
+            # FALLBACK FOR DEVELOPMENT - Simple response if LangGraph not pepperilable
+            pepper_response = f"I heard you say: '{voice_message_content}'. This is Pepper responding from a voice call! The LangGraph integration will make this much smarter."
+            logging.warning("⚠️ VAPI FALLBACK: Using simple response - LangGraph not pepperilable")
+            logging.warning("   📋 This means Pepper's full brain is not connected to voice calls yet")
         else:
-            # REAL PROCESSING - Use Ava's actual brain
+            # REAL PROCESSING - Use Pepper's actual brain
             logging.info(f"🧠 PROCESSING THROUGH LANGGRAPH:")
-            logging.info(f"   🔗 Using Ava's production brain for voice call")
+            logging.info(f"   🔗 Using Pepper's production brain for voice call")
             logging.info(f"   📝 Input message: {voice_message_content[:50]}...")
             
             graph_input = {
@@ -394,32 +394,32 @@ async def handle_voice_chat(request: VapiChatRequest):
                 "interface": "voice",                # Track that this is from voice call
                 "conversation_id": f"voice_{datetime.now().isoformat()}",
                 # TODO: Add user_id when we have phone number mapping
-                # TODO: Add recent WhatsApp context when available
+                # TODO: Add recent WhatsApp context when pepperilable
             }
             
-            # INVOKE AVA'S BRAIN (same as WhatsApp processing!)
+            # INVOKE pepper'S BRAIN (same as WhatsApp processing!)
             # This is like asking the company expert to handle a phone call
             print(f"🚀 CALLING LANGGRAPH WITH: {graph_input}")
             response = await graph.ainvoke(graph_input)
             print(f"📥 LANGGRAPH RESPONSE: {response}")
             
-            # EXTRACT AVA'S RESPONSE
-            # Get the response message that Ava generated
+            # EXTRACT pepper'S RESPONSE
+            # Get the response message that Pepper generated
             if response and response.get("messages"):
-                ava_response = response["messages"][-1].content
-                print(f"✅ EXTRACTED AVA RESPONSE: {ava_response}")
+                pepper_response = response["messages"][-1].content
+                print(f"✅ EXTRACTED pepper RESPONSE: {pepper_response}")
             else:
-                ava_response = "I'm sorry, I couldn't process that right now. Could you try again?"
-                print(f"⚠️ NO MESSAGES IN RESPONSE, USING FALLBACK: {ava_response}")
+                pepper_response = "I'm sorry, I couldn't process that right now. Could you try again?"
+                print(f"⚠️ NO MESSAGES IN RESPONSE, USING FALLBACK: {pepper_response}")
         
         # STEP 4: FORMAT FOR VAPI (OpenAI-compatible format)
-        # Convert Ava's response into the format Vapi expects
-        # This is like translating Ava's written response into speech instructions
+        # Convert Pepper's response into the format Vapi expects
+        # This is like translating Pepper's written response into speech instructions
         
         # Create response in OpenAI chat completions format
         response_message = VapiChatMessage(
             role="assistant",
-            content=ava_response
+            content=pepper_response
         )
         
         response_choice = VapiChatChoice(
@@ -437,14 +437,14 @@ async def handle_voice_chat(request: VapiChatRequest):
         )
         
         # LOG SUCCESS FOR DEBUGGING
-        print(f"✅ VOICE RESPONSE SENT: {ava_response[:100]}...")
+        print(f"✅ VOICE RESPONSE SENT: {pepper_response[:100]}...")
         
         # CHECK IF VAPI WANTS STREAMING RESPONSE
         if request.stream:
             print(f"🔄 STREAMING RESPONSE TO VAPI...")
             # Return streaming response in OpenAI SSE format
             return StreamingResponse(
-                stream_response_chunks(ava_response), 
+                stream_response_chunks(pepper_response), 
                 media_type="text/event-stream",
                 headers={
                     "Cache-Control": "no-cache",
@@ -486,7 +486,7 @@ async def handle_vapi_webhook(request: Request):
     VAPI WEBHOOK HANDLER - Receives call events and transcripts
     
     🎯 PURPOSE: This receives notifications from Vapi about call events
-    (call started, call ended, transcript available, etc.)
+    (call started, call ended, transcript pepperilable, etc.)
     
     🔗 REAL-WORLD ANALOGY: Like a secretary who takes notes during phone meetings
     and then sends you a summary email afterwards
@@ -542,7 +542,7 @@ async def handle_vapi_webhook(request: Request):
         else:
             # Unknown event type - log for investigation
             logging.info(f"❓ UNKNOWN WEBHOOK EVENT: {event_type}")
-            logging.info(f"   📋 Available keys: {list(webhook_data.get('message', {}).keys())}")
+            logging.info(f"   📋 Pepperilable keys: {list(webhook_data.get('message', {}).keys())}")
         
         # Always return success to Vapi
         return {"status": "received", "event_type": event_type}
@@ -552,7 +552,7 @@ async def handle_vapi_webhook(request: Request):
         logging.error(f"🚨 WEBHOOK PROCESSING ERROR: {str(e)}")
         logging.error(f"   🌐 Request URL: {request.url}")
         logging.error(f"   📋 Request method: {request.method}")
-        logging.error(f"   📄 Raw request body: {await request.body() if hasattr(request, 'body') else 'unavailable'}")
+        logging.error(f"   📄 Raw request body: {await request.body() if hasattr(request, 'body') else 'unpepperilable'}")
         # Include full exception details for debugging
         import traceback
         logging.error(f"   📚 Full traceback: {traceback.format_exc()}")
@@ -591,7 +591,7 @@ async def handle_call_ended(webhook_data: Dict[str, Any]):
         duration = call_info.get("duration", 0)  # Duration in seconds
         end_reason = call_info.get("endedReason", "unknown")
         
-        # Get transcript if available
+        # Get transcript if pepperilable
         transcript = webhook_data.get("message", {}).get("transcript", "")
         
         # LOG CALL COMPLETION
@@ -604,14 +604,14 @@ async def handle_call_ended(webhook_data: Dict[str, Any]):
         
         # TODO: PROCESS TRANSCRIPT AND CREATE SUMMARY
         # Here we would:
-        # 1. Use Ava's LLM to summarize the call
+        # 1. Use Pepper's LLM to summarize the call
         # 2. Extract any tasks or action items mentioned
         # 3. Send summary back to WhatsApp
         # 4. Store in memory system for future reference
         
         if transcript:
             # For now, just log a simple summary
-            summary = f"Call completed with {customer_number}. Duration: {duration}s. Transcript available."
+            summary = f"Call completed with {customer_number}. Duration: {duration}s. Transcript pepperilable."
             logging.info(f"📋 CALL SUMMARY: {summary}")
             
             # TODO: Send this summary back to WhatsApp
@@ -634,7 +634,7 @@ async def health_check():
     try:
         # Check if we can import core components
         from ai_companion.graph.graph import graph
-        graph_status = "available" if graph else "not_available"
+        graph_status = "pepperilable" if graph else "not_pepperilable"
     except ImportError:
         graph_status = "import_error"
     

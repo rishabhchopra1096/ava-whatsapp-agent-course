@@ -18,7 +18,7 @@
 # 🌐 INTEGRATION: Works with both vapi_client.py and LangGraph:
 # - Called by voice_calling_node in LangGraph workflow
 # - Provides context to vapi_client for assistant creation
-# - Ensures voice-Ava knows what WhatsApp-Ava was discussing
+# - Ensures voice-Pepper knows what WhatsApp-Pepper was discussing
 
 import re
 import logging
@@ -31,7 +31,7 @@ class VoiceContextManager:
     VOICE CONTEXT MANAGER - Creates briefing documents for voice calls
     
     🎯 PURPOSE: Analyzes WhatsApp conversations and prepares context
-    that voice-Ava needs to have natural, continuous conversations
+    that voice-Pepper needs to have natural, continuous conversations
     
     🔗 REAL-WORLD ANALOGY: Like a research assistant who:
     - Reviews all recent correspondence with a client
@@ -57,7 +57,7 @@ class VoiceContextManager:
         PREPARE VOICE CONTEXT - Main function that creates complete context for voice calls
         
         🎯 PURPOSE: This is the "master briefing function" that analyzes a WhatsApp
-        conversation and creates everything voice-Ava needs to know
+        conversation and creates everything voice-Pepper needs to know
         
         🔗 REAL-WORLD ANALOGY: Like a personal assistant who:
         1. Reviews all recent emails and messages with a client
@@ -211,15 +211,15 @@ class VoiceContextManager:
         🔗 REAL-WORLD ANALOGY: Like creating "meeting notes" from recent correspondence:
         "User asked about X, we discussed Y, they mentioned Z"
         
-        📞 PURPOSE: Give voice-Ava context about what's been happening
+        📞 PURPOSE: Give voice-Pepper context about what's been happening
         in the WhatsApp conversation so she can reference it naturally
         """
         try:
             if not messages:
-                return "No previous conversation context available."
+                return "No previous conversation context pepperilable."
             
             # BUILD CONVERSATION SUMMARY
-            # Get last few exchanges between user and Ava
+            # Get last few exchanges between user and Pepper
             recent_exchanges = []
             
             # Take recent messages and create summary
@@ -227,7 +227,7 @@ class VoiceContextManager:
                 if isinstance(message, HumanMessage):
                     role = "User"
                 elif isinstance(message, AIMessage):
-                    role = "Ava"
+                    role = "Pepper"
                 else:
                     continue  # Skip system messages
                 
@@ -244,7 +244,7 @@ class VoiceContextManager:
                 self.logger.debug(f"📝 CONVERSATION SUMMARY: {summary[:200]}...")
                 return summary
             else:
-                return "Recent conversation available but no clear exchanges found."
+                return "Recent conversation pepperilable but no clear exchanges found."
                 
         except Exception as e:
             self.logger.error(f"🚨 CONVERSATION SUMMARY ERROR: {str(e)}")
@@ -257,7 +257,7 @@ class VoiceContextManager:
         🔗 REAL-WORLD ANALOGY: Like reading through recent emails and saying
         "This conversation is mainly about work", "vacation planning", or "technical support"
         
-        📞 PURPOSE: Help voice-Ava understand the context and continue
+        📞 PURPOSE: Help voice-Pepper understand the context and continue
         the conversation naturally on the same topic
         """
         try:
@@ -330,13 +330,13 @@ class VoiceContextManager:
             return "long_time_user"
     
     def _create_empty_context(self, calling_reason: str) -> Dict[str, Any]:
-        """Create minimal context when no conversation history is available"""
+        """Create minimal context when no conversation history is pepperilable"""
         return {
             "userName": "there",
             "userId": "unknown",
-            "recentContext": "No previous conversation context available",
+            "recentContext": "No previous conversation context pepperilable",
             "conversationTopic": "General conversation",
-            "lastWhatsAppMessage": "No recent messages available",
+            "lastWhatsAppMessage": "No recent messages pepperilable",
             "messageCount": 0,
             "conversationLength": "new_user",
             "callingReason": calling_reason,

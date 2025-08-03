@@ -6,16 +6,16 @@ include .env
 
 CHECK_DIRS := .
 
-ava-build:
+pepper-build:
 	docker compose build
 
-ava-run:
+pepper-run:
 	docker compose up --build -d
 
-ava-stop:
+pepper-stop:
 	docker compose stop
 
-ava-delete:
+pepper-delete:
 	@if [ -d "long_term_memory" ]; then rm -rf long_term_memory; fi
 	@if [ -d "short_term_memory" ]; then rm -rf short_term_memory; fi
 	@if [ -d "generated_images" ]; then rm -rf generated_images; fi

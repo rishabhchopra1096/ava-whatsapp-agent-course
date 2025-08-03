@@ -19,7 +19,7 @@ allow_origins = ["*"]
 # follow_symlink = false
 
 [features]
-# Process and display HTML in messages. This can be a security risk (see https://stackoverflow.com/questions/19603097/why-is-it-dangerous-to-render-user-generated-html-or-javascript)
+# Process and display HTML in messages. This can be a security risk (see https://stackoverflow.com/questions/19603097/why-is-it-dangerous-to-render-user-generated-html-or-jpepperscript)
 unsafe_allow_html = false
 
 # Process and display mathematical expressions. This can clash with "$" characters in messages.
@@ -54,7 +54,7 @@ edit_message = true
 
 [UI]
 # Name of the assistant.
-name = "Ava"
+name = "Pepper"
 
 # Description of the assistant. This is used for HTML tags.
 # description = ""
@@ -72,8 +72,8 @@ cot = "tool_call"
 # The CSS file can be served from the public directory or via an external link.
 # custom_css = "/public/test.css"
 
-# Specify a Javascript file that can be used to customize the user interface.
-# The Javascript file can be served from the public directory.
+# Specify a Jpepperscript file that can be used to customize the user interface.
+# The Jpepperscript file can be served from the public directory.
 # custom_js = "/public/test.js"
 
 # Specify a custom font url.
