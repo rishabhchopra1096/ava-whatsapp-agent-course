@@ -255,34 +255,138 @@ groq.BadRequestError: Failed to call a function. tool_use_failed
 4. **Test Webhook** - Send test data to verify WhatsApp integration
 5. **Update Environment** - Use Railway dashboard for API key updates
 
-## Voice Calling Integration (IMPLEMENTED ✅)
+## Voice Calling Integration (IN PROGRESS 🔧)
 
-### Vapi Voice Calling Setup
+### Vapi Voice Calling Implementation Status
 
-**Current Status:** Fully implemented and ready for testing
-- **Technology**: Vapi for phone infrastructure + ElevenLabs for voice
-- **Trigger**: Users say "call me" in WhatsApp → Ava initiates phone call
-- **Context**: WhatsApp conversation context passed to voice call
-- **Documentation**: See `VOICE_CALLING_SETUP.md` for complete setup guide
+**Current Status:** Core implementation complete, debugging streaming response format
+- **Technology**: Vapi for phone infrastructure + ElevenLabs for voice + Custom LLM endpoint
+- **Trigger**: Users say "call me" in WhatsApp → Ava initiates phone call via `voice_calling_node`
+- **Context**: WhatsApp conversation context passed to voice call through `voice_context_manager`
+
+### Architecture Overview
+
+**Voice Calling Flow:**
+1. **WhatsApp Trigger** (`webhook_endpoint.py`) → Router detects "call me" intent
+2. **Voice Calling Node** (`graph/nodes.py:voice_calling_node`) → Initiates call via Vapi
+3. **Vapi Client** (`interfaces/vapi/vapi_client.py`) → Creates assistant + makes outbound call
+4. **Custom LLM Endpoint** (`interfaces/vapi/vapi_endpoints.py`) → Processes voice conversations
+5. **LangGraph Integration** → Same AI brain as WhatsApp, just different interface
+
+### Implementation Details
+
+**Key Files & Functions:**
+- `src/ai_companion/graph/nodes.py:voice_calling_node()` - Call initiation trigger
+- `src/ai_companion/interfaces/vapi/vapi_client.py:make_outbound_call()` - Vapi SDK integration
+- `src/ai_companion/interfaces/vapi/vapi_endpoints.py:handle_voice_chat()` - Custom LLM endpoint
+- `src/ai_companion/interfaces/vapi/voice_context_manager.py` - Context preparation
 
 **Required Environment Variables:**
 ```env
-VAPI_API_PRIVATE_KEY=priv_your_key_here  # From Vapi dashboard
+# Vapi Configuration
+VAPI_API_PRIVATE_KEY=priv_your_key_here  # From Vapi dashboard  
 VAPI_PHONE_NUMBER_ID=uuid_here           # Your Vapi phone number ID
 RAILWAY_URL=https://your-app.up.railway.app  # Your deployment URL
+
+# Voice Assistant Setup
+ELEVENLABS_API_KEY=sk_...                # For consistent voice across WhatsApp/voice
+ELEVENLABS_VOICE_ID=uju3...              # Ava's voice ID
 ```
 
-**Key Features:**
-- LLM-based intent detection (not hardcoded patterns)
-- Conversation context continuity between WhatsApp and voice
-- Health check endpoint at `/vapi/health`
-- Test call endpoint at `/vapi/test-call` (disable in production)
+### Current Implementation Status
 
-**Testing Voice Calls:**
-1. Ensure all VAPI environment variables are set in Railway
-2. Check health: `GET /vapi/health`
-3. Send "call me" to WhatsApp bot
-4. Monitor Railway logs for call status
+**✅ Working Components:**
+- Phone call initiation from WhatsApp "call me" messages
+- Vapi assistant creation with correct parameters (fixed camelCase → snake_case issues)
+- Custom LLM endpoint receiving requests from Vapi
+- LangGraph processing voice conversations (same brain as WhatsApp)
+- OpenAI-compatible request/response format
+- Context continuity between WhatsApp and voice
+
+**🔧 Active Debugging:**
+- **Streaming Response Format**: Vapi sends `stream: True` but expects Server-Sent Events (SSE) format
+- **Issue**: We return complete JSON responses instead of streaming chunks
+- **Solution**: Implemented `stream_response_chunks()` function for OpenAI-compatible streaming
+- **Status**: Testing streaming response implementation
+
+**🐛 Recent Fixes Applied:**
+1. **Parameter Naming**: Fixed 18 camelCase → snake_case parameter issues in Vapi SDK calls
+2. **Invalid Parameters**: Removed unsupported assistant configuration parameters
+3. **Voice Provider**: Changed `"elevenlabs"` → `"11labs"` for Vapi compatibility
+4. **Import Errors**: Fixed package name references from `vapi-python` to `vapi_server_sdk`
+5. **Deprecation Warnings**: Updated `.dict()` → `.model_dump()` for Pydantic v2
+
+### Voice Calling Debug Process
+
+**Debugging Timeline:**
+1. **Initial Issue**: Calls connected but no speech output from Vapi
+2. **Investigation**: Added comprehensive logging to trace request/response flow
+3. **Discovery**: Vapi expects streaming responses when `stream: True` is set
+4. **Root Cause**: Format mismatch - complete JSON vs streaming SSE chunks
+5. **Solution**: Implemented OpenAI-compatible streaming response format
+
+**Debug Logging Added:**
+```python
+# Request analysis
+print(f"📨 FULL VAPI REQUEST: {request.model_dump()}")
+
+# LangGraph processing
+print(f"🚀 CALLING LANGGRAPH WITH: {graph_input}")
+print(f"📥 LANGGRAPH RESPONSE: {response}")
+
+# Response formatting  
+print(f"✅ VOICE RESPONSE SENT: {ava_response}")
+print(f"🔍 COMPLETE VAPI RESPONSE: {response_dict}")
+```
+
+### Technical Insights Learned
+
+**Vapi Custom LLM Requirements:**
+- Must support both streaming (`stream: True`) and complete response modes
+- Streaming responses require Server-Sent Events (SSE) format with specific headers
+- OpenAI compatibility means exact adherence to request/response schemas
+- Python SDK uses snake_case parameters, not camelCase like JavaScript APIs
+
+**Critical Implementation Details:**
+```python
+# Streaming Response Format Required:
+{
+  "Content-Type": "text/event-stream",
+  "Cache-Control": "no-cache", 
+  "Connection": "keep-alive"
+}
+
+# Each chunk format:
+data: {"choices": [{"delta": {"content": "word "}}]}
+
+# Termination:
+data: [DONE]
+```
+
+### Testing Voice Calls
+
+**Current Testing Process:**
+1. Send "call me" to WhatsApp bot
+2. Monitor Railway logs for:
+   - Router decision: `🤖 ROUTER DECISION: voice_call`
+   - Assistant creation: `✅ Voice assistant created`
+   - LangGraph processing: Voice conversation flow
+   - Response format: Complete vs streaming detection
+3. Test actual phone call connection and speech output
+
+### Next Steps
+
+**Immediate Priority:**
+1. **Deploy streaming response fix** - Test if SSE format resolves speech output
+2. **Verify end-to-end flow** - Ensure complete WhatsApp → Voice → Response cycle
+3. **Optimize assistant reuse** - Consider using existing assistant ID vs creating new ones
+4. **Add conversation persistence** - Maintain context across multiple voice interactions
+
+**Future Enhancements:**
+- Voice call → WhatsApp summary integration
+- Multi-turn conversation handling
+- Voice call analytics and logging
+- Integration with calendar/scheduling features
 
 ## Future Architecture Planning
 
