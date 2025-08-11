@@ -175,8 +175,8 @@ def create_workflow_graph():
     # Always retrieve user memories after context injection
     graph_builder.add_edge("context_injection_node", "memory_injection_node")
 
-    # BRANCHING FLOW (conditional edges that use decision functions):
-    
+    # BRANCHING FLOW (conditional edges that use decision functions):  
+
     # BRANCH 1: Route to appropriate response generator
     # After memory_injection_node completes, call select_workflow() edge function
     # select_workflow() returns: "conversation_node" OR "image_node" OR "audio_node"

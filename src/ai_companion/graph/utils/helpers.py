@@ -53,10 +53,11 @@ def get_chat_model(temperature: float = 0.7):
     🤖 AI MODEL FACTORY - Creates a configured Groq AI model for text generation
     
     WHAT IT DOES:
-    Creates a ready-to-use AI model (Groq's Llama 3.3 70B) with all the right settings.
+    Creates a ready-to-use AI model with all the right settings.
     Like getting a pre-tuned race car instead of building one from scratch.
     
-    WHY GROQ?
+    🚀 GROQ MODELS:
+    Returns standard ChatGroq with Llama models:
     - EXTREMELY fast inference (275+ tokens/second)
     - Cost-effective for high-volume usage
     - Reliable and consistent performance
@@ -77,14 +78,25 @@ def get_chat_model(temperature: float = 0.7):
     CONFIGURATION SOURCE:
     All settings come from settings.py:
     - API_KEY: Your Groq authentication
-    - MODEL_NAME: "llama-3.3-70b-versatile" (best balance of speed/quality)
+    - MODEL_NAME: Model to use (typically "llama-3.3-70b-versatile")
     - TEMPERATURE: Creativity level for this specific use
     """
-    return ChatGroq(
-        api_key=settings.GROQ_API_KEY,        # Authentication for Groq API
-        model_name=settings.TEXT_MODEL_NAME,  # "llama-3.3-70b-versatile"
-        temperature=temperature,              # Creativity level (0.0-1.0)
-    )
+    
+    # 🌐 DETECT GPT-OSS MODEL AND ADD REASONING CAPABILITIES
+    if "gpt-oss" in settings.TEXT_MODEL_NAME.lower():
+        return ChatGroq(
+            api_key=settings.GROQ_API_KEY,        # Authentication for Groq API
+            model_name=settings.TEXT_MODEL_NAME,  # GPT-OSS model name from settings
+            temperature=temperature,              # Creativity level (0.0-1.0)
+            # reasoning_effort="medium",            # GPT-OSS reasoning level (low/medium/high)
+            # max_tokens=2000,                      # Longer responses for detailed reasoning
+        )
+    else:
+        return ChatGroq(
+            api_key=settings.GROQ_API_KEY,        # Authentication for Groq API
+            model_name=settings.TEXT_MODEL_NAME,  # Model name from settings
+            temperature=temperature,              # Creativity level (0.0-1.0)
+        )
 
 
 def get_text_to_speech_module():

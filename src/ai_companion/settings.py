@@ -103,13 +103,13 @@ class Settings(BaseSettings):
     # 🤖 AI MODEL NAMES - Which specific AI models to use for different tasks
     # These determine Pepper's "brain power" and capabilities
     
-    TEXT_MODEL_NAME: str = "llama-3.3-70b-versatile"    # Main conversation model
-                                                         # Groq's most capable model for text
+    TEXT_MODEL_NAME: str = "openai/gpt-oss-120b"         # Main conversation model
+                                                         # GPT-OSS 120B with built-in browser search and reasoning
                                                          # Used by: conversation_node, router_node
     
-    SMALL_TEXT_MODEL_NAME: str = "gemma2-9b-it"         # Smaller, faster model  
-                                                         # For simple tasks where speed > quality
-                                                         # Used by: summarization, simple processing
+    SMALL_TEXT_MODEL_NAME: str = "llama3-8b-8192"       # Smaller model with structured output support
+                                                         # CRITICAL: Supports structured output (gemma2-9b-it does NOT)
+                                                         # Used by: memory analysis, summarization
     
     STT_MODEL_NAME: str = "whisper-large-v3-turbo"      # Speech-to-text model
                                                          # Converts your voice messages to text
