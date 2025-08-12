@@ -26,19 +26,15 @@ class AICompanionState(MessagesState):
     - messages: List[BaseMessage] - Full conversation history 
     - This gives us chat context for free!
 
-    As we mentioned earlier, LangGraph keeps track of your app's current status using the State. Pepper’s state has these attributes:
+    As we mentioned earlier, LangGraph keeps track of your app's current status using the State. Pepper's state has these attributes:
 
     summary - The summary of the conversation so far (more on this in Lesson 3)
 
-    workflow - The current workflow Pepper is in. Can be “conversation”, “image” or “audio”. More on this when we talk about the Router Node.
+    workflow - The current workflow Pepper is in. Can be "conversation", "image" or "audio". More on this when we talk about the Router Node.
 
-    audio_buffer - The buffer containing audio data for voice messages. This is something we’ll cover in Speech Mdoules. 
+    audio_buffer - The buffer containing audio data for voice messages. This is something we'll cover in Speech Modules. 
 
-    image_path - Path to the current image being generated. More about this in Image Generation Module. 
-
-    current_activity - Description of Pepper’s current simulated activity.
-
-    apply_activity - Flag indicating whether to apply or update the current activity.
+    image_path - Path to the current image being generated. More about this in Image Generation Module.
     """
 
     # 💭 CONVERSATION MANAGEMENT
@@ -61,19 +57,6 @@ class AICompanionState(MessagesState):
                          # Used by WhatsApp handler to send image back to user
                          # Example: "/tmp/pepper_activity_image.png"
 
-    # 📅 pepper'S LIFE & PERSONALITY
-    current_activity: str # What is Pepper doing right now based on her schedule?
-                         # Example: "reviewing ML papers", "coding a Python script"
-                         # Makes her feel more human and alive
-
-    apply_activity: bool  # Should Pepper mention her current activity in response?
-                         # Sometimes she talks about what she's doing, sometimes not
-                         # Adds natural variation to conversations
-
-    # 🧠 LONG-TERM MEMORY
-    memory_context: str   # Relevant memories about THIS USER retrieved from vector DB
-                         # Example: "John is a developer, likes pizza, lives in NYC, working on AI project"
-                         # This is the key to personalized responses!
 
     # 📞 VOICE CALLING SUPPORT (WHATSAPP → PHONE)
     user_phone_number: str = ""  # WhatsApp sender's phone number for voice calls

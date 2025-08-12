@@ -84,8 +84,24 @@ CRITICAL RULES:
 6. The user must be actively REQUESTING the media/call, not just referencing it
 
 OUTPUT REQUIREMENTS:
-Return EXACTLY one word: 'conversation', 'image', 'audio', or 'voice_call'
-No explanations, no extra text, just the decision.
+Return a JSON object with "response_type" field containing one of:
+'conversation', 'image', 'audio', or 'voice_call' like: 
+```json
+response_type: "image"
+```
+or 
+```json
+response_type: "audio"
+```
+or 
+```json
+response_type: "audio"
+```
+or 
+```json
+response_type: "voice_call"
+```
+Nothing else. Just the JSON.
 """
 
 IMAGE_SCENARIO_PROMPT = """

@@ -54,22 +54,43 @@ def get_tools(tool_names: Optional[List[str]] = None) -> List[BaseTool]:
     Returns:
         List of LangChain BaseTool objects ready for LLM binding
     """
-    # Start with empty registry - we'll populate as we create tools
-    all_tools = {}
+    # IMPORT COMPLETION TOOLS
+    from .completion import Done, Question
     
-    # TODO: Import tools as we create them
-    # from .basic.done_tool import Done
-    # from .search.web_search import web_search
-    # from .memory.memory_search import search_memories, store_memory
-    # from .calendar.calendar_tools import check_calendar, schedule_meeting
-    # all_tools.update({
-    #     "Done": Done,
-    #     "web_search": web_search,
-    #     "search_memories": search_memories,
-    #     "store_memory": store_memory,
-    #     "check_calendar": check_calendar,
-    #     "schedule_meeting": schedule_meeting,
-    # })
+    # IMPORT MOCK TOOLS FOR TESTING REACT WORKFLOW
+    from .mock_tools import (
+        mock_generate_text,
+        mock_generate_image, 
+        mock_generate_audio,
+        mock_search_memory,
+        mock_store_memory,
+        mock_web_search,
+        mock_create_note,
+        mock_schedule_reminder
+    )
+    
+    # BUILD COMPLETE TOOL REGISTRY
+    all_tools = {
+        # COMPLETION TOOLS - Signal when ReAct agent is done
+        "Done": Done,
+        "Question": Question,
+        
+        # CONTENT CREATION MOCK TOOLS - For testing creative workflows
+        "mock_generate_text": mock_generate_text,
+        "mock_generate_image": mock_generate_image,
+        "mock_generate_audio": mock_generate_audio,
+        
+        # MEMORY MOCK TOOLS - For testing memory workflows  
+        "mock_search_memory": mock_search_memory,
+        "mock_store_memory": mock_store_memory,
+        
+        # SEARCH MOCK TOOLS - For testing information gathering
+        "mock_web_search": mock_web_search,
+        
+        # TASK MANAGEMENT MOCK TOOLS - For testing productivity workflows
+        "mock_create_note": mock_create_note,
+        "mock_schedule_reminder": mock_schedule_reminder,
+    }
     
     # Return requested tools or all tools
     if tool_names is None:

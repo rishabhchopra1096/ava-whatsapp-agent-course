@@ -111,6 +111,7 @@ async def router_node(state: AICompanionState):
     # What comes back? RouterResponse object with response_type field
     response = await chain.ainvoke({"messages": recent_messages})
     
+    print(f"ROUTER RESPONSE OBJECT: {response}")
     # 🔍 DEBUG: LOG ROUTER DECISION
     print(f"🤖 ROUTER DECISION: {response.response_type}")
     

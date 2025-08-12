@@ -138,7 +138,7 @@ class Settings(BaseSettings):
                                         # Higher = better decisions, more expensive
                                         # Used by: router_node for response type decisions
     
-    TOTAL_MESSAGES_SUMMARY_TRIGGER: int = 20  # When to compress conversation
+    TOTAL_MESSAGES_SUMMARY_TRIGGER: int = 300  # When to compress conversation
                                               # 20 messages = roughly 1-2 pages of chat
                                               # Used by: should_summarize_conversation edge
     

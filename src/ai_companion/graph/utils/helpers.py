@@ -83,20 +83,13 @@ def get_chat_model(temperature: float = 0.7):
     """
     
     # 🌐 DETECT GPT-OSS MODEL AND ADD REASONING CAPABILITIES
-    if "gpt-oss" in settings.TEXT_MODEL_NAME.lower():
-        return ChatGroq(
-            api_key=settings.GROQ_API_KEY,        # Authentication for Groq API
-            model_name=settings.TEXT_MODEL_NAME,  # GPT-OSS model name from settings
-            temperature=temperature,              # Creativity level (0.0-1.0)
-            # reasoning_effort="medium",            # GPT-OSS reasoning level (low/medium/high)
-            # max_tokens=2000,                      # Longer responses for detailed reasoning
-        )
-    else:
-        return ChatGroq(
-            api_key=settings.GROQ_API_KEY,        # Authentication for Groq API
-            model_name=settings.TEXT_MODEL_NAME,  # Model name from settings
-            temperature=temperature,              # Creativity level (0.0-1.0)
-        )
+    return ChatGroq(
+        api_key=settings.GROQ_API_KEY,        # Authentication for Groq API
+        model_name=settings.TEXT_MODEL_NAME,  # GPT-OSS model name from settings
+        temperature=temperature,              # Creativity level (0.0-1.0)
+        # reasoning_effort="medium",            # GPT-OSS reasoning level (low/medium/high)
+        # max_tokens=2000,                      # Longer responses for detailed reasoning
+    )
 
 
 def get_text_to_speech_module():
