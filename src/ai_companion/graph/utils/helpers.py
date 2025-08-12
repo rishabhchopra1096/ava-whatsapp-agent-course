@@ -39,6 +39,7 @@ import re
 from langchain_core.output_parsers import StrOutputParser
 # Groq integration for fast LLM inference
 from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 # Our custom modules for different AI capabilities
 from ai_companion.modules.image.image_to_text import ImageToText    # Describe images
@@ -50,18 +51,18 @@ from ai_companion.settings import settings
 
 def get_chat_model(temperature: float = 0.7):
     """
-    🤖 AI MODEL FACTORY - Creates a configured Groq AI model for text generation
+    🤖 AI MODEL FACTORY - Creates a configured Google Gemini model for text generation
     
     WHAT IT DOES:
     Creates a ready-to-use AI model with all the right settings.
     Like getting a pre-tuned race car instead of building one from scratch.
     
-    🚀 GROQ MODELS:
-    Returns standard ChatGroq with Llama models:
-    - EXTREMELY fast inference (275+ tokens/second)
-    - Cost-effective for high-volume usage
-    - Reliable and consistent performance
-    - Perfect for real-time chat applications
+    🚀 GOOGLE GEMINI MODELS:
+    Returns ChatGoogleGenerativeAI with Gemini 2.5 Flash:
+    - EXCELLENT structured output support (fixes ReAct tool calling)
+    - Fast inference optimized for real-time chat
+    - Reliable tool calling and JSON format adherence
+    - Perfect for ReAct workflows requiring consistent schemas
     
     TEMPERATURE PARAMETER:
     Controls AI creativity/randomness (0.0 to 1.0):
@@ -73,22 +74,24 @@ def get_chat_model(temperature: float = 0.7):
     USAGE EXAMPLES:
     - router_node uses temperature=0.3 (consistent routing decisions)
     - conversation_node uses default 0.7 (natural personality)
-    - summarize_node might use 0.5 (creative but focused)
+    - ReAct tool calling uses 0.0-0.3 (predictable tool usage)
     
     CONFIGURATION SOURCE:
     All settings come from settings.py:
-    - API_KEY: Your Groq authentication
-    - MODEL_NAME: Model to use (typically "llama-3.3-70b-versatile")
+    - API_KEY: Your Google API authentication 
+    - MODEL_NAME: "gemini-2.5-flash" (fast, reliable, structured output)
     - TEMPERATURE: Creativity level for this specific use
     """
     
-    # 🌐 DETECT GPT-OSS MODEL AND ADD REASONING CAPABILITIES
-    return ChatGroq(
-        api_key=settings.GROQ_API_KEY,        # Authentication for Groq API
-        model_name=settings.TEXT_MODEL_NAME,  # GPT-OSS model name from settings
+    # 🌐 GOOGLE GEMINI 2.5 FLASH FOR RELIABLE STRUCTURED OUTPUT
+    # Replaced Groq to fix tool calling and structured output issues
+    return ChatGoogleGenerativeAI(
+        model=settings.TEXT_MODEL_NAME,      # "gemini-2.5-flash" from settings
+        api_key=settings.GOOGLE_API_KEY,     # Google API authentication
         temperature=temperature,              # Creativity level (0.0-1.0)
-        # reasoning_effort="medium",            # GPT-OSS reasoning level (low/medium/high)
-        # max_tokens=2000,                      # Longer responses for detailed reasoning
+        max_tokens=None,                     # No token limit
+        timeout=None,                        # No timeout limit
+        max_retries=2,                       # Retry failed requests twice
     )
 
 

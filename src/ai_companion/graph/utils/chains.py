@@ -88,7 +88,7 @@ def get_router_chain():
     
     THE ASSEMBLY LINE:
     1. PROMPT: Takes messages + ROUTER_PROMPT instructions
-    2. MODEL: Groq Llama 3.3 70B analyzes and decides  
+    2. MODEL: Google Gemini 2.5 Flash analyzes and decides  
     3. STRUCTURED OUTPUT: Forces response into RouterResponse format
     
     WHY TEMPERATURE 0.3?
@@ -100,7 +100,7 @@ def get_router_chain():
     """
     
     # STEP 1: Get the AI model with specific settings
-    # get_chat_model() returns Groq Llama 3.3 70B (from helpers.py)
+    # get_chat_model() returns Google Gemini 2.5 Flash (from helpers.py)
     # temperature=0.3 makes decisions more consistent/predictable
     # .with_structured_output() forces responses into RouterResponse format
     model = get_chat_model(temperature=0.3).with_structured_output(RouterResponse)
@@ -132,7 +132,7 @@ def get_character_response_chain(summary: str = ""):
     
     THE ASSEMBLY LINE:
     1. PROMPT: Pepper's personality + conversation context + optional summary
-    2. MODEL: Groq Llama 3.3 70B generates response in Pepper's voice
+    2. MODEL: Google Gemini 2.5 Flash generates response in Pepper's voice
     3. PARSER: Removes asterisk formatting (*like this*) for clean output
     
     WHY NO STRUCTURED OUTPUT?

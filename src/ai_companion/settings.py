@@ -69,6 +69,10 @@ class Settings(BaseSettings):
                                         # Get from: https://console.groq.com/keys
                                         # Used by: router_node, conversation_node, all text generation
     
+    GOOGLE_API_KEY: str                 # For Gemini models (replacing Groq for better reliability)
+                                        # Get from: https://ai.google.dev/gemini-api/docs/api-key
+                                        # Used by: router_node, conversation_node, structured output
+    
     ELEVENLABS_API_KEY: str             # For text-to-speech (Pepper's voice)
                                         # Get from: https://elevenlabs.io/app/settings/api-keys
                                         # Used by: audio_node when generating voice responses
@@ -103,8 +107,8 @@ class Settings(BaseSettings):
     # 🤖 AI MODEL NAMES - Which specific AI models to use for different tasks
     # These determine Pepper's "brain power" and capabilities
     
-    TEXT_MODEL_NAME: str = "openai/gpt-oss-120b"         # Main conversation model
-                                                         # GPT-OSS 120B with built-in browser search and reasoning
+    TEXT_MODEL_NAME: str = "gemini-2.5-flash"           # Main conversation model
+                                                         # Gemini 2.5 Flash - fast, reliable, great structured output
                                                          # Used by: conversation_node, router_node
     
     SMALL_TEXT_MODEL_NAME: str = "llama3-8b-8192"       # Smaller model with structured output support
